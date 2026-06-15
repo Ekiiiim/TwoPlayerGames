@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
-import type { PlayerId } from '@bw/shared';
+import { playCard, type PlayerId } from '@bw/shared';
 import { RoomRegistry, makeToken } from './rooms';
 import type { GameSession } from './gameSession';
 
@@ -9,6 +9,15 @@ function broadcastViews(io: Server, session: GameSession, roomCode: string) {
     const player = session.players[id];
     if (player?.socketId) {
       io.to(player.socketId).emit('view_update', session.viewFor(id));
+    }
+  }
+}
+
+function broadcastReview(io: Server, session: GameSession, roomCode: string) {
+  for (const id of ['p1', 'p2'] as PlayerId[]) {
+    const player = session.players[id];
+    if (player?.socketId) {
+      io.to(player.socketId).emit('game_over', session.reviewFor(id));
     }
   }
 }
@@ -59,8 +68,21 @@ export async function startServer(port: number): Promise<{
       broadcastViews(io, session, roomCode);
     });
 
-    void myRoom;
-    void myId;
+    socket.on('play_card', ({ card }: { card: number }) => {
+      if (!myRoom || !myId) return;
+      const session = rooms.get(myRoom);
+      if (!session || !session.state) return;
+      try {
+        session.state = playCard(session.state, myId, card);
+      } catch (e) {
+        socket.emit('error_msg', { message: (e as Error).message });
+        return;
+      }
+      broadcastViews(io, session, myRoom);
+      if (session.state.phase === 'finished') {
+        broadcastReview(io, session, myRoom);
+      }
+    });
   });
 
   await new Promise<void>((resolve) => http.listen(port, resolve));

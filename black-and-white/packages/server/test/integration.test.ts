@@ -51,3 +51,33 @@ describe('rooms', () => {
     a.close(); b.close();
   });
 });
+
+describe('play_card flow', () => {
+  it('leader color is revealed to follower before they play', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port); const b = connect(port);
+    a.emit('create_room');
+    const { roomCode } = await once<any>(a, 'room_created');
+
+    const pA0 = once<any>(a, 'view_update');
+    const pB0 = once<any>(b, 'view_update');
+    b.emit('join_room', { roomCode });
+    const va0 = await pA0;
+    await pB0;
+
+    // 找出 leader
+    const leader = va0.currentRound.iAmLeader ? a : b;
+    const follower = leader === a ? b : a;
+
+    const pFollowerView = once<any>(follower, 'view_update');
+    leader.emit('play_card', { card: 6 });          // 6 = black
+    const fView = await pFollowerView;
+    expect(fView.currentRound.leaderHasPlayed).toBe(true);
+    expect(fView.currentRound.leaderColor).toBe('black');
+    // follower 视图里不应出现 leader 的数字 6
+    expect(JSON.stringify(fView)).not.toContain('"6"');
+
+    a.close(); b.close();
+  });
+});
