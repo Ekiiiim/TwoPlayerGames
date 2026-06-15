@@ -55,3 +55,15 @@ describe('playCard happy path', () => {
     expect(otherPlayer('p2')).toBe('p1');
   });
 });
+
+describe('playCard draw', () => {
+  it('equal cards: no score, leader unchanged next round', () => {
+    let g = createGame('p1');
+    g = playCard(g, 'p1', 4);
+    g = playCard(g, 'p2', 4);           // draw
+    expect(g.scores).toEqual({ p1: 0, p2: 0 });
+    expect(g.history[0].winner).toBe('draw');
+    expect(g.current.index).toBe(2);
+    expect(g.current.leader).toBe('p1'); // unchanged
+  });
+});
