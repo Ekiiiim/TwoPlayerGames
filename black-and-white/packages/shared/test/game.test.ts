@@ -74,10 +74,9 @@ describe('playCard validation', () => {
     const g = createGame('p1');         // p1 leads
     expect(() => playCard(g, 'p2', 3)).toThrow(/not your turn/i);
   });
-  it('rejects a card not in hand', () => {
-    let g = createGame('p1');
-    g = playCard(g, 'p1', 5);
-    expect(() => playCard(g, 'p1', 5)).toThrow(); // p1 already played / not turn
+  it('rejects leader playing a card they do not hold', () => {
+    const g = createGame('p1');
+    expect(() => playCard(g, 'p1', 99)).toThrow(/not in hand/i);
   });
   it('rejects follower playing a card they do not hold', () => {
     let g = createGame('p1');

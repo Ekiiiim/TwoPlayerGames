@@ -18,7 +18,6 @@ export interface GameState {
     index: number;          // 1..9
     leader: PlayerId;
     leaderCard?: Card;
-    followerCard?: Card;
   };
   history: RoundRecord[];
   phase: Phase;
@@ -36,7 +35,6 @@ export interface ClientView {
     iAmLeader: boolean;
     leaderColor?: Color;
     leaderHasPlayed: boolean;
-    followerHasPlayed: boolean;
   };
   turn: 'me' | 'opp';
   phase: Phase;

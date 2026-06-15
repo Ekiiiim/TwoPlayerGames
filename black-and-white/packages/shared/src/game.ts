@@ -87,6 +87,8 @@ export function playCard(g: GameState, player: PlayerId, card: Card): GameState 
     hands,
     scores,
     history,
+    // When finished, intentionally keep current.index at the last played
+    // round (9) — there is no round 10, so it is never advanced.
     current: finished
       ? { index: g.current.index, leader: nextLeader }
       : { index: nextIndex, leader: nextLeader },
@@ -103,7 +105,6 @@ export function toClientView(g: GameState, me: PlayerId): ClientView {
 
   // 当前回合进行中的牌
   const leaderPlayed = g.current.leaderCard !== undefined;
-  const followerPlayed = g.current.followerCard !== undefined;
 
   const myPlayed = [...myPlayedFromHistory];
   const oppColors = [...oppColorsFromHistory];
@@ -111,8 +112,6 @@ export function toClientView(g: GameState, me: PlayerId): ClientView {
   // 当前回合：我若已出，补进 myPlayed；对手若已出，补颜色
   const iAmLeader = leader === me;
   if (iAmLeader && leaderPlayed) myPlayed.push(g.current.leaderCard!);
-  if (!iAmLeader && followerPlayed) myPlayed.push(g.current.followerCard!);
-  if (iAmLeader && followerPlayed) oppColors.push(colorOf(g.current.followerCard!));
   if (!iAmLeader && leaderPlayed) oppColors.push(colorOf(g.current.leaderCard!));
 
   const roundResults: RoundResult[] = g.history.map((r) =>
@@ -131,7 +130,6 @@ export function toClientView(g: GameState, me: PlayerId): ClientView {
       iAmLeader,
       leaderColor: leaderPlayed ? colorOf(g.current.leaderCard!) : undefined,
       leaderHasPlayed: leaderPlayed,
-      followerHasPlayed: followerPlayed,
     },
     turn: currentTurn(g) === me ? 'me' : 'opp',
     phase: g.phase,
