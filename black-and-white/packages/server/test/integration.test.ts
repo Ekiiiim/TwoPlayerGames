@@ -152,3 +152,26 @@ describe('anti-cheat', () => {
     }
   });
 });
+
+describe('rejoin', () => {
+  it('restores view after reconnect with sessionToken', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port); const b = connect(port);
+    a.emit('create_room');
+    const created = await once<any>(a, 'room_created');
+
+    const pA0 = once<any>(a, 'view_update');
+    const pB0 = once<any>(b, 'view_update');
+    b.emit('join_room', { roomCode: created.roomCode });
+    await pA0;
+    await pB0;
+
+    a.close(); // p1 掉线
+    const a2 = connect(port);
+    a2.emit('rejoin', { roomCode: created.roomCode, sessionToken: created.sessionToken });
+    const restored = await once<any>(a2, 'view_update');
+    expect(restored.phase).toBe('playing');
+    a2.close(); b.close();
+  });
+});

@@ -83,6 +83,35 @@ export async function startServer(port: number): Promise<{
         broadcastReview(io, session, myRoom);
       }
     });
+
+    socket.on('rejoin', ({ roomCode, sessionToken }: { roomCode: string; sessionToken: string }) => {
+      const session = rooms.get(roomCode);
+      if (!session) {
+        socket.emit('error_msg', { message: '房间不存在' });
+        return;
+      }
+      const entry = (['p1', 'p2'] as PlayerId[])
+        .map((id) => session.players[id])
+        .find((p) => p && p.sessionToken === sessionToken);
+      if (!entry) {
+        socket.emit('error_msg', { message: '会话无效' });
+        return;
+      }
+      entry.socketId = socket.id;
+      myRoom = roomCode;
+      myId = entry.id;
+      socket.join(roomCode);
+      socket.emit('view_update', session.viewFor(entry.id));
+      socket.to(roomCode).emit('opponent_reconnected');
+    });
+
+    socket.on('disconnect', () => {
+      if (!myRoom || !myId) return;
+      const session = rooms.get(myRoom);
+      const player = session?.players[myId];
+      if (player) player.socketId = null;
+      socket.to(myRoom).emit('opponent_disconnected');
+    });
   });
 
   await new Promise<void>((resolve) => http.listen(port, resolve));
