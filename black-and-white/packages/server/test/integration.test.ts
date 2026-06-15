@@ -8,6 +8,13 @@ afterEach(async () => {
   stop = null;
 });
 
+function connect(port: number) {
+  return ioc(`http://localhost:${port}`, { forceNew: true });
+}
+function once<T>(socket: any, ev: string): Promise<T> {
+  return new Promise((res) => socket.once(ev, res));
+}
+
 describe('server smoke', () => {
   it('accepts a socket connection', async () => {
     const { port, close } = await startServer(0);
@@ -16,5 +23,31 @@ describe('server smoke', () => {
     await new Promise<void>((resolve) => c.on('connect', () => resolve()));
     expect(c.connected).toBe(true);
     c.close();
+  });
+});
+
+describe('rooms', () => {
+  it('create then join starts the game for both', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    const b = connect(port);
+
+    a.emit('create_room');
+    const created = await once<{ roomCode: string; sessionToken: string }>(a, 'room_created');
+    expect(created.roomCode).toMatch(/^[A-Z0-9]{6}$/);
+
+    // 注册两个监听器后再触发 join_room，避免事件到达顺序导致的竞态
+    const pA = once<any>(a, 'view_update');
+    const pB = once<any>(b, 'view_update');
+    b.emit('join_room', { roomCode: created.roomCode });
+    const startA = await pA;
+    const startB = await pB;
+    expect(startA.phase).toBe('playing');
+    expect(startB.phase).toBe('playing');
+    // 恰好一方是本回合 leader
+    expect(startA.currentRound.iAmLeader).not.toBe(startB.currentRound.iAmLeader);
+
+    a.close(); b.close();
   });
 });
