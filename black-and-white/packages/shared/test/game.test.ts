@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { colorOf, createGame, playCard, otherPlayer, toClientView } from '../src/game';
-import type { Card, GameState, PlayerId } from '../src/types';
+import { colorOf, createGame, playCard, otherPlayer, toClientView, toReview } from '../src/game';
+import type { Card, PlayerId } from '../src/types';
 
 describe('colorOf', () => {
   it('even cards are black', () => {
@@ -131,5 +131,37 @@ describe('toClientView', () => {
     const v2 = toClientView(g, 'p2');
     expect(v2.scores).toEqual({ me: 0, opp: 1 });
     expect(v2.roundResults).toEqual(['lose']);
+  });
+});
+
+describe('toReview', () => {
+  it('reveals both real cards per round from each perspective', () => {
+    let g = createGame('p1');
+    const moves: Array<[PlayerId, Card]> = [
+      ['p1', 8], ['p2', 0],  // R1 p1 leads, p1 wins
+      ['p1', 7], ['p2', 1],  // R2 p1 wins
+      ['p1', 6], ['p2', 2],  // R3 p1 wins
+      ['p1', 5], ['p2', 3],  // R4 p1 wins
+      ['p1', 4], ['p2', 4],  // R5 draw, leader stays p1
+      ['p1', 3], ['p2', 5],  // R6 p2 wins -> p2 leads
+      ['p2', 8], ['p1', 0],  // R7 p2 leads, p2 wins
+      ['p2', 7], ['p1', 1],  // R8 p2 wins
+      ['p2', 6], ['p1', 2],  // R9 p2 wins
+    ];
+    for (const [p, c] of moves) g = playCard(g, p, c);
+
+    const r = toReview(g, 'p1');
+    expect(r.rounds).toHaveLength(9);
+    expect(r.rounds[0]).toEqual({ round: 1, firstPlayer: 'me', myCard: 8, oppCard: 0, result: 'win' });
+    expect(r.rounds[6]).toEqual({ round: 7, firstPlayer: 'opp', myCard: 0, oppCard: 8, result: 'lose' });
+    expect(r.finalScore).toEqual({ me: 4, opp: 4 });
+    expect(r.winner).toBe('draw');
+  });
+
+  it('winner reflects final score', () => {
+    const base = createGame('p1');
+    expect(toReview({ ...base, phase: 'finished', scores: { p1: 5, p2: 4 } }, 'p1').winner).toBe('me');
+    expect(toReview({ ...base, phase: 'finished', scores: { p1: 4, p2: 5 } }, 'p1').winner).toBe('opp');
+    expect(toReview({ ...base, phase: 'finished', scores: { p1: 4, p2: 4 } }, 'p1').winner).toBe('draw');
   });
 });

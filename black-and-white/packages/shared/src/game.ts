@@ -1,4 +1,14 @@
-import type { Card, ClientView, Color, GameState, PlayerId, RoundRecord, RoundResult } from './types';
+import type {
+  Card,
+  ClientView,
+  Color,
+  GameReview,
+  GameReviewRound,
+  GameState,
+  PlayerId,
+  RoundRecord,
+  RoundResult,
+} from './types';
 
 export function colorOf(card: Card): Color {
   return card % 2 === 0 ? 'black' : 'white';
@@ -126,4 +136,21 @@ export function toClientView(g: GameState, me: PlayerId): ClientView {
     turn: currentTurn(g) === me ? 'me' : 'opp',
     phase: g.phase,
   };
+}
+
+export function toReview(g: GameState, me: PlayerId): GameReview {
+  const opp = otherPlayer(me);
+  const rounds: GameReviewRound[] = g.history.map((r) => ({
+    round: r.round,
+    firstPlayer: r.leader === me ? 'me' : 'opp',
+    myCard: r.cards[me],
+    oppCard: r.cards[opp],
+    result: r.winner === 'draw' ? 'draw' : r.winner === me ? 'win' : 'lose',
+  }));
+
+  const myScore = g.scores[me];
+  const oppScore = g.scores[opp];
+  const winner = myScore > oppScore ? 'me' : oppScore > myScore ? 'opp' : 'draw';
+
+  return { rounds, finalScore: { me: myScore, opp: oppScore }, winner };
 }
