@@ -70,13 +70,16 @@ export function playCard(g: GameState, player: PlayerId, card: Card): GameState 
 
   // 下回合 leader：赢家先出；平局维持原 leader
   const nextLeader = winner === 'draw' ? leader : winner;
+  const finished = g.current.index >= 9;
   const nextIndex = g.current.index + 1;
 
   return {
     hands,
     scores,
     history,
-    current: { index: nextIndex, leader: nextLeader },
-    phase: g.phase,
+    current: finished
+      ? { index: g.current.index, leader: nextLeader }
+      : { index: nextIndex, leader: nextLeader },
+    phase: finished ? 'finished' : 'playing',
   };
 }

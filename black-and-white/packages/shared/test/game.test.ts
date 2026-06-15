@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { colorOf, createGame, playCard, otherPlayer } from '../src/game';
+import type { Card, GameState, PlayerId } from '../src/types';
 
 describe('colorOf', () => {
   it('even cards are black', () => {
@@ -87,5 +88,21 @@ describe('playCard validation', () => {
   it('rejects play when game finished', () => {
     const g = { ...createGame('p1'), phase: 'finished' as const };
     expect(() => playCard(g, 'p1', 1)).toThrow(/not in progress/i);
+  });
+});
+
+describe('game end', () => {
+  it('after 9 rounds phase is finished', () => {
+    let g = createGame('p1');
+    for (let card = 8; card >= 0; card--) {
+      g = playCard(g, 'p1', card);
+      g = playCard(g, 'p2', card); // equal cards -> draw every round
+    }
+    expect(g.phase).toBe('finished');
+    expect(g.scores).toEqual({ p1: 0, p2: 0 });
+    expect(g.history).toHaveLength(9);
+    expect(g.history.every((r) => r.winner === 'draw')).toBe(true);
+    expect(g.hands.p1).toHaveLength(0);
+    expect(g.hands.p2).toHaveLength(0);
   });
 });
