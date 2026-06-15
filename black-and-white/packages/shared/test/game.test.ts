@@ -67,3 +67,25 @@ describe('playCard draw', () => {
     expect(g.current.leader).toBe('p1'); // unchanged
   });
 });
+
+describe('playCard validation', () => {
+  it('rejects when it is not the player turn', () => {
+    const g = createGame('p1');         // p1 leads
+    expect(() => playCard(g, 'p2', 3)).toThrow(/not your turn/i);
+  });
+  it('rejects a card not in hand', () => {
+    let g = createGame('p1');
+    g = playCard(g, 'p1', 5);
+    expect(() => playCard(g, 'p1', 5)).toThrow(); // p1 already played / not turn
+  });
+  it('rejects follower playing a card they do not hold', () => {
+    let g = createGame('p1');
+    g = playCard(g, 'p1', 5);
+    // p2 still holds 0..8; playing 99 is invalid
+    expect(() => playCard(g, 'p2', 99)).toThrow(/not in hand/i);
+  });
+  it('rejects play when game finished', () => {
+    const g = { ...createGame('p1'), phase: 'finished' as const };
+    expect(() => playCard(g, 'p1', 1)).toThrow(/not in progress/i);
+  });
+});

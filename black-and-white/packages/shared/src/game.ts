@@ -29,6 +29,16 @@ export function currentTurn(g: GameState): PlayerId {
 }
 
 export function playCard(g: GameState, player: PlayerId, card: Card): GameState {
+  if (g.phase !== 'playing') {
+    throw new Error('Game is not in progress');
+  }
+  if (currentTurn(g) !== player) {
+    throw new Error('It is not your turn');
+  }
+  if (!g.hands[player].includes(card)) {
+    throw new Error('Card is not in hand');
+  }
+
   const leader = g.current.leader;
   const follower = otherPlayer(leader);
 
