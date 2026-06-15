@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { colorOf, createGame } from '../src/game';
+import { colorOf, createGame, playCard, otherPlayer } from '../src/game';
 
 describe('colorOf', () => {
   it('even cards are black', () => {
@@ -25,5 +25,33 @@ describe('createGame', () => {
     expect(g.phase).toBe('playing');
     expect(g.scores).toEqual({ p1: 0, p2: 0 });
     expect(g.history).toEqual([]);
+  });
+});
+
+describe('playCard happy path', () => {
+  it('leader plays, then follower; higher card wins the round', () => {
+    let g = createGame('p1');           // p1 leads
+    g = playCard(g, 'p1', 5);           // leader
+    expect(g.current.leaderCard).toBe(5);
+    expect(g.hands.p1).not.toContain(5);
+    g = playCard(g, 'p2', 3);           // follower (p2)
+    // round resolved: p1 wins
+    expect(g.scores).toEqual({ p1: 1, p2: 0 });
+    expect(g.history).toHaveLength(1);
+    expect(g.history[0]).toEqual({
+      round: 1, leader: 'p1', cards: { p1: 5, p2: 3 }, winner: 'p1',
+    });
+  });
+  it('winner leads the next round', () => {
+    let g = createGame('p1');
+    g = playCard(g, 'p1', 2);
+    g = playCard(g, 'p2', 6);           // p2 wins
+    expect(g.current.index).toBe(2);
+    expect(g.current.leader).toBe('p2');
+    expect(g.current.leaderCard).toBeUndefined();
+  });
+  it('otherPlayer flips id', () => {
+    expect(otherPlayer('p1')).toBe('p2');
+    expect(otherPlayer('p2')).toBe('p1');
   });
 });
