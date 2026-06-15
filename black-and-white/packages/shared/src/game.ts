@@ -1,4 +1,4 @@
-import type { Card, Color, GameState, PlayerId, RoundRecord } from './types';
+import type { Card, ClientView, Color, GameState, PlayerId, RoundRecord, RoundResult } from './types';
 
 export function colorOf(card: Card): Color {
   return card % 2 === 0 ? 'black' : 'white';
@@ -81,5 +81,49 @@ export function playCard(g: GameState, player: PlayerId, card: Card): GameState 
       ? { index: g.current.index, leader: nextLeader }
       : { index: nextIndex, leader: nextLeader },
     phase: finished ? 'finished' : 'playing',
+  };
+}
+
+export function toClientView(g: GameState, me: PlayerId): ClientView {
+  const opp = otherPlayer(me);
+  const leader = g.current.leader;
+
+  const myPlayedFromHistory = g.history.map((r) => r.cards[me]);
+  const oppColorsFromHistory: Color[] = g.history.map((r) => colorOf(r.cards[opp]));
+
+  // 当前回合进行中的牌
+  const leaderPlayed = g.current.leaderCard !== undefined;
+  const followerPlayed = g.current.followerCard !== undefined;
+
+  const myPlayed = [...myPlayedFromHistory];
+  const oppColors = [...oppColorsFromHistory];
+
+  // 当前回合：我若已出，补进 myPlayed；对手若已出，补颜色
+  const iAmLeader = leader === me;
+  if (iAmLeader && leaderPlayed) myPlayed.push(g.current.leaderCard!);
+  if (!iAmLeader && followerPlayed) myPlayed.push(g.current.followerCard!);
+  if (iAmLeader && followerPlayed) oppColors.push(colorOf(g.current.followerCard!));
+  if (!iAmLeader && leaderPlayed) oppColors.push(colorOf(g.current.leaderCard!));
+
+  const roundResults: RoundResult[] = g.history.map((r) =>
+    r.winner === 'draw' ? 'draw' : r.winner === me ? 'win' : 'lose',
+  );
+
+  return {
+    myHand: [...g.hands[me]],
+    myPlayedCards: myPlayed,
+    opponentCardsLeft: g.hands[opp].length,
+    opponentPlayedColors: oppColors,
+    roundResults,
+    scores: { me: g.scores[me], opp: g.scores[opp] },
+    currentRound: {
+      index: g.current.index,
+      iAmLeader,
+      leaderColor: leaderPlayed ? colorOf(g.current.leaderCard!) : undefined,
+      leaderHasPlayed: leaderPlayed,
+      followerHasPlayed: followerPlayed,
+    },
+    turn: currentTurn(g) === me ? 'me' : 'opp',
+    phase: g.phase,
   };
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { colorOf, createGame, playCard, otherPlayer } from '../src/game';
+import { colorOf, createGame, playCard, otherPlayer, toClientView } from '../src/game';
 import type { Card, GameState, PlayerId } from '../src/types';
 
 describe('colorOf', () => {
@@ -104,5 +104,32 @@ describe('game end', () => {
     expect(g.history.every((r) => r.winner === 'draw')).toBe(true);
     expect(g.hands.p1).toHaveLength(0);
     expect(g.hands.p2).toHaveLength(0);
+  });
+});
+
+describe('toClientView', () => {
+  it('hides opponent numbers, exposes only colors', () => {
+    let g = createGame('p1');
+    g = playCard(g, 'p1', 5);           // leader plays; color white visible
+    const followerView = toClientView(g, 'p2');
+    expect(followerView.currentRound.iAmLeader).toBe(false);
+    expect(followerView.currentRound.leaderColor).toBe('white'); // 5 is white
+    expect(followerView.currentRound.leaderHasPlayed).toBe(true);
+    expect(followerView.turn).toBe('me');
+    // serialize whole view; opponent's number 5 must not appear anywhere
+    expect(JSON.stringify(followerView)).not.toContain('"5"');
+  });
+  it('maps scores and results to me/opp perspective', () => {
+    let g = createGame('p1');
+    g = playCard(g, 'p1', 8);
+    g = playCard(g, 'p2', 0);           // p1 wins R1
+    const v1 = toClientView(g, 'p1');
+    expect(v1.scores).toEqual({ me: 1, opp: 0 });
+    expect(v1.roundResults).toEqual(['win']);
+    expect(v1.myPlayedCards).toEqual([8]);
+    expect(v1.opponentPlayedColors).toEqual(['black']); // 0 is black
+    const v2 = toClientView(g, 'p2');
+    expect(v2.scores).toEqual({ me: 0, opp: 1 });
+    expect(v2.roundResults).toEqual(['lose']);
   });
 });
