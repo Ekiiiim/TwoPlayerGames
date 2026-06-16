@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { createRoom, joinRoom, roomCode, status } from '../socket';
-  let code = '';
+  import { createRoom, joinRoom, roomCode, status } from "../socket";
+  let code = "";
 </script>
 
 <div class="lobby-card">
   <h1 class="title">黑与白</h1>
-  <p class="subtitle">经典两人对战卡牌游戏</p>
+  <p class="subtitle">《游戏的法则IV》Ep.01</p>
 
   <div class="divider"></div>
 
@@ -55,8 +55,8 @@
     flex-direction: column;
     align-items: center;
     gap: 20px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-    border: 1px solid rgba(217,178,91,0.2);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(217, 178, 91, 0.2);
   }
 
   .title {
@@ -76,7 +76,7 @@
   .divider {
     width: 100%;
     height: 1px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .action-group,
@@ -116,8 +116,8 @@
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(217,178,91,0.25);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(217, 178, 91, 0.25);
     border-radius: 10px;
     padding: 14px 28px;
     width: 100%;
@@ -144,7 +144,7 @@
   }
 
   .code-input {
-    background: rgba(0,0,0,0.25);
+    background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--btn-ghost-border);
     border-radius: 8px;
     padding: 12px 16px;
@@ -164,7 +164,7 @@
   }
 
   .code-input::placeholder {
-    color: rgba(203,185,138,0.4);
+    color: rgba(203, 185, 138, 0.4);
     letter-spacing: 1px;
     font-family: inherit;
   }
