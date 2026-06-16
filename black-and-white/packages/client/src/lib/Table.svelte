@@ -39,10 +39,6 @@
     leaveRoom();
   }
 
-  function isBlack(c: number): boolean {
-    return c % 2 === 0;
-  }
-
   const resultLabel: Record<string, string> = { win: '胜', lose: '负', draw: '平' };
   const colorLabel: Record<string, string> = { black: '黑', white: '白' };
 
@@ -153,9 +149,9 @@
 <!-- ── Leave-game confirmation modal ── -->
 {#if showLeaveModal}
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
-  <div class="modal-backdrop" on:click|self={closeLeaveModal} role="dialog" aria-modal="true">
+  <div class="modal-backdrop" on:click|self={closeLeaveModal} role="dialog" aria-modal="true" aria-labelledby="leave-modal-title">
     <div class="modal-box">
-      <p class="modal-text">确定退出？退出将判负，对手获胜。</p>
+      <p class="modal-text" id="leave-modal-title">确定退出？退出将判负，对手获胜。</p>
       <div class="modal-actions">
         <button class="btn-danger" on:click={confirmLeave}>确认退出</button>
         <button class="btn-ghost" on:click={closeLeaveModal}>取消</button>
