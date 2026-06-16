@@ -288,6 +288,75 @@ describe('game_over event (item 8)', () => {
   });
 });
 
+describe('rejoin after game end', () => {
+  it('receives game_over with well-formed GameReview (9 rounds, valid winner) on rejoin', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    const b = connect(port);
+
+    // create room and capture sessionToken for later rejoin
+    a.emit('create_room');
+    const created = await once<any>(a, 'room_created');
+    const { roomCode, sessionToken } = created;
+
+    // register game_over listener BEFORE joining/playing so we don't miss the event
+    const pGameOverA = once<any>(a, 'game_over');
+
+    const pA0 = once<any>(a, 'view_update');
+    const pB0 = once<any>(b, 'view_update');
+    b.emit('join_room', { roomCode });
+    let va = await pA0;
+    await pB0;
+
+    // play all 9 rounds
+    const handA = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    const handB = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+    for (let r = 0; r < 9; r++) {
+      const aIsLeader = va.currentRound.iAmLeader;
+      const leaderSock = aIsLeader ? a : b;
+      const followerSock = aIsLeader ? b : a;
+      const leaderCard = (aIsLeader ? handA : handB).shift()!;
+      const followerCard = (aIsLeader ? handB : handA).shift()!;
+
+      const pA1 = once<any>(a, 'view_update');
+      const pB1 = once<any>(b, 'view_update');
+      leaderSock.emit('play_card', { card: leaderCard });
+      await pA1;
+      await pB1;
+
+      const pA2 = once<any>(a, 'view_update');
+      const pB2 = once<any>(b, 'view_update');
+      followerSock.emit('play_card', { card: followerCard });
+      const vA2 = await pA2;
+      await pB2;
+      va = vA2;
+    }
+
+    // wait for the game_over that fires when the last round resolves
+    await pGameOverA;
+
+    // p1 (a) disconnects and rejoins
+    a.close();
+
+    const a2 = connect(port);
+    const pView = once<any>(a2, 'view_update');
+    const pReview = once<any>(a2, 'game_over');
+    a2.emit('rejoin', { roomCode, sessionToken });
+
+    await pView;
+    const review = await pReview;
+
+    expect(review.rounds).toHaveLength(9);
+    expect(typeof review.finalScore.me).toBe('number');
+    expect(typeof review.finalScore.opp).toBe('number');
+    expect(['me', 'opp', 'draw']).toContain(review.winner);
+
+    a2.close(); b.close();
+  }, 15000);
+});
+
 describe('out-of-turn play_card (item 9)', () => {
   it('produces error_msg matching /not your turn/i and does not crash the server', async () => {
     const { port, close } = await startServer(0);

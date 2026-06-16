@@ -59,6 +59,10 @@ export async function startServer(port: number): Promise<{
     });
 
     socket.on('join_room', (data: unknown) => {
+      if (myRoom !== null) {
+        socket.emit('error_msg', { message: '已在房间中' });
+        return;
+      }
       // Item 1: Guard malformed/missing payload
       if (!data || typeof data !== 'object' || typeof (data as any).roomCode !== 'string') {
         socket.emit('error_msg', { message: '请求无效' });
@@ -145,6 +149,12 @@ export async function startServer(port: number): Promise<{
       const view = session.viewFor(entry.id);
       if (view !== null) {
         socket.emit('view_update', view);
+      }
+      if (session.state.phase === 'finished') {
+        const review = session.reviewFor(entry.id);
+        if (review !== null) {
+          socket.emit('game_over', review);
+        }
       }
       socket.to(roomCode).emit('opponent_reconnected');
     });
