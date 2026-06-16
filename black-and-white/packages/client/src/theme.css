@@ -1,0 +1,53 @@
+/* ── 黑与白 · Classic Felt Table Theme ── */
+:root {
+  --felt:        #1d4d36;
+  --felt-dark:   #143526;
+  --gold:        #d9b25b;
+  --gold-muted:  #cbb98a;
+  --felt-text:   #f3ead2;
+
+  /* card faces */
+  --card-black-bg:     #15171a;
+  --card-black-text:   #ffffff;
+  --card-black-border: #2a2d32;
+  --card-white-bg:     #f5f3ec;
+  --card-white-text:   #15171a;
+  --card-white-border: #e0ddd0;
+
+  /* card backs */
+  --back-black-bg:     #143526;
+  --back-black-border: #d9b25b;
+  --back-white-bg:     #deded6;
+  --back-white-border: #b0aca0;
+
+  /* buttons */
+  --btn-primary-bg:   #d9b25b;
+  --btn-primary-text: #3a2c08;
+  --btn-ghost-border: #4a6b58;
+  --btn-ghost-text:   #cbb98a;
+
+  --danger: #c0392b;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: var(--felt-dark);
+  color: var(--felt-text);
+  font-family: 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
