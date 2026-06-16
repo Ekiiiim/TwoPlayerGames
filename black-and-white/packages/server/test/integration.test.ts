@@ -15,6 +15,43 @@ function once<T>(socket: any, ev: string): Promise<T> {
   return new Promise((res) => socket.once(ev, res));
 }
 
+/** Play a full 9-round game between sockets a and b. Returns the final view for a. */
+async function playFullGame(a: Socket, b: Socket, port: number) {
+  a.emit('create_room');
+  const { roomCode } = await once<any>(a, 'room_created');
+
+  const pA0 = once<any>(a, 'view_update');
+  const pB0 = once<any>(b, 'view_update');
+  b.emit('join_room', { roomCode });
+  let va = await pA0;
+  await pB0;
+
+  const handA = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  const handB = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+  for (let r = 0; r < 9; r++) {
+    const aIsLeader = va.currentRound.iAmLeader;
+    const leaderSock = aIsLeader ? a : b;
+    const followerSock = aIsLeader ? b : a;
+    const leaderCard = (aIsLeader ? handA : handB).shift()!;
+    const followerCard = (aIsLeader ? handB : handA).shift()!;
+
+    const pA1 = once<any>(a, 'view_update');
+    const pB1 = once<any>(b, 'view_update');
+    leaderSock.emit('play_card', { card: leaderCard });
+    await pA1;
+    await pB1;
+
+    const pA2 = once<any>(a, 'view_update');
+    const pB2 = once<any>(b, 'view_update');
+    followerSock.emit('play_card', { card: followerCard });
+    const vA2 = await pA2;
+    await pB2;
+    va = vA2;
+  }
+  return va;
+}
+
 describe('server smoke', () => {
   it('accepts a socket connection', async () => {
     const { port, close } = await startServer(0);
@@ -35,7 +72,7 @@ describe('rooms', () => {
 
     a.emit('create_room');
     const created = await once<{ roomCode: string; sessionToken: string }>(a, 'room_created');
-    expect(created.roomCode).toMatch(/^[A-Z0-9]{6}$/);
+    expect(created.roomCode).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
 
     // 注册两个监听器后再触发 join_room，避免事件到达顺序导致的竞态
     const pA = once<any>(a, 'view_update');
@@ -173,5 +210,116 @@ describe('rejoin', () => {
     const restored = await once<any>(a2, 'view_update');
     expect(restored.phase).toBe('playing');
     a2.close(); b.close();
+  });
+
+  it('handles missing/invalid payload without crashing (item 10a)', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    await once<void>(a, 'connect');
+
+    // Send rejoin with undefined payload (no fields at all)
+    const pErr = once<any>(a, 'error_msg');
+    a.emit('rejoin', undefined);
+    const err = await pErr;
+    expect(err.message).toBeTruthy();
+    a.close();
+
+    // Verify server still alive: a new socket can create_room
+    const c = connect(port);
+    await once<void>(c, 'connect');
+    c.emit('create_room');
+    const created = await once<any>(c, 'room_created');
+    expect(created.roomCode).toBeTruthy();
+    c.close();
+  });
+
+  it('handles rejoin to a not-yet-started room without crashing (item 10b)', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    // p1 creates a room but p2 never joins (game not started)
+    const a = connect(port);
+    a.emit('create_room');
+    const created = await once<any>(a, 'room_created');
+    a.close(); // p1 disconnects
+
+    // p1 attempts rejoin before game started
+    const a2 = connect(port);
+    await once<void>(a2, 'connect');
+    const pErr = once<any>(a2, 'error_msg');
+    a2.emit('rejoin', { roomCode: created.roomCode, sessionToken: created.sessionToken });
+    const err = await pErr;
+    expect(err.message).toBeTruthy();
+    a2.close();
+
+    // Verify server still alive
+    const c = connect(port);
+    await once<void>(c, 'connect');
+    c.emit('create_room');
+    const newRoom = await once<any>(c, 'room_created');
+    expect(newRoom.roomCode).toBeTruthy();
+    c.close();
+  });
+});
+
+describe('game_over event (item 8)', () => {
+  it('fires game_over for both players with well-formed GameReview at game end', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    const b = connect(port);
+
+    const pGameOverA = once<any>(a, 'game_over');
+    const pGameOverB = once<any>(b, 'game_over');
+
+    await playFullGame(a, b, port);
+
+    const reviewA = await pGameOverA;
+    const reviewB = await pGameOverB;
+
+    for (const review of [reviewA, reviewB]) {
+      expect(review.rounds).toHaveLength(9);
+      expect(typeof review.finalScore.me).toBe('number');
+      expect(typeof review.finalScore.opp).toBe('number');
+      expect(['me', 'opp', 'draw']).toContain(review.winner);
+    }
+
+    a.close(); b.close();
+  });
+});
+
+describe('out-of-turn play_card (item 9)', () => {
+  it('produces error_msg matching /not your turn/i and does not crash the server', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    const b = connect(port);
+
+    a.emit('create_room');
+    const { roomCode } = await once<any>(a, 'room_created');
+
+    const pA0 = once<any>(a, 'view_update');
+    const pB0 = once<any>(b, 'view_update');
+    b.emit('join_room', { roomCode });
+    const va0 = await pA0;
+    await pB0;
+
+    // Determine the follower (not their turn yet)
+    const follower = va0.currentRound.iAmLeader ? b : a;
+
+    // Follower tries to play out of turn
+    const pErr = once<any>(follower, 'error_msg');
+    follower.emit('play_card', { card: 3 });
+    const err = await pErr;
+    expect(err.message).toMatch(/not your turn/i);
+
+    // Server still alive
+    a.close(); b.close();
+    const c = connect(port);
+    await once<void>(c, 'connect');
+    c.emit('create_room');
+    const newRoom = await once<any>(c, 'room_created');
+    expect(newRoom.roomCode).toBeTruthy();
+    c.close();
   });
 });
