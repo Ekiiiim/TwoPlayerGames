@@ -118,11 +118,18 @@ export function toClientView(g: GameState, me: PlayerId): ClientView {
     r.winner === 'draw' ? 'draw' : r.winner === me ? 'win' : 'lose',
   );
 
+  const oppHand = g.hands[opp];
+  const opponentRemaining = {
+    black: oppHand.filter((c) => c % 2 === 0).length,
+    white: oppHand.filter((c) => c % 2 !== 0).length,
+  };
+
   return {
     myHand: [...g.hands[me]],
     myPlayedCards: myPlayed,
     opponentCardsLeft: g.hands[opp].length,
     opponentPlayedColors: oppColors,
+    opponentRemaining,
     roundResults,
     scores: { me: g.scores[me], opp: g.scores[opp] },
     currentRound: {

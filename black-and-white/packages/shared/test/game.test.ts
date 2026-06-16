@@ -135,6 +135,56 @@ describe('toClientView', () => {
   });
 });
 
+describe('toClientView — opponentRemaining', () => {
+  it('fresh game: opponentRemaining is { black: 5, white: 4 } for both players', () => {
+    const g = createGame('p1');
+    const v1 = toClientView(g, 'p1');
+    const v2 = toClientView(g, 'p2');
+    expect(v1.opponentRemaining).toEqual({ black: 5, white: 4 });
+    expect(v2.opponentRemaining).toEqual({ black: 5, white: 4 });
+  });
+
+  it('counts decrease correctly after opponent plays and black + white === opponentCardsLeft', () => {
+    let g = createGame('p1'); // p1 leads
+    // R1: p1 plays card 0 (black), p2 plays card 1 (white)
+    g = playCard(g, 'p1', 0); // p1 plays 0 (black)
+    g = playCard(g, 'p2', 1); // p2 plays 1 (white); round resolved, p2 wins (1 > 0), p2 leads
+    // R2: p2 leads with card 3 (white), p1 plays card 2 (black)
+    g = playCard(g, 'p2', 3); // p2 plays 3 (white)
+    g = playCard(g, 'p1', 2); // p1 plays 2 (black); round resolved
+
+    // From p1's perspective: p2 (the opponent) started with {black:5,white:4}
+    // p2 has played cards 1 (white) and 3 (white) → 2 white played
+    // p2 remaining: {black:5, white:2}, total=7 cards left
+    const v1 = toClientView(g, 'p1');
+    expect(v1.opponentRemaining).toEqual({ black: 5, white: 2 });
+    expect(v1.opponentRemaining.black + v1.opponentRemaining.white).toBe(v1.opponentCardsLeft);
+
+    // From p2's perspective: p1 (the opponent) started with {black:5,white:4}
+    // p1 has played cards 0 (black) and 2 (black) → 2 black played
+    // p1 remaining: {black:3, white:4}, total=7 cards left
+    const v2 = toClientView(g, 'p2');
+    expect(v2.opponentRemaining).toEqual({ black: 3, white: 4 });
+    expect(v2.opponentRemaining.black + v2.opponentRemaining.white).toBe(v2.opponentCardsLeft);
+  });
+
+  it('anti-leak structural check: opponentRemaining has exactly keys black and white (both numbers), no raw card numbers or leaderCard', () => {
+    let g = createGame('p1');
+    g = playCard(g, 'p1', 5); // leader plays; gives a mid-round state
+    const view = toClientView(g, 'p2'); // p2 is follower
+
+    // opponentRemaining exists and has exactly the right shape
+    expect(view.opponentRemaining).toBeDefined();
+    expect(Object.keys(view.opponentRemaining).sort()).toEqual(['black', 'white']);
+    expect(typeof view.opponentRemaining.black).toBe('number');
+    expect(typeof view.opponentRemaining.white).toBe('number');
+
+    // No hidden-info leak
+    expect(view.currentRound).not.toHaveProperty('leaderCard');
+    expect(view).not.toHaveProperty('opponentPlayedCards');
+  });
+});
+
 describe('toReview', () => {
   it('reveals both real cards per round from each perspective', () => {
     let g = createGame('p1');

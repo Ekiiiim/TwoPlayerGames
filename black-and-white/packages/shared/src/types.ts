@@ -28,6 +28,7 @@ export interface ClientView {
   myPlayedCards: Card[];
   opponentCardsLeft: number;
   opponentPlayedColors: Color[];
+  opponentRemaining: { black: number; white: number };
   roundResults: RoundResult[];
   scores: { me: number; opp: number };
   currentRound: {
