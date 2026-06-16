@@ -4,20 +4,28 @@ import { playCard, type PlayerId } from '@bw/shared';
 import { RoomRegistry, makeToken } from './rooms';
 import type { GameSession } from './gameSession';
 
-function broadcastViews(io: Server, session: GameSession, roomCode: string) {
+// Item 3: Remove unused roomCode parameter from broadcastViews and broadcastReview
+function broadcastViews(io: Server, session: GameSession) {
   for (const id of ['p1', 'p2'] as PlayerId[]) {
     const player = session.players[id];
     if (player?.socketId) {
-      io.to(player.socketId).emit('view_update', session.viewFor(id));
+      const view = session.viewFor(id);
+      if (view !== null) {
+        io.to(player.socketId).emit('view_update', view);
+      }
     }
   }
 }
 
-function broadcastReview(io: Server, session: GameSession, roomCode: string) {
+// Item 3: Remove unused roomCode parameter from broadcastReview
+function broadcastReview(io: Server, session: GameSession) {
   for (const id of ['p1', 'p2'] as PlayerId[]) {
     const player = session.players[id];
     if (player?.socketId) {
-      io.to(player.socketId).emit('game_over', session.reviewFor(id));
+      const review = session.reviewFor(id);
+      if (review !== null) {
+        io.to(player.socketId).emit('game_over', review);
+      }
     }
   }
 }
@@ -36,6 +44,11 @@ export async function startServer(port: number): Promise<{
     let myId: PlayerId | null = null;
 
     socket.on('create_room', () => {
+      // Item 5: Guard double create_room on one socket
+      if (myRoom !== null) {
+        socket.emit('error_msg', { message: '已在房间中' });
+        return;
+      }
       const { roomCode, session } = rooms.create();
       const token = makeToken();
       session.addPlayer('p1', socket.id, token);
@@ -45,7 +58,13 @@ export async function startServer(port: number): Promise<{
       socket.emit('room_created', { roomCode, sessionToken: token });
     });
 
-    socket.on('join_room', ({ roomCode }: { roomCode: string }) => {
+    socket.on('join_room', (data: unknown) => {
+      // Item 1: Guard malformed/missing payload
+      if (!data || typeof data !== 'object' || typeof (data as any).roomCode !== 'string') {
+        socket.emit('error_msg', { message: '请求无效' });
+        return;
+      }
+      const { roomCode } = data as { roomCode: string };
       const session = rooms.get(roomCode);
       if (!session) {
         socket.emit('error_msg', { message: '房间不存在' });
@@ -65,11 +84,17 @@ export async function startServer(port: number): Promise<{
       // 抛硬币定先手并开局
       const firstLeader: PlayerId = Math.random() < 0.5 ? 'p1' : 'p2';
       session.start(firstLeader);
-      broadcastViews(io, session, roomCode);
+      broadcastViews(io, session);
     });
 
-    socket.on('play_card', ({ card }: { card: number }) => {
+    socket.on('play_card', (data: unknown) => {
       if (!myRoom || !myId) return;
+      // Item 1: Guard malformed payload
+      if (!data || typeof data !== 'object' || typeof (data as any).card !== 'number') {
+        socket.emit('error_msg', { message: '请求无效' });
+        return;
+      }
+      const { card } = data as { card: number };
       const session = rooms.get(myRoom);
       if (!session || !session.state) return;
       try {
@@ -78,13 +103,24 @@ export async function startServer(port: number): Promise<{
         socket.emit('error_msg', { message: (e as Error).message });
         return;
       }
-      broadcastViews(io, session, myRoom);
+      broadcastViews(io, session);
       if (session.state.phase === 'finished') {
-        broadcastReview(io, session, myRoom);
+        broadcastReview(io, session);
       }
     });
 
-    socket.on('rejoin', ({ roomCode, sessionToken }: { roomCode: string; sessionToken: string }) => {
+    socket.on('rejoin', (data: unknown) => {
+      // Item 1: Guard malformed/missing payload
+      if (
+        !data ||
+        typeof data !== 'object' ||
+        typeof (data as any).roomCode !== 'string' ||
+        typeof (data as any).sessionToken !== 'string'
+      ) {
+        socket.emit('error_msg', { message: '请求无效' });
+        return;
+      }
+      const { roomCode, sessionToken } = data as { roomCode: string; sessionToken: string };
       const session = rooms.get(roomCode);
       if (!session) {
         socket.emit('error_msg', { message: '房间不存在' });
@@ -97,11 +133,19 @@ export async function startServer(port: number): Promise<{
         socket.emit('error_msg', { message: '会话无效' });
         return;
       }
+      // Item 2: Guard rejoin before game has started — state is null
+      if (!session.state) {
+        socket.emit('error_msg', { message: '对局尚未开始' });
+        return;
+      }
       entry.socketId = socket.id;
       myRoom = roomCode;
       myId = entry.id;
       socket.join(roomCode);
-      socket.emit('view_update', session.viewFor(entry.id));
+      const view = session.viewFor(entry.id);
+      if (view !== null) {
+        socket.emit('view_update', view);
+      }
       socket.to(roomCode).emit('opponent_reconnected');
     });
 
@@ -119,11 +163,10 @@ export async function startServer(port: number): Promise<{
 
   return {
     port: actualPort,
-    close: () =>
-      new Promise<void>((resolve) => {
-        io.close();
-        http.close(() => resolve());
-      }),
+    // Item 4: await io.close() for clean teardown
+    close: async () => {
+      await io.close();
+    },
   };
 }
 

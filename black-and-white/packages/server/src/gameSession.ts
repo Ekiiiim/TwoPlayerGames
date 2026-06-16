@@ -22,11 +22,15 @@ export class GameSession {
     this.state = createGame(firstLeader);
   }
 
+  // Item 2: Guard against null state — callers must check state != null first,
+  // but these methods also guard defensively and return null when state is absent.
   viewFor(id: PlayerId) {
-    return toClientView(this.state!, id);
+    if (!this.state) return null;
+    return toClientView(this.state, id);
   }
 
   reviewFor(id: PlayerId) {
-    return toReview(this.state!, id);
+    if (!this.state) return null;
+    return toReview(this.state, id);
   }
 }

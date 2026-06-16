@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { GameSession } from './gameSession';
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -8,8 +9,9 @@ export function makeRoomCode(): string {
   return s;
 }
 
+// Item 6: Use crypto.randomBytes instead of Math.random for tokens
 export function makeToken(): string {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return randomBytes(16).toString('hex');
 }
 
 export class RoomRegistry {
@@ -27,7 +29,5 @@ export class RoomRegistry {
     return this.rooms.get(roomCode);
   }
 
-  delete(roomCode: string) {
-    this.rooms.delete(roomCode);
-  }
+  // Item 7: Removed dead RoomRegistry.delete() method (YAGNI)
 }
