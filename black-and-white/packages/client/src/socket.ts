@@ -6,6 +6,7 @@ export const view = writable<ClientView | null>(null);
 export const review = writable<GameReview | null>(null);
 export const roomCode = writable<string | null>(null);
 export const status = writable<string>('');
+export const ended = writable<string | null>(null);
 
 const socket: Socket = io({ autoConnect: true });
 
@@ -23,6 +24,7 @@ socket.on('game_over', (r: GameReview) => review.set(r));
 socket.on('error_msg', (e: { message: string }) => status.set(e.message));
 socket.on('opponent_disconnected', () => status.set('对手掉线，等待重连…'));
 socket.on('opponent_reconnected', () => status.set(''));
+socket.on('opponent_left', () => ended.set('对手已退出本局，你获胜 🎉'));
 
 export function createRoom(): void {
   socket.emit('create_room');
@@ -42,4 +44,15 @@ export function tryRejoin(): void {
   if (token && room) {
     socket.emit('rejoin', { roomCode: room, sessionToken: token });
   }
+}
+
+export function leaveRoom(): void {
+  socket.emit('leave_room');
+  localStorage.removeItem('bw_token');
+  localStorage.removeItem('bw_room');
+  view.set(null);
+  review.set(null);
+  roomCode.set(null);
+  ended.set(null);
+  status.set('');
 }

@@ -357,6 +357,84 @@ describe('rejoin after game end', () => {
   }, 15000);
 });
 
+describe('leave_room (explicit forfeit)', () => {
+  it('opponent receives opponent_left when a player emits leave_room during a game', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    const b = connect(port);
+
+    a.emit('create_room');
+    const { roomCode } = await once<any>(a, 'room_created');
+
+    // Register listeners before emitting join_room to avoid broadcast race
+    const pA0 = once<any>(a, 'view_update');
+    const pB0 = once<any>(b, 'view_update');
+    b.emit('join_room', { roomCode });
+    await pA0;
+    await pB0;
+
+    // Register opponent_left listener on b BEFORE a emits leave_room
+    const pOpponentLeft = once<any>(b, 'opponent_left');
+    a.emit('leave_room');
+    await pOpponentLeft; // b must receive opponent_left
+
+    a.close(); b.close();
+  });
+
+  it('after leave_room the room is destroyed: join_room with that code yields error_msg (房间不存在)', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    const b = connect(port);
+
+    a.emit('create_room');
+    const { roomCode } = await once<any>(a, 'room_created');
+
+    const pA0 = once<any>(a, 'view_update');
+    const pB0 = once<any>(b, 'view_update');
+    b.emit('join_room', { roomCode });
+    await pA0;
+    await pB0;
+
+    // a leaves; wait for b to be notified before proceeding
+    const pOpponentLeft = once<any>(b, 'opponent_left');
+    a.emit('leave_room');
+    await pOpponentLeft;
+
+    // Now a third socket tries to join the (now-deleted) room
+    const c = connect(port);
+    await once<void>(c, 'connect');
+    const pErr = once<any>(c, 'error_msg');
+    c.emit('join_room', { roomCode });
+    const err = await pErr;
+    expect(err.message).toBe('房间不存在');
+
+    a.close(); b.close(); c.close();
+  });
+
+  it('leave_room when not in a room does not crash; server still handles create_room', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    await once<void>(a, 'connect');
+
+    // Emit leave_room with no prior room membership — must not throw
+    a.emit('leave_room');
+
+    // Give server a tick to process
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Server still alive: can create_room afterwards
+    const pCreated = once<any>(a, 'room_created');
+    a.emit('create_room');
+    const created = await pCreated;
+    expect(created.roomCode).toBeTruthy();
+
+    a.close();
+  });
+});
+
 describe('out-of-turn play_card (item 9)', () => {
   it('produces error_msg matching /not your turn/i and does not crash the server', async () => {
     const { port, close } = await startServer(0);
