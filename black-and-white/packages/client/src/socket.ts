@@ -9,17 +9,14 @@ export const status = writable<string>('');
 
 const socket: Socket = io({ autoConnect: true });
 
-socket.on('room_created', (d: { roomCode: string; sessionToken: string }) => {
+function onRoomAccepted(d: { roomCode: string; sessionToken: string }) {
+  status.set('');
   roomCode.set(d.roomCode);
   localStorage.setItem('bw_token', d.sessionToken);
   localStorage.setItem('bw_room', d.roomCode);
-});
-
-socket.on('room_joined', (d: { roomCode: string; sessionToken: string }) => {
-  roomCode.set(d.roomCode);
-  localStorage.setItem('bw_token', d.sessionToken);
-  localStorage.setItem('bw_room', d.roomCode);
-});
+}
+socket.on('room_created', onRoomAccepted);
+socket.on('room_joined', onRoomAccepted);
 
 socket.on('view_update', (v: ClientView) => view.set(v));
 socket.on('game_over', (r: GameReview) => review.set(r));

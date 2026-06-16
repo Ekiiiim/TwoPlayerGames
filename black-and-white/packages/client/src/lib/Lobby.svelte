@@ -10,7 +10,7 @@
   {/if}
   <div>
     <input placeholder="输入房间码" bind:value={code} maxlength="6" />
-    <button on:click={() => joinRoom(code.toUpperCase())} disabled={code.length !== 6}>
+    <button on:click={() => joinRoom(code.trim().toUpperCase())} disabled={code.trim().length !== 6}>
       加入
     </button>
   </div>
