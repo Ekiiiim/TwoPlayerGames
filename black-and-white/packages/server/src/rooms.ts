@@ -29,5 +29,7 @@ export class RoomRegistry {
     return this.rooms.get(roomCode);
   }
 
-  // Item 7: Removed dead RoomRegistry.delete() method (YAGNI)
+  delete(roomCode: string): void {
+    this.rooms.delete(roomCode);
+  }
 }

@@ -159,6 +159,15 @@ export async function startServer(port: number): Promise<{
       socket.to(roomCode).emit('opponent_reconnected');
     });
 
+    socket.on('leave_room', () => {
+      if (!myRoom || !myId) return;
+      socket.to(myRoom).emit('opponent_left');
+      rooms.delete(myRoom);
+      socket.leave(myRoom);
+      myRoom = null;
+      myId = null;
+    });
+
     socket.on('disconnect', () => {
       if (!myRoom || !myId) return;
       const session = rooms.get(myRoom);
