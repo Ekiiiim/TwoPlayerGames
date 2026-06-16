@@ -9,11 +9,11 @@
   },
   "dependencies": {
     "@bw/shared": "*",
-    "socket.io": "^4.7.0"
+    "socket.io": "^4.7.0",
+    "tsx": "^4.7.0"
   },
   "devDependencies": {
     "socket.io-client": "^4.7.0",
-    "tsx": "^4.7.0",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
   }

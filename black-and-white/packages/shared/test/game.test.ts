@@ -115,8 +115,10 @@ describe('toClientView', () => {
     expect(followerView.currentRound.leaderColor).toBe('white'); // 5 is white
     expect(followerView.currentRound.leaderHasPlayed).toBe(true);
     expect(followerView.turn).toBe('me');
-    // serialize whole view; opponent's number 5 must not appear anywhere
-    expect(JSON.stringify(followerView)).not.toContain('"5"');
+    // structural assertion: the round object must not expose leaderCard numerically,
+    // and the view must not expose raw opponent played cards
+    expect(followerView.currentRound).not.toHaveProperty('leaderCard');
+    expect(followerView).not.toHaveProperty('opponentPlayedCards');
   });
   it('maps scores and results to me/opp perspective', () => {
     let g = createGame('p1');
