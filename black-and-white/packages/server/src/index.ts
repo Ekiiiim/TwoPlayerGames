@@ -1,12 +1,18 @@
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
-import { playCard, type PlayerId } from '@bw/shared';
+import { playCard, PLAYER_IDS } from '@bw/shared';
+import type { PlayerId } from '@bw/shared';
 import { RoomRegistry, makeToken } from './rooms';
 import type { GameSession } from './gameSession';
 
-// Item 3: Remove unused roomCode parameter from broadcastViews and broadcastReview
+// Narrowing guard for untrusted socket payloads — lets the handlers check
+// fields with plain `typeof data.x` instead of scattering `as any` casts.
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null;
+}
+
 function broadcastViews(io: Server, session: GameSession) {
-  for (const id of ['p1', 'p2'] as PlayerId[]) {
+  for (const id of PLAYER_IDS) {
     const player = session.players[id];
     if (player?.socketId) {
       const view = session.viewFor(id);
@@ -17,9 +23,8 @@ function broadcastViews(io: Server, session: GameSession) {
   }
 }
 
-// Item 3: Remove unused roomCode parameter from broadcastReview
 function broadcastReview(io: Server, session: GameSession) {
-  for (const id of ['p1', 'p2'] as PlayerId[]) {
+  for (const id of PLAYER_IDS) {
     const player = session.players[id];
     if (player?.socketId) {
       const review = session.reviewFor(id);
@@ -30,14 +35,41 @@ function broadcastReview(io: Server, session: GameSession) {
   }
 }
 
-export async function startServer(port: number): Promise<{
+// Cross-origin policy: in production the client is served same-origin behind
+// Caddy, so no CORS is needed (origin: false). In dev we allow any origin for
+// convenience. CORS_ORIGIN (comma-separated) overrides in either case.
+function corsOrigin(): string | string[] | boolean {
+  const env = process.env.CORS_ORIGIN?.trim();
+  if (env) return env.split(',').map((s) => s.trim());
+  return process.env.NODE_ENV === 'production' ? false : '*';
+}
+
+export interface ServerOptions {
+  // How long a fully-empty room lingers before garbage collection (default 10m).
+  roomTtlMs?: number;
+  // How often the abandoned-room sweep runs (default 60s).
+  sweepIntervalMs?: number;
+}
+
+export async function startServer(
+  port: number,
+  options: ServerOptions = {},
+): Promise<{
   port: number;
   close: () => Promise<void>;
 }> {
+  const roomTtlMs = options.roomTtlMs ?? 10 * 60 * 1000;
+  const sweepIntervalMs = options.sweepIntervalMs ?? 60 * 1000;
+
   const http = createServer();
-  const io = new Server(http, { cors: { origin: '*' } });
+  const io = new Server(http, { cors: { origin: corsOrigin() } });
 
   const rooms = new RoomRegistry();
+
+  // Periodically reclaim rooms abandoned by both players (tabs closed without an
+  // explicit leave_room). unref so the timer never keeps the process alive.
+  const sweeper = setInterval(() => rooms.sweep(roomTtlMs), sweepIntervalMs);
+  sweeper.unref?.();
 
   io.on('connection', (socket) => {
     let myRoom: string | null = null;
@@ -66,12 +98,11 @@ export async function startServer(port: number): Promise<{
         socket.emit('error_msg', { message: '已在房间中' });
         return;
       }
-      // Item 1: Guard malformed/missing payload
-      if (!data || typeof data !== 'object' || typeof (data as any).roomCode !== 'string') {
+      if (!isRecord(data) || typeof data.roomCode !== 'string') {
         socket.emit('error_msg', { message: '请求无效' });
         return;
       }
-      const { roomCode } = data as { roomCode: string };
+      const roomCode = data.roomCode;
       const session = rooms.get(roomCode);
       if (!session) {
         socket.emit('error_msg', { message: '房间不存在' });
@@ -96,12 +127,11 @@ export async function startServer(port: number): Promise<{
 
     socket.on('play_card', (data: unknown) => {
       if (!myRoom || !myId) return;
-      // Item 1: Guard malformed payload
-      if (!data || typeof data !== 'object' || typeof (data as any).card !== 'number') {
+      if (!isRecord(data) || typeof data.card !== 'number') {
         socket.emit('error_msg', { message: '请求无效' });
         return;
       }
-      const { card } = data as { card: number };
+      const card = data.card;
       const session = rooms.get(myRoom);
       if (!session || !session.state) return;
       try {
@@ -117,31 +147,30 @@ export async function startServer(port: number): Promise<{
     });
 
     socket.on('rejoin', (data: unknown) => {
-      // Item 1: Guard malformed/missing payload
       if (
-        !data ||
-        typeof data !== 'object' ||
-        typeof (data as any).roomCode !== 'string' ||
-        typeof (data as any).sessionToken !== 'string'
+        !isRecord(data) ||
+        typeof data.roomCode !== 'string' ||
+        typeof data.sessionToken !== 'string'
       ) {
         socket.emit('error_msg', { message: '请求无效' });
         return;
       }
-      const { roomCode, sessionToken } = data as { roomCode: string; sessionToken: string };
+      const roomCode = data.roomCode;
+      const sessionToken = data.sessionToken;
       const session = rooms.get(roomCode);
       if (!session) {
         socket.emit('error_msg', { message: '房间不存在' });
         return;
       }
-      const entry = (['p1', 'p2'] as PlayerId[])
-        .map((id) => session.players[id])
-        .find((p) => p && p.sessionToken === sessionToken);
+      const entry = PLAYER_IDS.map((id) => session.players[id]).find(
+        (p) => p && p.sessionToken === sessionToken,
+      );
       if (!entry) {
         socket.emit('error_msg', { message: '会话无效' });
         return;
       }
       // Restore this player's connection to the room
-      entry.socketId = socket.id;
+      session.markConnected(entry.id, socket.id);
       myRoom = roomCode;
       myId = entry.id;
       socket.join(roomCode);
@@ -198,8 +227,7 @@ export async function startServer(port: number): Promise<{
     socket.on('disconnect', () => {
       if (!myRoom || !myId) return;
       const session = rooms.get(myRoom);
-      const player = session?.players[myId];
-      if (player) player.socketId = null;
+      if (session) session.markDisconnected(myId);
       socket.to(myRoom).emit('opponent_disconnected');
     });
   });
@@ -211,6 +239,7 @@ export async function startServer(port: number): Promise<{
     port: actualPort,
     // Item 4: await io.close() for clean teardown
     close: async () => {
+      clearInterval(sweeper);
       await io.close();
     },
   };

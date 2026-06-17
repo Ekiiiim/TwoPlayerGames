@@ -533,6 +533,61 @@ describe('rematch (再来一局)', () => {
   }, 15000);
 });
 
+describe('abandoned-room garbage collection', () => {
+  it('a room left fully empty past the TTL is swept (join_room yields 房间不存在)', async () => {
+    // Tiny TTL + fast sweep so the test runs quickly.
+    const { port, close } = await startServer(0, { roomTtlMs: 60, sweepIntervalMs: 20 });
+    stop = close;
+    const a = connect(port);
+    a.emit('create_room');
+    const { roomCode } = await once<any>(a, 'room_created');
+
+    // Host closes the tab without leave_room → room becomes fully empty.
+    a.close();
+
+    // Wait past the TTL for the sweeper to reclaim it.
+    await new Promise((r) => setTimeout(r, 200));
+
+    const b = connect(port);
+    await once<void>(b, 'connect');
+    const pErr = once<any>(b, 'error_msg');
+    b.emit('join_room', { roomCode });
+    const err = await pErr;
+    expect(err.message).toBe('房间不存在');
+    b.close();
+  });
+
+  it('a room with a still-connected player is NOT swept', async () => {
+    const { port, close } = await startServer(0, { roomTtlMs: 60, sweepIntervalMs: 20 });
+    stop = close;
+    const a = connect(port);
+    const b = connect(port);
+    a.emit('create_room');
+    const { roomCode } = await once<any>(a, 'room_created');
+
+    const pA0 = once<any>(a, 'view_update');
+    const pB0 = once<any>(b, 'view_update');
+    b.emit('join_room', { roomCode });
+    await pA0;
+    await pB0;
+
+    // Both players stay connected well past the TTL → emptySince is never set,
+    // so the sweeper must leave the room alone.
+    await new Promise((r) => setTimeout(r, 200));
+
+    // A third socket joining gets 房间已满 (room still exists), NOT 房间不存在
+    // (which would mean it was incorrectly swept).
+    const c = connect(port);
+    await once<void>(c, 'connect');
+    const pErr = once<any>(c, 'error_msg');
+    c.emit('join_room', { roomCode });
+    const err = await pErr;
+    expect(err.message).toBe('房间已满');
+
+    a.close(); b.close(); c.close();
+  });
+});
+
 describe('stale room membership recovery', () => {
   it('a player whose room was destroyed can still create_room (no 已在房间中)', async () => {
     const { port, close } = await startServer(0);

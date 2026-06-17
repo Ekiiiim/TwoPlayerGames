@@ -154,7 +154,8 @@ type GameReview = {
 - 玩家加入房间时，服务器发 `sessionToken`，client 存入 `localStorage`。
 - 断线后 Socket.IO 自动重连传输层 → client 用 `sessionToken` 发 `rejoin`。
 - 服务器按 token 找回玩家在房间中的位置，重发当前 `ClientView`。
-- 对手断线时，给在线方「对手掉线，等待重连…」提示；超时（默认 60s，可配置）则判在线方胜或作废。
+- 对手断线时，给在线方「对手掉线，等待重连…」提示。在线方可随时主动「退出牌局」（对手判负）。
+- **废弃房间回收** 房间一旦没有任何在线连接（双方都关了页面、或建房后无人加入即离开），会被标记 `emptySince`；后台定时清扫（默认 TTL 10 分钟、每 60s 扫一次，`startServer` 可配置）回收，避免内存中房间无限堆积。任一方重连即清除标记。
 - 注：`sessionToken` 存 localStorage 对学习项目足够；理论上可被冒充，已知且接受。
 
 ## 9. 事件协议（Socket.IO，初稿）

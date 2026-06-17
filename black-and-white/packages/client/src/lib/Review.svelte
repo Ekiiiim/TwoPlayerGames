@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { GameReview } from '@bw/shared';
+  import { colorOf, type GameReview } from '@bw/shared';
   import { rematch, leaveRoom, status } from '../socket';
 
   export let review: GameReview;
@@ -35,12 +35,12 @@
           <td>{r.round}</td>
           <td>{r.firstPlayer === 'me' ? '我' : '对手'}</td>
           <td>
-            <span class="card-badge" class:cb-black={r.myCard % 2 === 0} class:cb-white={r.myCard % 2 !== 0}>
+            <span class="card-badge" class:cb-black={colorOf(r.myCard) === 'black'} class:cb-white={colorOf(r.myCard) === 'white'}>
               {r.myCard}
             </span>
           </td>
           <td>
-            <span class="card-badge" class:cb-black={r.oppCard % 2 === 0} class:cb-white={r.oppCard % 2 !== 0}>
+            <span class="card-badge" class:cb-black={colorOf(r.oppCard) === 'black'} class:cb-white={colorOf(r.oppCard) === 'white'}>
               {r.oppCard}
             </span>
           </td>

@@ -32,4 +32,17 @@ export class RoomRegistry {
   delete(roomCode: string): void {
     this.rooms.delete(roomCode);
   }
+
+  // Remove rooms that have been fully empty (no connected sockets) for longer
+  // than ttlMs. Returns the codes removed. Called periodically by the server.
+  sweep(ttlMs: number, now = Date.now()): string[] {
+    const removed: string[] = [];
+    for (const [code, session] of this.rooms) {
+      if (session.isSweepable(ttlMs, now)) {
+        this.rooms.delete(code);
+        removed.push(code);
+      }
+    }
+    return removed;
+  }
 }

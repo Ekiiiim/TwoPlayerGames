@@ -1,15 +1,12 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { colorOf } from '@bw/shared';
 
   export let cards: number[];
   export let myTurn: boolean;
   export let selected: number | null = null;
 
   const dispatch = createEventDispatcher<{ select: number }>();
-
-  function isBlack(c: number): boolean {
-    return c % 2 === 0;
-  }
 
   function handleClick(c: number): void {
     if (!myTurn) return;
@@ -21,8 +18,8 @@
   {#each cards as c (c)}
     <button
       class="card-face"
-      class:black-card={isBlack(c)}
-      class:white-card={!isBlack(c)}
+      class:black-card={colorOf(c) === 'black'}
+      class:white-card={colorOf(c) === 'white'}
       class:selected={selected === c}
       class:lifted={selected === c}
       disabled={!myTurn}

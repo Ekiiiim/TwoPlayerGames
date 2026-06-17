@@ -10,6 +10,8 @@ import type {
   RoundResult,
 } from './types';
 
+export const PLAYER_IDS: readonly PlayerId[] = ['p1', 'p2'];
+
 export function colorOf(card: Card): Color {
   return card % 2 === 0 ? 'black' : 'white';
 }
