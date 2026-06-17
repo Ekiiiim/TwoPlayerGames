@@ -234,31 +234,38 @@ describe('rejoin', () => {
     c.close();
   });
 
-  it('handles rejoin to a not-yet-started room without crashing (item 10b)', async () => {
+  it('restores the waiting room (room_created) when rejoining before the game started (item 10b)', async () => {
     const { port, close } = await startServer(0);
     stop = close;
     // p1 creates a room but p2 never joins (game not started)
     const a = connect(port);
     a.emit('create_room');
     const created = await once<any>(a, 'room_created');
-    a.close(); // p1 disconnects
+    a.close(); // p1 refreshes / disconnects
 
-    // p1 attempts rejoin before game started
+    // p1 rejoins before the game started — should be put back into the waiting
+    // room (room_created with the same code), NOT shown an error.
     const a2 = connect(port);
     await once<void>(a2, 'connect');
+    const pRestored = once<any>(a2, 'room_created');
     const pErr = once<any>(a2, 'error_msg');
     a2.emit('rejoin', { roomCode: created.roomCode, sessionToken: created.sessionToken });
-    const err = await pErr;
-    expect(err.message).toBeTruthy();
-    a2.close();
+    const restored = await Promise.race([
+      pRestored,
+      pErr.then((e: any) => {
+        throw new Error(`expected room_created but got error_msg: ${e.message}`);
+      }),
+    ]);
+    expect((restored as any).roomCode).toBe(created.roomCode);
 
-    // Verify server still alive
-    const c = connect(port);
-    await once<void>(c, 'connect');
-    c.emit('create_room');
-    const newRoom = await once<any>(c, 'room_created');
-    expect(newRoom.roomCode).toBeTruthy();
-    c.close();
+    // The restored host is still p1: a second player can now join and start the game
+    const b = connect(port);
+    const pView = once<any>(a2, 'view_update');
+    b.emit('join_room', { roomCode: created.roomCode });
+    const view = await pView;
+    expect(view.phase).toBe('playing');
+
+    a2.close(); b.close();
   });
 });
 

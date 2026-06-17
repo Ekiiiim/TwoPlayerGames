@@ -140,15 +140,18 @@ export async function startServer(port: number): Promise<{
         socket.emit('error_msg', { message: '会话无效' });
         return;
       }
-      // Item 2: Guard rejoin before game has started — state is null
-      if (!session.state) {
-        socket.emit('error_msg', { message: '对局尚未开始' });
-        return;
-      }
+      // Restore this player's connection to the room
       entry.socketId = socket.id;
       myRoom = roomCode;
       myId = entry.id;
       socket.join(roomCode);
+
+      // Game hasn't started yet (host refreshed while waiting for an opponent):
+      // put them back into the waiting room rather than showing an error.
+      if (!session.state) {
+        socket.emit('room_created', { roomCode, sessionToken });
+        return;
+      }
       const view = session.viewFor(entry.id);
       if (view !== null) {
         socket.emit('view_update', view);
