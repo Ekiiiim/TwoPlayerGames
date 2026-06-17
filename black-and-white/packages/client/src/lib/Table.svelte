@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { ClientView } from '@bw/shared';
-  import Hand from './Hand.svelte';
-  import { status, playCard, leaveRoom } from '../socket';
+  import type { ClientView } from "@bw/shared";
+  import Hand from "./Hand.svelte";
+  import { status, playCard, leaveRoom } from "../socket";
 
   export let view: ClientView;
 
@@ -9,11 +9,14 @@
   let showLeaveModal = false;
 
   $: cr = view.currentRound;
-  $: myTurn = view.turn === 'me' && view.phase === 'playing';
+  $: myTurn = view.turn === "me" && view.phase === "playing";
   $: canConfirm = selectedCard !== null && myTurn;
 
   // Reset selection whenever a new view arrives (round advanced)
-  $: { view; selectedCard = null; }
+  $: {
+    view;
+    selectedCard = null;
+  }
 
   function onSelect(e: CustomEvent<number>): void {
     if (!myTurn) return;
@@ -39,17 +42,20 @@
     leaveRoom();
   }
 
-  const resultLabel: Record<string, string> = { win: '胜', lose: '负', draw: '平' };
-  const colorLabel: Record<string, string> = { black: '黑', white: '白' };
+  const resultLabel: Record<string, string> = {
+    win: "胜",
+    lose: "负",
+    draw: "平",
+  };
+  const colorLabel: Record<string, string> = { black: "黑", white: "白" };
 
-  $: blackBacks = Array(view.opponentRemaining.black).fill('black');
-  $: whiteBacks = Array(view.opponentRemaining.white).fill('white');
+  $: blackBacks = Array(view.opponentRemaining.black).fill("black");
+  $: whiteBacks = Array(view.opponentRemaining.white).fill("white");
   $: oppBacks = [...blackBacks, ...whiteBacks];
 </script>
 
 <div class="table-wrap">
   <div class="table-surface">
-
     <!-- ── Top: Opponent Seat ── -->
     <div class="seat seat-opp">
       <div class="seat-info">
@@ -62,7 +68,7 @@
 
       <!-- Opponent's hand as colored face-down backs -->
       <div class="opp-hand">
-        {#each oppBacks as color, i (i + '-' + color)}
+        {#each oppBacks as color, i (i + "-" + color)}
           <div class="card-back back-{color}"></div>
         {/each}
       </div>
@@ -89,17 +95,21 @@
 
       <!-- Play zone -->
       <div class="play-zone">
-        {#if cr.iAmLeader && !cr.leaderHasPlayed && view.turn === 'me'}
+        {#if cr.iAmLeader && !cr.leaderHasPlayed && view.turn === "me"}
           <p class="zone-caption lead">轮到你先出牌</p>
         {:else if !cr.iAmLeader && cr.leaderHasPlayed}
           <div class="zone-follow">
-            <div class="card-back back-{cr.leaderColor ?? 'black'} back-lg"></div>
-            <p class="zone-caption">对方出牌（{colorLabel[cr.leaderColor ?? 'black']}）</p>
-            {#if view.turn === 'me'}
+            <div
+              class="card-back back-{cr.leaderColor ?? 'black'} back-lg"
+            ></div>
+            <p class="zone-caption">
+              对方出牌（{colorLabel[cr.leaderColor ?? "black"]}）
+            </p>
+            {#if view.turn === "me"}
               <p class="zone-caption follow">轮到你出牌</p>
             {/if}
           </div>
-        {:else if view.turn === 'opp'}
+        {:else if view.turn === "opp"}
           <p class="zone-caption wait">等待对手出牌…</p>
         {/if}
       </div>
@@ -121,13 +131,18 @@
     <!-- ── Bottom: My Seat ── -->
     <div class="seat seat-me">
       <div class="seat-info seat-info-me">
-        <div class="avatar avatar-me">你</div>
+        <div class="avatar avatar-me">我</div>
         <div class="seat-meta">
           <span class="seat-name">我</span>
         </div>
       </div>
 
-      <Hand cards={view.myHand} {myTurn} selected={selectedCard} on:select={onSelect} />
+      <Hand
+        cards={view.myHand}
+        {myTurn}
+        selected={selectedCard}
+        on:select={onSelect}
+      />
 
       <div class="action-bar">
         <button
@@ -135,23 +150,30 @@
           disabled={!canConfirm}
           on:click={onConfirm}
         >
-          确认出牌{selectedCard !== null ? ` · ${selectedCard}` : ''}
+          确认出牌{selectedCard !== null ? ` · ${selectedCard}` : ""}
         </button>
         <button class="btn-ghost leave-btn" on:click={openLeaveModal}>
           退出牌局
         </button>
       </div>
     </div>
-
   </div>
 </div>
 
 <!-- ── Leave-game confirmation modal ── -->
 {#if showLeaveModal}
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
-  <div class="modal-backdrop" on:click|self={closeLeaveModal} role="dialog" aria-modal="true" aria-labelledby="leave-modal-title">
+  <div
+    class="modal-backdrop"
+    on:click|self={closeLeaveModal}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="leave-modal-title"
+  >
     <div class="modal-box">
-      <p class="modal-text" id="leave-modal-title">确定退出？退出将判负，对手获胜。</p>
+      <p class="modal-text" id="leave-modal-title">
+        确定退出？退出将判负，对手获胜。
+      </p>
       <div class="modal-actions">
         <button class="btn-danger" on:click={confirmLeave}>确认退出</button>
         <button class="btn-ghost" on:click={closeLeaveModal}>取消</button>
@@ -174,8 +196,8 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    border: 1px solid rgba(217,178,91,0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(217, 178, 91, 0.15);
   }
 
   /* ── Seats ── */
@@ -184,7 +206,7 @@
   }
 
   .seat-opp {
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -192,7 +214,7 @@
   }
 
   .seat-me {
-    border-top: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -222,13 +244,13 @@
   }
 
   .avatar-opp {
-    background: rgba(217,178,91,0.18);
+    background: rgba(217, 178, 91, 0.18);
     border: 2px solid var(--gold);
     color: var(--gold);
   }
 
   .avatar-me {
-    background: rgba(217,178,91,0.25);
+    background: rgba(217, 178, 91, 0.25);
     border: 2px solid var(--gold);
     color: var(--gold);
   }
@@ -319,8 +341,8 @@
   }
 
   .round-pill {
-    background: rgba(0,0,0,0.25);
-    border: 1px solid rgba(217,178,91,0.3);
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(217, 178, 91, 0.3);
     color: var(--gold-muted);
     border-radius: 100px;
     padding: 4px 20px;
@@ -404,21 +426,21 @@
   }
 
   .chip-win {
-    background: rgba(46,160,67,0.25);
+    background: rgba(46, 160, 67, 0.25);
     color: #6fcf97;
-    border: 1px solid rgba(46,160,67,0.4);
+    border: 1px solid rgba(46, 160, 67, 0.4);
   }
 
   .chip-lose {
-    background: rgba(192,57,43,0.2);
+    background: rgba(192, 57, 43, 0.2);
     color: #e57373;
-    border: 1px solid rgba(192,57,43,0.35);
+    border: 1px solid rgba(192, 57, 43, 0.35);
   }
 
   .chip-draw {
-    background: rgba(203,185,138,0.15);
+    background: rgba(203, 185, 138, 0.15);
     color: var(--gold-muted);
-    border: 1px solid rgba(203,185,138,0.3);
+    border: 1px solid rgba(203, 185, 138, 0.3);
   }
 
   .status-msg {
@@ -472,7 +494,9 @@
     font-size: 0.88rem;
     font-weight: 500;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    transition:
+      border-color 0.15s,
+      color 0.15s;
     white-space: nowrap;
   }
 
@@ -485,7 +509,7 @@
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -503,7 +527,7 @@
     flex-direction: column;
     gap: 24px;
     align-items: center;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   }
 
   .modal-text {

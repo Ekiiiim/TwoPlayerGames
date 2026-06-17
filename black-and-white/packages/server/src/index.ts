@@ -44,8 +44,10 @@ export async function startServer(port: number): Promise<{
     let myId: PlayerId | null = null;
 
     socket.on('create_room', () => {
-      // Item 5: Guard double create_room on one socket
-      if (myRoom !== null) {
+      // Item 5: Guard double create_room on one socket — but only while the room
+      // still exists. Stale membership (the room was already destroyed) must not
+      // lock the player out; fall through and let them create a fresh room.
+      if (myRoom !== null && rooms.get(myRoom)) {
         socket.emit('error_msg', { message: '已在房间中' });
         return;
       }
@@ -59,7 +61,8 @@ export async function startServer(port: number): Promise<{
     });
 
     socket.on('join_room', (data: unknown) => {
-      if (myRoom !== null) {
+      // Same as create_room: only block if the existing room is still live.
+      if (myRoom !== null && rooms.get(myRoom)) {
         socket.emit('error_msg', { message: '已在房间中' });
         return;
       }
@@ -159,9 +162,30 @@ export async function startServer(port: number): Promise<{
       socket.to(roomCode).emit('opponent_reconnected');
     });
 
+    socket.on('rematch', () => {
+      if (!myRoom || !myId) return;
+      const session = rooms.get(myRoom);
+      const bothConnected =
+        !!session?.isFull() && !!session.players.p1?.socketId && !!session.players.p2?.socketId;
+      if (!session || !bothConnected) {
+        socket.emit('error_msg', { message: '对手已离开，无法再来一局' });
+        return;
+      }
+      // Only restart once the previous game has actually finished
+      if (session.state?.phase !== 'finished') return;
+      const firstLeader: PlayerId = Math.random() < 0.5 ? 'p1' : 'p2';
+      session.start(firstLeader);
+      broadcastViews(io, session);
+    });
+
     socket.on('leave_room', () => {
       if (!myRoom || !myId) return;
-      socket.to(myRoom).emit('opponent_left');
+      const session = rooms.get(myRoom);
+      // Only notify the opponent of a forfeit win when a game is actually in
+      // progress. Leaving after the game finished is a plain cleanup.
+      if (session?.state && session.state.phase === 'playing') {
+        socket.to(myRoom).emit('opponent_left');
+      }
       rooms.delete(myRoom);
       socket.leave(myRoom);
       myRoom = null;

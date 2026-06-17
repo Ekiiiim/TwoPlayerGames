@@ -6,14 +6,6 @@
   import Review from './lib/Review.svelte';
 
   onMount(tryRejoin);
-
-  function backToLobby(): void {
-    localStorage.removeItem('bw_token');
-    localStorage.removeItem('bw_room');
-    ended.set(null);
-    view.set(null);
-    review.set(null);
-  }
 </script>
 
 <div class="shell">
@@ -21,7 +13,7 @@
     <div class="end-screen">
       <div class="end-card">
         <p class="end-msg">{$ended}</p>
-        <button class="btn-primary" on:click={backToLobby}>返回大厅</button>
+        <button class="btn-primary" on:click={leaveRoom}>返回大厅</button>
       </div>
     </div>
   {:else if $review}

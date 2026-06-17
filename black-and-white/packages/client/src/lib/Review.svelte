@@ -1,18 +1,10 @@
 <script lang="ts">
   import type { GameReview } from '@bw/shared';
-  import { view, review as reviewStore, ended } from '../socket';
+  import { rematch, leaveRoom, status } from '../socket';
 
   export let review: GameReview;
 
   const label: Record<string, string> = { win: '胜', lose: '负', draw: '平' };
-
-  function reset(): void {
-    localStorage.removeItem('bw_token');
-    localStorage.removeItem('bw_room');
-    view.set(null);
-    reviewStore.set(null);
-    ended.set(null);
-  }
 </script>
 
 <div class="review-card">
@@ -60,7 +52,14 @@
     </tbody>
   </table>
 
-  <button class="btn-primary" on:click={reset}>再来一局</button>
+  <div class="end-actions">
+    <button class="btn-primary" on:click={rematch}>再来一局</button>
+    <button class="btn-ghost" on:click={leaveRoom}>返回大厅</button>
+  </div>
+
+  {#if $status}
+    <p class="status-msg">{$status}</p>
+  {/if}
 </div>
 
 <style>
@@ -190,4 +189,35 @@
   }
 
   .btn-primary:hover { opacity: 0.88; }
+
+  .end-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--btn-ghost-text);
+    border: 1px solid var(--btn-ghost-border);
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--gold-muted);
+    color: var(--felt-text);
+  }
+
+  .status-msg {
+    color: #e57373;
+    font-size: 0.85rem;
+    text-align: center;
+  }
 </style>

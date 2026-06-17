@@ -470,3 +470,96 @@ describe('out-of-turn play_card (item 9)', () => {
     c.close();
   });
 });
+
+describe('rematch (再来一局)', () => {
+  it('restarts a fresh game in the same room for both players after it finished', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    const b = connect(port);
+
+    // Make sure both reach game_over (state = finished) before rematch
+    const pOverA = once<any>(a, 'game_over');
+    const pOverB = once<any>(b, 'game_over');
+    await playFullGame(a, b, port);
+    await pOverA;
+    await pOverB;
+
+    // Either player can trigger the rematch
+    const pA = once<any>(a, 'view_update');
+    const pB = once<any>(b, 'view_update');
+    a.emit('rematch');
+    const na = await pA;
+    const nb = await pB;
+
+    expect(na.phase).toBe('playing');
+    expect(nb.phase).toBe('playing');
+    expect(na.currentRound.index).toBe(1);
+    expect(na.scores).toEqual({ me: 0, opp: 0 });
+    expect(nb.scores).toEqual({ me: 0, opp: 0 });
+    // Exactly one player leads the new round
+    expect(na.currentRound.iAmLeader).not.toBe(nb.currentRound.iAmLeader);
+
+    a.close(); b.close();
+  }, 15000);
+
+  it('refuses to rematch when the opponent has left, with error_msg', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    const b = connect(port);
+
+    const pOverA = once<any>(a, 'game_over');
+    await playFullGame(a, b, port);
+    await pOverA;
+
+    // Opponent disconnects
+    b.close();
+    await new Promise((r) => setTimeout(r, 50));
+
+    const pErr = once<any>(a, 'error_msg');
+    a.emit('rematch');
+    const err = await pErr;
+    expect(err.message).toContain('对手');
+
+    a.close();
+  }, 15000);
+});
+
+describe('stale room membership recovery', () => {
+  it('a player whose room was destroyed can still create_room (no 已在房间中)', async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+    const a = connect(port);
+    const b = connect(port);
+
+    a.emit('create_room');
+    const { roomCode } = await once<any>(a, 'room_created');
+
+    const pA0 = once<any>(a, 'view_update');
+    const pB0 = once<any>(b, 'view_update');
+    b.emit('join_room', { roomCode });
+    await pA0;
+    await pB0;
+
+    // b leaves: the room is destroyed and a is notified, but a never emitted
+    // leave_room — its server-side membership is now stale (points at a gone room).
+    const pLeft = once<any>(a, 'opponent_left');
+    b.emit('leave_room');
+    await pLeft;
+
+    // a should be able to create a brand-new room rather than being stuck on 已在房间中
+    const pCreated = once<any>(a, 'room_created');
+    const pErr = once<any>(a, 'error_msg');
+    a.emit('create_room');
+    const created = await Promise.race([
+      pCreated,
+      pErr.then((e: any) => {
+        throw new Error(`expected room_created but got error_msg: ${e.message}`);
+      }),
+    ]);
+    expect((created as any).roomCode).toBeTruthy();
+
+    a.close(); b.close();
+  });
+});

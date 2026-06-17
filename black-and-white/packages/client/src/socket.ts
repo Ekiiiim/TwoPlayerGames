@@ -19,7 +19,15 @@ function onRoomAccepted(d: { roomCode: string; sessionToken: string }) {
 socket.on('room_created', onRoomAccepted);
 socket.on('room_joined', onRoomAccepted);
 
-socket.on('view_update', (v: ClientView) => view.set(v));
+socket.on('view_update', (v: ClientView) => {
+  view.set(v);
+  // A fresh playing-phase view means a (new) game is underway — e.g. a rematch.
+  // Clear any leftover end-of-game screens so both players drop into the table.
+  if (v.phase === 'playing') {
+    review.set(null);
+    ended.set(null);
+  }
+});
 socket.on('game_over', (r: GameReview) => review.set(r));
 socket.on('error_msg', (e: { message: string }) => status.set(e.message));
 socket.on('opponent_disconnected', () => status.set('对手掉线，等待重连…'));
@@ -36,6 +44,10 @@ export function joinRoom(code: string): void {
 
 export function playCard(card: number): void {
   socket.emit('play_card', { card });
+}
+
+export function rematch(): void {
+  socket.emit('rematch');
 }
 
 export function tryRejoin(): void {
