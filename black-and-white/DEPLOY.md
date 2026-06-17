@@ -1,116 +1,143 @@
-# 《黑与白》Deployment Guide — DigitalOcean Droplet
+# 《黑与白》Deployment Guide — Docker Compose + Caddy
 
-Recommended architecture: **nginx serves the static client build and reverse-proxies
-`/socket.io/` to the Node server; the Node server runs only Socket.IO (no static hosting);
-pm2 keeps Node alive; Let's Encrypt/certbot for TLS.**
+This droplet hosts **multiple personal projects** behind **one shared Caddy reverse
+proxy**. Caddy owns ports 80/443, terminates TLS (automatic Let's Encrypt), and routes
+each public hostname to that project's container. Every project ships its own
+`docker-compose.yml` and joins a shared Docker network called `web`.
 
-Requirements: Node 18+, npm, nginx, pm2, certbot.
+```
+            Internet :80/:443
+                  │
+          ┌───────▼────────┐   proxy/  (shared, repo root)
+          │   Caddy proxy  │   auto-TLS + host routing
+          └───────┬────────┘
+        web network│ (bw.example.com → bw-web)
+          ┌────────▼────────┐  black-and-white/
+          │ bw-web (Caddy)  │  serves static client,
+          │  static + /so…  │  proxies /socket.io/ →
+          └────────┬────────┘
+                   │
+          ┌────────▼────────┐
+          │   bw-server     │  Node / Socket.IO (tsx), :3001 internal only
+          └─────────────────┘
+```
+
+Requirements on the droplet: **Docker** and the **Docker Compose plugin**. Nothing else
+(no host Node, nginx, pm2, or certbot).
+
+Repo layout (git root is `TwoPlayerGames/`):
+
+```
+TwoPlayerGames/
+├── proxy/                 # shared reverse proxy (one per droplet)
+│   ├── docker-compose.yml
+│   └── Caddyfile          # one block per project, routed by hostname
+└── black-and-white/
+    ├── Dockerfile         # multi-stage: builds the `web` and `server` images
+    ├── docker-compose.yml # bw-web + bw-server
+    ├── .dockerignore
+    └── web/Caddyfile      # internal: static + /socket.io/ proxy
+```
+
+No application source changes are needed between development and production. The client
+connects with `io()` (same origin) and reaches the server through Caddy's `/socket.io/`
+proxy.
 
 ---
 
-## 1. Build
-
-On the droplet (or CI), install dependencies and build the client:
+## 1. One-time droplet setup
 
 ```bash
-npm install
-npm run build --workspace @bw/client
+# Install Docker Engine + Compose plugin (Ubuntu)
+curl -fsSL https://get.docker.com | sh
+
+# Create the shared network that every project attaches to
+docker network create web
 ```
 
-The Vite output lands in `packages/client/dist/`.
-
-Copy it to the nginx web root:
-
-```bash
-sudo mkdir -p /var/www/bw
-sudo cp -r packages/client/dist/. /var/www/bw/
-```
+Point your DNS **A record** for `bw.example.com` at the droplet's IP, and open ports
+80 and 443 in the firewall.
 
 ---
 
-## 2. Run the server with pm2
+## 2. Configure the shared proxy
 
-The server (`@bw/server`) is started via `tsx src/index.ts` and reads `PORT` from the
-environment (default `3001`). Node 18 or newer is required.
+Edit [`proxy/Caddyfile`](../proxy/Caddyfile):
 
-```bash
-# Install pm2 globally
-npm install -g pm2
+- replace `you@example.com` with your email (Let's Encrypt notices),
+- replace `bw.example.com` with your real hostname.
 
-# Start the server
-PORT=3001 pm2 start "npm run start --workspace @bw/server" --name bw-server
-
-# Persist across reboots
-pm2 save
-pm2 startup     # follow the printed command to enable the systemd/init hook
-```
-
-Check status:
+Start the proxy (run once; it stays up and serves all projects):
 
 ```bash
-pm2 status
-pm2 logs bw-server
-```
-
----
-
-## 3. nginx configuration
-
-Create `/etc/nginx/sites-available/bw`:
-
-```nginx
-server {
-    listen 80;
-    server_name your.domain;
-
-    root /var/www/bw;
-    index index.html;
-
-    # SPA fallback — all unknown paths serve index.html
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # WebSocket reverse-proxy to the Node/Socket.IO server
-    location /socket.io/ {
-        proxy_pass         http://127.0.0.1:3001;
-        proxy_http_version 1.1;
-        proxy_set_header   Upgrade    $http_upgrade;
-        proxy_set_header   Connection "upgrade";
-        proxy_set_header   Host       $host;
-    }
-}
-```
-
-Enable the site and reload:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/bw /etc/nginx/sites-enabled/bw
-sudo nginx -t && sudo systemctl reload nginx
+cd proxy
+docker compose up -d
 ```
 
 ---
 
-## 4. TLS with Let's Encrypt
+## 3. Build and run 《黑与白》
 
 ```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d your.domain
+cd black-and-white
+docker compose build
+docker compose up -d
 ```
 
-certbot rewrites the nginx config to add the `listen 443 ssl` block and schedules
-automatic renewal via a systemd timer or cron job. No further action is needed.
+Caddy will obtain a TLS certificate automatically on the first HTTPS request. Visit
+`https://bw.example.com`.
+
+Check status / logs:
+
+```bash
+docker compose ps
+docker compose logs -f bw-server
+```
 
 ---
 
-## 5. Client connection in production
+## 4. Updating after a code change
 
-In development, Vite proxies `/socket.io` to `http://localhost:3001` (see
-`packages/client/vite.config.ts`). In production the client is served same-origin from
-nginx, so `io()` in `packages/client/src/socket.ts` connects to the same host without
-any URL argument. WebSocket traffic flows through nginx's `/socket.io/` reverse-proxy
-block to the Node server on port 3001. No source-code change is required between
-development and production.
+```bash
+cd black-and-white
+git pull
+docker compose build
+docker compose up -d        # recreates only changed containers
+```
+
+The shared proxy keeps running and does not need to be touched.
+
+---
+
+## 5. Adding another project later
+
+1. Give the new project its own `docker-compose.yml` with `networks: [web]`
+   (`external: true`) and a `*-web` service.
+2. Add a block to [`proxy/Caddyfile`](../proxy/Caddyfile):
+
+   ```caddy
+   foo.example.com {
+       reverse_proxy foo-web:80
+   }
+   ```
+
+3. Reload the proxy: `cd proxy && docker compose up -d` (or
+   `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile`).
+
+No port bookkeeping, no per-project TLS setup.
+
+---
+
+## Notes
+
+- **Single instance only.** The game keeps room/session state in memory, so do not run
+  more than one `bw-server` replica. Horizontal scaling would require a Socket.IO Redis
+  adapter for shared state.
+- **Certificates persist** in the `proxy_caddy_data` volume — don't delete it, or Caddy
+  re-requests certs and can hit Let's Encrypt rate limits.
+- **Why two Caddys?** The shared proxy only does TLS + hostname routing (one line per
+  project); each project's own `*-web` container owns its internal layout (static files
+  + `/socket.io/` split). This keeps projects self-contained and the shared config tiny.
 
 ---
 
@@ -118,11 +145,10 @@ development and production.
 
 | Step | Command |
 |------|---------|
-| Install deps | `npm install` |
-| Build client | `npm run build --workspace @bw/client` |
-| Copy dist | `sudo cp -r packages/client/dist/. /var/www/bw/` |
-| Start server | `PORT=3001 pm2 start "npm run start --workspace @bw/server" --name bw-server` |
-| Persist pm2 | `pm2 save && pm2 startup` |
-| Test nginx config | `sudo nginx -t` |
-| Reload nginx | `sudo systemctl reload nginx` |
-| Enable TLS | `sudo certbot --nginx -d your.domain` |
+| Create shared network | `docker network create web` |
+| Start shared proxy | `cd proxy && docker compose up -d` |
+| Build app | `cd black-and-white && docker compose build` |
+| Start app | `docker compose up -d` |
+| Update app | `git pull && docker compose build && docker compose up -d` |
+| Logs | `docker compose logs -f bw-server` |
+| Reload proxy after Caddyfile edit | `cd proxy && docker compose up -d` |

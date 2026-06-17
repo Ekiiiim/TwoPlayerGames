@@ -1,0 +1,37 @@
+name: black-and-white
+
+# Two services on the shared "web" network:
+#   bw-server — Node/Socket.IO game server (internal only, port 3001)
+#   bw-web    — Caddy serving the static client and proxying /socket.io/ to bw-server
+# The shared proxy (../proxy) routes the public hostname to bw-web.
+#
+# Deploy from this folder:
+#   docker compose build
+#   docker compose up -d
+
+services:
+  bw-server:
+    build:
+      context: .
+      target: server
+    image: bw-server
+    restart: unless-stopped
+    expose:
+      - "3001"          # reachable only on the docker network, not published
+    networks:
+      - web
+
+  bw-web:
+    build:
+      context: .
+      target: web
+    image: bw-web
+    restart: unless-stopped
+    depends_on:
+      - bw-server
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

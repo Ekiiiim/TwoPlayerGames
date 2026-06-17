@@ -1,0 +1,33 @@
+name: proxy
+
+# Shared reverse proxy for every project on this droplet.
+# Owns ports 80/443 and terminates TLS (auto Let's Encrypt via Caddy).
+# Each project's containers join the external "web" network and are routed
+# by hostname from ./Caddyfile.
+#
+# One-time setup on the droplet:
+#   docker network create web
+#   docker compose up -d   # run from this proxy/ folder
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data       # persisted certs — do NOT delete
+      - caddy_config:/config
+    networks:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  web:
+    external: true

@@ -1,0 +1,19 @@
+# Shared reverse proxy — one block per project, routed by hostname.
+# Caddy fetches and renews Let's Encrypt certificates automatically as long as
+# the domain's DNS A/AAAA record points at this droplet and ports 80/443 are open.
+
+{
+	# Email used for Let's Encrypt expiry notices. Replace with your address.
+	email minyuc2@illinois.edu
+}
+
+# 《黑与白》 — forwards everything to the project's own web container,
+# which serves the static client and proxies /socket.io/ internally.
+bw.minyu.me {
+	reverse_proxy bw-web:80
+}
+
+# Add more projects like this:
+# foo.example.com {
+# 	reverse_proxy foo-web:80
+# }
