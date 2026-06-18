@@ -112,40 +112,97 @@ describe('validateAnswer', () => {
 });
 
 describe('createGame', () => {
-  it('starts in preview with a full board and preview deadline', () => {
+  it('starts in a ready gate (readyNext=preview), no deadline', () => {
     const g = createGame(ctx);
-    expect(g.phase).toBe('preview');
+    expect(g.phase).toBe('ready');
+    expect(g.readyNext).toBe('preview');
+    expect(g.ready).toEqual({ p1: false, p2: false });
     expect(g.board).toHaveLength(16);
     expect(g.scores).toEqual({ p1: 0, p2: 0 });
     expect(g.target).toBeNull();
     expect(g.active).toBeNull();
     expect(g.selection).toEqual([]);
     expect(g.revealIndex).toBe(0);
-    expect(g.deadline).toBe(ctx.now + DURATIONS.previewMs);
+    expect(g.deadline).toBeNull();
     expect(g.winner).toBeNull();
   });
 });
 
-describe('reduce: PREVIEW_DONE', () => {
-  it('moves preview -> buzzing with a solvable target and no deadline', () => {
-    const g = createGame(ctx);
-    const g2 = reduce(g, { type: 'PREVIEW_DONE' }, ctx);
-    expect(g2.phase).toBe('buzzing');
-    expect(g2.target).not.toBeNull();
-    expect(solvableTargets(g2.board)).toContain(g2.target);
-    expect(g2.deadline).toBeNull(); // 抢答无超时
+// 辅助:把游戏从开局准备门一路推进到 buzzing 状态。
+// ready×2 → preview → PREVIEW_DONE → countdown → COUNTDOWN_DONE → buzzing
+function toBuzzing() {
+  let g = createGame(ctx);
+  g = reduce(g, { type: 'READY', player: 'p1' }, ctx);
+  g = reduce(g, { type: 'READY', player: 'p2' }, ctx); // → preview
+  g = reduce(g, { type: 'PREVIEW_DONE' }, ctx); // → countdown
+  g = reduce(g, { type: 'COUNTDOWN_DONE' }, ctx); // → buzzing(target)
+  return g;
+}
+
+describe('reduce: READY', () => {
+  it('one ready keeps phase ready; both ready -> readyNext(preview)', () => {
+    let g = createGame(ctx);
+    g = reduce(g, { type: 'READY', player: 'p1' }, ctx);
+    expect(g.phase).toBe('ready');
+    expect(g.ready).toEqual({ p1: true, p2: false });
+    g = reduce(g, { type: 'READY', player: 'p2' }, ctx);
+    expect(g.phase).toBe('preview');
+    expect(g.deadline).toBe(ctx.now + DURATIONS.previewMs);
   });
-  it('throws if called in the wrong phase', () => {
-    const g = createGame(ctx);
-    const buzzing = reduce(g, { type: 'PREVIEW_DONE' }, ctx);
-    expect(() => reduce(buzzing, { type: 'PREVIEW_DONE' }, ctx)).toThrow();
+  it('both ready with readyNext=reveal -> reveal(revealedCells=revealIndex)', () => {
+    const g0 = {
+      ...createGame(ctx),
+      readyNext: 'reveal' as const,
+      revealIndex: 3,
+    };
+    let g = reduce(g0, { type: 'READY', player: 'p1' }, ctx);
+    g = reduce(g, { type: 'READY', player: 'p2' }, ctx);
+    expect(g.phase).toBe('reveal');
+    expect(g.revealedCells).toEqual([3]);
+    expect(g.deadline).toBe(ctx.now + DURATIONS.revealMs);
+  });
+  it('repeated READY is idempotent', () => {
+    let g = reduce(createGame(ctx), { type: 'READY', player: 'p1' }, ctx);
+    g = reduce(g, { type: 'READY', player: 'p1' }, ctx);
+    expect(g.ready).toEqual({ p1: true, p2: false });
+    expect(g.phase).toBe('ready');
+  });
+  it('throws if READY outside ready phase', () => {
+    expect(() => reduce(toBuzzing(), { type: 'READY', player: 'p1' }, ctx)).toThrow();
   });
 });
 
-// 辅助:把游戏推进到 buzzing 状态
-function toBuzzing() {
-  return reduce(createGame(ctx), { type: 'PREVIEW_DONE' }, ctx);
-}
+describe('reduce: PREVIEW_DONE', () => {
+  it('moves preview -> countdown (no target yet, countdown deadline)', () => {
+    let g = createGame(ctx);
+    g = reduce(g, { type: 'READY', player: 'p1' }, ctx);
+    g = reduce(g, { type: 'READY', player: 'p2' }, ctx); // preview
+    const c = reduce(g, { type: 'PREVIEW_DONE' }, ctx);
+    expect(c.phase).toBe('countdown');
+    expect(c.target).toBeNull();
+    expect(c.deadline).toBe(ctx.now + DURATIONS.countdownMs);
+  });
+  it('throws if called in the wrong phase', () => {
+    expect(() => reduce(createGame(ctx), { type: 'PREVIEW_DONE' }, ctx)).toThrow();
+  });
+});
+
+describe('reduce: COUNTDOWN_DONE', () => {
+  it('countdown -> buzzing with a solvable target and no deadline', () => {
+    let g = createGame(ctx);
+    g = reduce(g, { type: 'READY', player: 'p1' }, ctx);
+    g = reduce(g, { type: 'READY', player: 'p2' }, ctx);
+    g = reduce(g, { type: 'PREVIEW_DONE' }, ctx); // countdown
+    const b = reduce(g, { type: 'COUNTDOWN_DONE' }, ctx);
+    expect(b.phase).toBe('buzzing');
+    expect(b.target).not.toBeNull();
+    expect(solvableTargets(b.board)).toContain(b.target);
+    expect(b.deadline).toBeNull();
+  });
+  it('throws outside countdown', () => {
+    expect(() => reduce(createGame(ctx), { type: 'COUNTDOWN_DONE' }, ctx)).toThrow();
+  });
+});
 
 describe('reduce: BUZZ', () => {
   it('buzzing -> answering, sets active and answer deadline', () => {
@@ -217,16 +274,17 @@ describe('reduce: SELECT completes -> resolve', () => {
 });
 
 describe('reduce: RESOLVE_DONE', () => {
-  it('correct -> reveal (revealedCells = revealIndex)', () => {
+  it('correct -> ready gate (readyNext=reveal), no deadline', () => {
     let g = answering(7);
     g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
     g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
     g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
     const r = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
-    expect(r.phase).toBe('reveal');
-    expect(r.revealedCells).toEqual([0]); // revealIndex 起始 0
+    expect(r.phase).toBe('ready');
+    expect(r.readyNext).toBe('reveal');
+    expect(r.ready).toEqual({ p1: false, p2: false });
     expect(r.selection).toEqual([]);
-    expect(r.deadline).toBe(ctx.now + DURATIONS.revealMs);
+    expect(r.deadline).toBeNull();
   });
   it('correct reaching WIN_SCORE -> finished (skip reveal)', () => {
     let g = answering(7);
@@ -290,7 +348,7 @@ describe('reduce: ANSWER_TIMEOUT', () => {
 });
 
 describe('reduce: REVEAL_DONE', () => {
-  it('advances revealIndex (cycling) and starts next round with a new target', () => {
+  it('reveal -> countdown, advances revealIndex (cycling), no target yet', () => {
     // 构造一个 reveal 状态,revealIndex=15 用于验证回绕
     const base = { ...answering(7), board: createBoard() };
     const reveal: GameState = {
@@ -302,13 +360,13 @@ describe('reduce: REVEAL_DONE', () => {
       deadline: ctx.now + DURATIONS.revealMs,
     };
     const r = reduce(reveal, { type: 'REVEAL_DONE' }, ctx);
-    expect(r.phase).toBe('buzzing');
+    expect(r.phase).toBe('countdown');
     expect(r.revealIndex).toBe(0); // (15+1)%16
     expect(r.active).toBeNull();
     expect(r.selection).toEqual([]);
     expect(r.revealedCells).toEqual([]);
-    expect(r.deadline).toBeNull();
-    expect(solvableTargets(r.board)).toContain(r.target);
+    expect(r.target).toBeNull();
+    expect(r.deadline).toBe(ctx.now + DURATIONS.countdownMs);
   });
 });
 
@@ -332,5 +390,10 @@ describe('toClientView', () => {
     const g = { ...createGame(ctx), phase: 'finished' as const, winner: 'p2' as const };
     expect(toClientView(g, 'p2').winner).toBe('me');
     expect(toClientView(g, 'p1').winner).toBe('opp');
+  });
+  it('maps ready flags to me/opp', () => {
+    const g = { ...createGame(ctx), ready: { p1: true, p2: false } };
+    expect(toClientView(g, 'p1').ready).toEqual({ me: true, opp: false });
+    expect(toClientView(g, 'p2').ready).toEqual({ me: false, opp: true });
   });
 });

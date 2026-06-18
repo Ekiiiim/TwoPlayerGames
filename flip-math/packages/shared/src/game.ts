@@ -91,20 +91,24 @@ export const DURATIONS: Durations = {
   answerMs: 5_000,
   revealMs: 3_000,
   resolveMs: 1_500,
+  countdownMs: 3_000,
 };
 
-export function createGame(ctx: EngineCtx): GameState {
+// 开局从"准备门"开始(无 deadline,等双方各点一次准备);rematch 复用同一函数。
+export function createGame(_ctx: EngineCtx): GameState {
   return {
     board: createBoard(),
     scores: { p1: 0, p2: 0 },
-    phase: 'preview',
+    phase: 'ready',
+    readyNext: 'preview',
+    ready: { p1: false, p2: false },
     target: null,
     active: null,
     selection: [],
     revealIndex: 0,
     revealedCells: [],
     lastResolve: null,
-    deadline: ctx.now + ctx.durations.previewMs,
+    deadline: null,
     winner: null,
   };
 }
@@ -115,8 +119,38 @@ function requirePhase(s: GameState, p: Phase): void {
 
 export function reduce(state: GameState, action: Action, ctx: EngineCtx): GameState {
   switch (action.type) {
+    case 'READY': {
+      requirePhase(state, 'ready');
+      const ready = { ...state.ready, [action.player]: true };
+      // 未齐 → 仍在准备门(幂等:重复点同一玩家无副作用)。
+      if (!(ready.p1 && ready.p2)) return { ...state, ready };
+      // 双方齐 → 进入 readyNext。
+      if (state.readyNext === 'preview') {
+        return { ...state, ready, phase: 'preview', deadline: ctx.now + ctx.durations.previewMs };
+      }
+      return {
+        ...state,
+        ready,
+        phase: 'reveal',
+        revealedCells: [state.revealIndex],
+        deadline: ctx.now + ctx.durations.revealMs,
+      };
+    }
     case 'PREVIEW_DONE': {
       requirePhase(state, 'preview');
+      return {
+        ...state,
+        phase: 'countdown',
+        target: null,
+        active: null,
+        selection: [],
+        revealedCells: [],
+        deadline: ctx.now + ctx.durations.countdownMs,
+      };
+    }
+    case 'COUNTDOWN_DONE': {
+      requirePhase(state, 'countdown');
+      // 倒数结束才生成并展示目标 + 开抢。
       return {
         ...state,
         phase: 'buzzing',
@@ -171,13 +205,17 @@ export function reduce(state: GameState, action: Action, ctx: EngineCtx): GameSt
             lastResolve: null,
           };
         }
+        // 答对未满分 → 回到准备门(readyNext=reveal:双方准备后翻记忆牌)。
         return {
           ...state,
-          phase: 'reveal',
-          revealedCells: [state.revealIndex],
+          phase: 'ready',
+          readyNext: 'reveal',
+          ready: { p1: false, p2: false },
+          target: null,
           selection: [],
+          revealedCells: [],
           lastResolve: null,
-          deadline: ctx.now + ctx.durations.revealMs,
+          deadline: null,
         };
       }
       // 错误 → 换人继续作答(同一目标)
@@ -206,13 +244,13 @@ export function reduce(state: GameState, action: Action, ctx: EngineCtx): GameSt
       const revealIndex = (state.revealIndex + 1) % state.board.length;
       return {
         ...state,
-        phase: 'buzzing',
+        phase: 'countdown',
         revealIndex,
-        target: generateTarget(state.board),
+        target: null,
         active: null,
         selection: [],
         revealedCells: [],
-        deadline: null,
+        deadline: ctx.now + ctx.durations.countdownMs,
       };
     }
     default:
@@ -250,6 +288,7 @@ export function toClientView(g: GameState, me: PlayerId): ClientView {
     selection: g.selection,
     revealedCells: g.revealedCells,
     deadline: g.deadline,
+    ready: { me: g.ready[me], opp: g.ready[opp] },
     winner,
   };
 }

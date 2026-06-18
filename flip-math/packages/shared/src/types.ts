@@ -13,11 +13,13 @@ export interface Cell {
 
 export type Phase =
   | 'waiting'
+  | 'ready'
   | 'preview'
+  | 'reveal'
+  | 'countdown'
   | 'buzzing'
   | 'answering'
   | 'resolve'
-  | 'reveal'
   | 'finished';
 
 export interface Durations {
@@ -25,6 +27,7 @@ export interface Durations {
   answerMs: number;
   revealMs: number;
   resolveMs: number;
+  countdownMs: number;
 }
 
 // 引擎上下文:把"现在"和时长作为数据传入,保持 reduce 纯函数、可确定性单测。
@@ -44,11 +47,15 @@ export interface GameState {
   revealedCells: number[];                       // 渲染提示:当前应翻到反面的格子
   lastResolve: { cells: number[]; correct: boolean } | null;
   deadline: number | null;                       // 当前计时阶段的绝对到点时间(epoch ms)
+  ready: Record<PlayerId, boolean>;              // 当前准备门里各玩家是否已确认
+  readyNext: 'preview' | 'reveal';               // 准备齐后进入的阶段
   winner: PlayerId | null;
 }
 
 export type Action =
+  | { type: 'READY'; player: PlayerId }
   | { type: 'PREVIEW_DONE' }
+  | { type: 'COUNTDOWN_DONE' }
   | { type: 'BUZZ'; player: PlayerId }
   | { type: 'SELECT'; player: PlayerId; cell: number }
   | { type: 'ANSWER_TIMEOUT' }
@@ -65,5 +72,6 @@ export interface ClientView {
   selection: number[];            // 当前答题者已选索引(双方可见,用于列出字母)
   revealedCells: number[];
   deadline: number | null;
+  ready: { me: boolean; opp: boolean };
   winner: 'me' | 'opp' | null;
 }
