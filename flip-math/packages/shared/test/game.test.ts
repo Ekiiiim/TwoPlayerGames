@@ -176,3 +176,79 @@ describe('reduce: SELECT toggle (before 3)', () => {
     expect(() => reduce(g, { type: 'SELECT', player: 'p2', cell: 0 }, ctx)).toThrow();
   });
 });
+
+import type { GameState } from '../src/types';
+
+// 用 fixedBoard 造一个处于 answering、active=p1 的状态,目标可控。
+function answering(target: number): GameState {
+  const base = createGame(ctx);
+  return {
+    ...base,
+    board: fixedBoard(),
+    phase: 'answering',
+    active: 'p1',
+    target,
+    selection: [],
+    deadline: ctx.now + DURATIONS.answerMs,
+  };
+}
+
+describe('reduce: SELECT completes -> resolve', () => {
+  it('correct answer: +1 score, enters resolve with revealed cells', () => {
+    let g = answering(7); // 3 + 4
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
+    expect(g.phase).toBe('resolve');
+    expect(g.lastResolve).toEqual({ cells: [0, 1, 2], correct: true });
+    expect(g.revealedCells).toEqual([0, 1, 2]);
+    expect(g.scores.p1).toBe(1);
+    expect(g.deadline).toBe(ctx.now + DURATIONS.resolveMs);
+  });
+  it('wrong answer: no score, resolve with correct=false', () => {
+    let g = answering(99);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
+    expect(g.phase).toBe('resolve');
+    expect(g.lastResolve).toEqual({ cells: [0, 1, 2], correct: false });
+    expect(g.scores.p1).toBe(0);
+  });
+});
+
+describe('reduce: RESOLVE_DONE', () => {
+  it('correct -> reveal (revealedCells = revealIndex)', () => {
+    let g = answering(7);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
+    const r = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
+    expect(r.phase).toBe('reveal');
+    expect(r.revealedCells).toEqual([0]); // revealIndex 起始 0
+    expect(r.selection).toEqual([]);
+    expect(r.deadline).toBe(ctx.now + DURATIONS.revealMs);
+  });
+  it('correct reaching WIN_SCORE -> finished (skip reveal)', () => {
+    let g = answering(7);
+    g = { ...g, scores: { p1: WIN_SCORE - 1, p2: 0 } };
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
+    const r = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
+    expect(r.phase).toBe('finished');
+    expect(r.winner).toBe('p1');
+    expect(r.deadline).toBeNull();
+  });
+  it('wrong -> switches active back to answering with fresh deadline', () => {
+    let g = answering(99);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
+    const r = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
+    expect(r.phase).toBe('answering');
+    expect(r.active).toBe('p2');
+    expect(r.selection).toEqual([]);
+    expect(r.revealedCells).toEqual([]);
+    expect(r.deadline).toBe(ctx.now + DURATIONS.answerMs);
+  });
+});

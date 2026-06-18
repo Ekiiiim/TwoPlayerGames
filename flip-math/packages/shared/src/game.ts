@@ -156,12 +156,58 @@ export function reduce(state: GameState, action: Action, ctx: EngineCtx): GameSt
       // 满 3 张 → 结算,见下个任务
       return resolveSelection(state, selection, ctx);
     }
+    case 'RESOLVE_DONE': {
+      requirePhase(state, 'resolve');
+      const lr = state.lastResolve!;
+      if (lr.correct) {
+        if (state.scores[state.active!] >= WIN_SCORE) {
+          return {
+            ...state,
+            phase: 'finished',
+            winner: state.active,
+            deadline: null,
+            revealedCells: [],
+            selection: [],
+            lastResolve: null,
+          };
+        }
+        return {
+          ...state,
+          phase: 'reveal',
+          revealedCells: [state.revealIndex],
+          selection: [],
+          lastResolve: null,
+          deadline: ctx.now + ctx.durations.revealMs,
+        };
+      }
+      // 错误 → 换人继续作答(同一目标)
+      return {
+        ...state,
+        phase: 'answering',
+        active: otherPlayer(state.active!),
+        selection: [],
+        revealedCells: [],
+        lastResolve: null,
+        deadline: ctx.now + ctx.durations.answerMs,
+      };
+    }
     default:
       throw new Error(`Unhandled action ${(action as Action).type}`);
   }
 }
 
-function resolveSelection(state: GameState, selection: number[], _ctx: EngineCtx): GameState {
-  // TEMP: 下个任务实现真正结算。这里仅占位,保持本任务测试(均不足 3 张)可编译通过。
-  return { ...state, selection };
+function resolveSelection(state: GameState, selection: number[], ctx: EngineCtx): GameState {
+  const correct = validateAnswer(state.board, selection, state.target!);
+  const scores = correct
+    ? { ...state.scores, [state.active!]: state.scores[state.active!] + 1 }
+    : state.scores;
+  return {
+    ...state,
+    selection,
+    scores,
+    phase: 'resolve',
+    lastResolve: { cells: selection, correct },
+    revealedCells: selection,
+    deadline: ctx.now + ctx.durations.resolveMs,
+  };
 }
