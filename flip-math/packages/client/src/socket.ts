@@ -57,6 +57,9 @@ export function joinRoom(code: string): void {
 export function buzz(): void {
   socket.emit('buzz');
 }
+export function ready(): void {
+  socket.emit('ready');
+}
 export function selectCell(index: number): void {
   socket.emit('select_cell', { index });
 }
