@@ -191,6 +191,29 @@ export function reduce(state: GameState, action: Action, ctx: EngineCtx): GameSt
         deadline: ctx.now + ctx.durations.answerMs,
       };
     }
+    case 'ANSWER_TIMEOUT': {
+      requirePhase(state, 'answering');
+      return {
+        ...state,
+        active: otherPlayer(state.active!),
+        selection: [],
+        deadline: ctx.now + ctx.durations.answerMs,
+      };
+    }
+    case 'REVEAL_DONE': {
+      requirePhase(state, 'reveal');
+      const revealIndex = (state.revealIndex + 1) % state.board.length;
+      return {
+        ...state,
+        phase: 'buzzing',
+        revealIndex,
+        target: generateTarget(state.board),
+        active: null,
+        selection: [],
+        revealedCells: [],
+        deadline: null,
+      };
+    }
     default:
       throw new Error(`Unhandled action ${(action as Action).type}`);
   }

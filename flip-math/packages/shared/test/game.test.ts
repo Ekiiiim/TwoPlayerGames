@@ -252,3 +252,39 @@ describe('reduce: RESOLVE_DONE', () => {
     expect(r.deadline).toBe(ctx.now + DURATIONS.answerMs);
   });
 });
+
+describe('reduce: ANSWER_TIMEOUT', () => {
+  it('switches active and resets selection with a fresh deadline', () => {
+    let g = answering(7);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx); // 只选 1 张
+    const r = reduce(g, { type: 'ANSWER_TIMEOUT' }, ctx);
+    expect(r.phase).toBe('answering');
+    expect(r.active).toBe('p2');
+    expect(r.selection).toEqual([]);
+    expect(r.target).toBe(7); // 同一目标
+    expect(r.deadline).toBe(ctx.now + DURATIONS.answerMs);
+  });
+});
+
+describe('reduce: REVEAL_DONE', () => {
+  it('advances revealIndex (cycling) and starts next round with a new target', () => {
+    // 构造一个 reveal 状态,revealIndex=15 用于验证回绕
+    const base = { ...answering(7), board: createBoard() };
+    const reveal: GameState = {
+      ...base,
+      phase: 'reveal',
+      revealIndex: 15,
+      revealedCells: [15],
+      selection: [],
+      deadline: ctx.now + DURATIONS.revealMs,
+    };
+    const r = reduce(reveal, { type: 'REVEAL_DONE' }, ctx);
+    expect(r.phase).toBe('buzzing');
+    expect(r.revealIndex).toBe(0); // (15+1)%16
+    expect(r.active).toBeNull();
+    expect(r.selection).toEqual([]);
+    expect(r.revealedCells).toEqual([]);
+    expect(r.deadline).toBeNull();
+    expect(solvableTargets(r.board)).toContain(r.target);
+  });
+});
