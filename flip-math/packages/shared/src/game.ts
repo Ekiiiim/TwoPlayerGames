@@ -127,7 +127,41 @@ export function reduce(state: GameState, action: Action, ctx: EngineCtx): GameSt
         deadline: null,
       };
     }
+    case 'BUZZ': {
+      requirePhase(state, 'buzzing');
+      return {
+        ...state,
+        phase: 'answering',
+        active: action.player,
+        selection: [],
+        deadline: ctx.now + ctx.durations.answerMs,
+      };
+    }
+    case 'SELECT': {
+      requirePhase(state, 'answering');
+      if (action.player !== state.active) throw new Error('Not your turn');
+      if (action.cell < 0 || action.cell >= state.board.length) {
+        throw new Error('Invalid cell');
+      }
+      let selection: number[];
+      if (state.selection.includes(action.cell)) {
+        selection = state.selection.filter((c) => c !== action.cell); // 撤销
+      } else {
+        if (state.selection.length >= 3) return state; // 理论上不会发生(满 3 已结算)
+        selection = [...state.selection, action.cell];
+      }
+      if (selection.length < 3) {
+        return { ...state, selection };
+      }
+      // 满 3 张 → 结算,见下个任务
+      return resolveSelection(state, selection, ctx);
+    }
     default:
       throw new Error(`Unhandled action ${(action as Action).type}`);
   }
+}
+
+function resolveSelection(state: GameState, selection: number[], _ctx: EngineCtx): GameState {
+  // TEMP: 下个任务实现真正结算。这里仅占位,保持本任务测试(均不足 3 张)可编译通过。
+  return { ...state, selection };
 }

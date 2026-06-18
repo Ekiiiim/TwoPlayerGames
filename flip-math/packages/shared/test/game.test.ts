@@ -141,3 +141,38 @@ describe('reduce: PREVIEW_DONE', () => {
     expect(() => reduce(buzzing, { type: 'PREVIEW_DONE' }, ctx)).toThrow();
   });
 });
+
+// 辅助:把游戏推进到 buzzing 状态
+function toBuzzing() {
+  return reduce(createGame(ctx), { type: 'PREVIEW_DONE' }, ctx);
+}
+
+describe('reduce: BUZZ', () => {
+  it('buzzing -> answering, sets active and answer deadline', () => {
+    const g = reduce(toBuzzing(), { type: 'BUZZ', player: 'p2' }, ctx);
+    expect(g.phase).toBe('answering');
+    expect(g.active).toBe('p2');
+    expect(g.selection).toEqual([]);
+    expect(g.deadline).toBe(ctx.now + DURATIONS.answerMs);
+  });
+  it('throws if buzz outside buzzing phase', () => {
+    expect(() => reduce(createGame(ctx), { type: 'BUZZ', player: 'p1' }, ctx)).toThrow();
+  });
+});
+
+describe('reduce: SELECT toggle (before 3)', () => {
+  it('adds an unselected cell, removes an already-selected one', () => {
+    let g = reduce(toBuzzing(), { type: 'BUZZ', player: 'p1' }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 5 }, ctx);
+    expect(g.selection).toEqual([5]);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
+    expect(g.selection).toEqual([5, 2]);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 5 }, ctx); // 撤销 5
+    expect(g.selection).toEqual([2]);
+    expect(g.phase).toBe('answering'); // 不足 3 张,仍在作答
+  });
+  it('rejects select from the non-active player', () => {
+    const g = reduce(toBuzzing(), { type: 'BUZZ', player: 'p1' }, ctx);
+    expect(() => reduce(g, { type: 'SELECT', player: 'p2', cell: 0 }, ctx)).toThrow();
+  });
+});
