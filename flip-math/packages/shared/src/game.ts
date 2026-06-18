@@ -197,6 +197,7 @@ export function reduce(state: GameState, action: Action, ctx: EngineCtx): GameSt
         ...state,
         active: otherPlayer(state.active!),
         selection: [],
+        revealedCells: [],
         deadline: ctx.now + ctx.durations.answerMs,
       };
     }

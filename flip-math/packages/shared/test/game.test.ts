@@ -251,6 +251,29 @@ describe('reduce: RESOLVE_DONE', () => {
     expect(r.revealedCells).toEqual([]);
     expect(r.deadline).toBe(ctx.now + DURATIONS.answerMs);
   });
+  it('repeated wrong answers force A->B->A on the same target', () => {
+    // target 99 无解,任意三张都是错的 → 强制交替直到有人答对(spec §2.5)
+    let g = answering(99);
+    // p1 选三张(错)
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
+    g = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
+    expect(g.active).toBe('p2');
+    expect(g.phase).toBe('answering');
+    expect(g.target).toBe(99);
+    expect(g.selection).toEqual([]);
+    expect(g.revealedCells).toEqual([]);
+    // p2 选三张(同样错)→ 应翻回 p1,目标不变
+    g = reduce(g, { type: 'SELECT', player: 'p2', cell: 0 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p2', cell: 1 }, ctx);
+    g = reduce(g, { type: 'SELECT', player: 'p2', cell: 2 }, ctx);
+    g = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
+    expect(g.active).toBe('p1');
+    expect(g.phase).toBe('answering');
+    expect(g.target).toBe(99);
+    expect(g.selection).toEqual([]);
+  });
 });
 
 describe('reduce: ANSWER_TIMEOUT', () => {
