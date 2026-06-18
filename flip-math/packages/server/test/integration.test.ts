@@ -4,8 +4,8 @@ import { evalExpr, WIN_SCORE } from '@fm/shared';
 import type { ClientView, Cell } from '@fm/shared';
 import { startServer } from '../src/index';
 
-// 极短时长,让 preview/answer/resolve/reveal 快速推进。
-const FAST = { previewMs: 40, answerMs: 80, revealMs: 20, resolveMs: 20 };
+// 极短时长,让 preview/countdown/answer/resolve/reveal 快速推进。
+const FAST = { previewMs: 40, answerMs: 80, revealMs: 20, resolveMs: 20, countdownMs: 20 };
 
 let stop: (() => Promise<void>) | null = null;
 afterEach(async () => {
@@ -49,6 +49,7 @@ function findSolution(board: Cell[], target: number): [number, number, number] |
   return null;
 }
 
+// 加入房间。返回时双方都已收到首个视图(phase==='ready' 开局准备门)。
 async function createJoin(port: number) {
   const a = connect(port);
   const b = connect(port);
@@ -57,21 +58,42 @@ async function createJoin(port: number) {
   const pA = once<ClientView>(a, 'view_update');
   const pB = once<ClientView>(b, 'view_update');
   b.emit('join_room', { roomCode });
-  await pA;
+  const va = await pA;
   await pB;
-  return { a, b, roomCode };
+  return { a, b, roomCode, firstView: va };
+}
+
+// 从一个 ready 准备门:双方点准备,推进过 preview/countdown,等到 buzzing(目标出现)。
+// 仅在服务器确实处于 ready 阶段时调用(开局后,或上回合答对回到 ready 后)。
+async function readyRound(a: Socket, b: Socket): Promise<ClientView> {
+  a.emit('ready');
+  b.emit('ready');
+  return waitView(a, (v) => v.phase === 'buzzing');
 }
 
 // 本游戏无隐藏信息(preview 后整盘对双方公开),无需防泄露回归。
 // 服务器权威性体现为:非己方回合作答被拒、得分只由服务器结算。
 describe('flip-math server', () => {
-  it('create+join starts both in preview, then auto-advances to buzzing', async () => {
+  it('join -> ready gate (no target); both ready -> buzzing (target appears)', async () => {
     const { port, close } = await startServer(0, { durations: FAST });
     stop = close;
-    const { a, b } = await createJoin(port);
-    const v = await waitView(a, (v) => v.phase === 'buzzing');
+    const { a, b, firstView } = await createJoin(port);
+    // 加入后首个视图是开局准备门:无目标。
+    expect(firstView.phase).toBe('ready');
+    expect(firstView.target).toBeNull();
+    expect(firstView.ready).toEqual({ me: false, opp: false });
+    // 收集到 buzzing 之前的所有视图,断言 target 在 buzzing 之前始终为 null。
+    const pre: ClientView[] = [];
+    const offHandler = (v: ClientView) => {
+      if (v.phase !== 'buzzing') pre.push(v);
+    };
+    a.on('view_update', offHandler);
+    const v = await readyRound(a, b);
+    a.off('view_update', offHandler);
+    expect(v.phase).toBe('buzzing');
     expect(v.board).toHaveLength(16);
     expect(v.target).not.toBeNull();
+    for (const pv of pre) expect(pv.target).toBeNull();
     a.close();
     b.close();
   });
@@ -80,7 +102,7 @@ describe('flip-math server', () => {
     const { port, close } = await startServer(0, { durations: FAST });
     stop = close;
     const { a, b } = await createJoin(port);
-    const v = await waitView(a, (v) => v.phase === 'buzzing');
+    const v = await readyRound(a, b);
     for (const cell of v.board) {
       expect(cell.back).toBeDefined();
       expect(['num', 'op']).toContain(cell.back.kind);
@@ -93,7 +115,7 @@ describe('flip-math server', () => {
     const { port, close } = await startServer(0, { durations: FAST });
     stop = close;
     const { a, b } = await createJoin(port);
-    const buzzing = await waitView(a, (v) => v.phase === 'buzzing');
+    const buzzing = await readyRound(a, b);
     const sol = findSolution(buzzing.board, buzzing.target!);
     expect(sol).not.toBeNull();
 
@@ -112,7 +134,7 @@ describe('flip-math server', () => {
     const { port, close } = await startServer(0, { durations: FAST });
     stop = close;
     const { a, b } = await createJoin(port);
-    const buzzing = await waitView(a, (v) => v.phase === 'buzzing');
+    const buzzing = await readyRound(a, b);
     // 选一个错误三张:找三张 num,num,num(必然非法)
     const nums = buzzing.board.filter((c) => c.back.kind === 'num').slice(0, 3).map((c) => c.index);
 
@@ -134,7 +156,7 @@ describe('flip-math server', () => {
     const { port, close } = await startServer(0, { durations: FAST });
     stop = close;
     const { a, b } = await createJoin(port);
-    await waitView(a, (v) => v.phase === 'buzzing');
+    await readyRound(a, b);
     a.emit('buzz'); // a 抢到
     await waitView(a, (v) => v.phase === 'answering' && v.iAmActive);
     const pErr = once<{ message: string }>(b, 'error_msg');
@@ -171,7 +193,7 @@ describe('flip-math server', () => {
     const { port, close } = await startServer(0, { durations: FAST });
     stop = close;
     const { a, b } = await createJoin(port);
-    await waitView(a, (v) => v.phase === 'buzzing');
+    await readyRound(a, b);
     const pLeft = once<void>(b, 'opponent_left');
     a.emit('leave_room');
     await pLeft;
@@ -185,9 +207,10 @@ describe('flip-math server', () => {
     stop = close;
     const { a, b } = await createJoin(port);
 
+    // 开局准备门 → 第 1 回合 buzzing。
+    let buzzing = await readyRound(a, b);
     let done: ClientView | null = null;
     for (let round = 0; round < 30 && !done; round++) {
-      const buzzing = await waitView(a, (v) => v.phase === 'buzzing');
       const sol = findSolution(buzzing.board, buzzing.target!);
       const targetScore = buzzing.scores.me + 1;
       a.emit('buzz');
@@ -199,11 +222,17 @@ describe('flip-math server', () => {
       for (const cell of sol!) a.emit('select_cell', { index: cell });
       let v = await progressed;
       // 得分先于 resolve 阶段写入,finished 在随后的 RESOLVE_DONE 才到达;
-      // 命中胜分但仍在 resolve 时,继续等待终局视图,避免回到 buzzing 的等待永久挂起。
+      // 命中胜分但仍在 resolve 时,继续等待终局视图。
       if (v.phase !== 'finished' && v.scores.me >= WIN_SCORE) {
         v = await waitView(a, (w) => w.phase === 'finished');
       }
-      if (v.phase === 'finished') done = v;
+      if (v.phase === 'finished') {
+        done = v;
+        break;
+      }
+      // 答对未满分 → 回到下一回合的准备门 → 再次准备到 buzzing。
+      await waitView(a, (w) => w.phase === 'ready');
+      buzzing = await readyRound(a, b);
     }
     expect(done).not.toBeNull();
     expect(done!.winner).toBe('me');

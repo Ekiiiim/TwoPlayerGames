@@ -105,6 +105,18 @@ export async function startServer(
       }
     });
 
+    socket.on('ready', () => {
+      if (!myRoom || !myId) return;
+      const session = rooms.get(myRoom);
+      if (!session) return;
+      // 非 ready 阶段或重复点击:reduce 幂等/抛错,这里静默忽略避免噪声。
+      try {
+        session.dispatch({ type: 'READY', player: myId });
+      } catch {
+        /* ignore stray ready */
+      }
+    });
+
     socket.on('select_cell', (data: unknown) => {
       if (!myRoom || !myId) return;
       if (!isRecord(data) || typeof data.index !== 'number') {
