@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bw-client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "black-and-white", "run", "dev", "--workspace", "@bw/client"],
+      "port": 5173
+    }
+  ]
+}

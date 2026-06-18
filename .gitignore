@@ -1,0 +1,3 @@
+# Claude Code local/personal files (keep shared config like launch.json tracked)
+.claude/settings.local.json
+.claude/worktrees/
