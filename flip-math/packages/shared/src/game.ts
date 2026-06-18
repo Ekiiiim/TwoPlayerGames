@@ -66,3 +66,15 @@ export function generateTarget(board: Cell[], rng: () => number = Math.random): 
   const targets = solvableTargets(board);
   return targets[Math.floor(rng() * targets.length)];
 }
+
+// 合法算式:cells = [c1, c2, c3];c1/c3 为数字格、c2 为运算符格、三张互异,
+// 且 c1 op c3 === target 且为正整数。
+export function validateAnswer(board: Cell[], cells: number[], target: number): boolean {
+  if (cells.length !== 3) return false;
+  if (new Set(cells).size !== 3) return false;
+  if (cells.some((c) => c < 0 || c >= board.length)) return false;
+  const [a, op, b] = cells.map((c) => board[c].back);
+  if (a.kind !== 'num' || b.kind !== 'num' || op.kind !== 'op') return false;
+  const r = evalExpr(a.value, op.op, b.value);
+  return isPositiveInt(r) && r === target;
+}

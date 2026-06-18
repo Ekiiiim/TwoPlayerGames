@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  createBoard,
-  evalExpr,
-  isPositiveInt,
-  solvableTargets,
-  generateTarget,
-} from '../src/game';
+import { createBoard, evalExpr, isPositiveInt, solvableTargets, generateTarget, validateAnswer } from '../src/game';
 import type { CellBack, Operator } from '../src/types';
 
 function backKey(b: CellBack): string {
@@ -67,5 +61,46 @@ describe('solvableTargets / generateTarget', () => {
       expect(Number.isInteger(t)).toBe(true);
       expect(targets).toContain(t);
     }
+  });
+});
+
+import type { Cell } from '../src/types';
+
+// 固定一块用于断言的牌面(index→back),letter 不影响判定。
+function fixedBoard(): Cell[] {
+  const backs = [
+    { kind: 'num', value: 3 }, // 0
+    { kind: 'op', op: '+' },   // 1
+    { kind: 'num', value: 4 }, // 2
+    { kind: 'num', value: 8 }, // 3
+    { kind: 'op', op: '-' },   // 4
+    { kind: 'op', op: '*' },   // 5
+    { kind: 'num', value: 2 }, // 6
+    { kind: 'op', op: '/' },   // 7
+  ] as const;
+  return backs.map((back, i) => ({ index: i, letter: String.fromCharCode(65 + i), back: { ...back } }));
+}
+
+describe('validateAnswer', () => {
+  const board = fixedBoard();
+  it('accepts num-op-num equal to target', () => {
+    expect(validateAnswer(board, [0, 1, 2], 7)).toBe(true);  // 3 + 4
+    expect(validateAnswer(board, [3, 4, 2], 4)).toBe(true);  // 8 - 4
+    expect(validateAnswer(board, [3, 7, 2], 2)).toBe(true);  // 8 / 4
+  });
+  it('rejects wrong result', () => {
+    expect(validateAnswer(board, [0, 1, 2], 99)).toBe(false);
+  });
+  it('rejects wrong cell types / order (op not in middle)', () => {
+    expect(validateAnswer(board, [1, 0, 2], 7)).toBe(false); // op,num,num
+    expect(validateAnswer(board, [0, 2, 1], 7)).toBe(false); // num,num,op
+  });
+  it('rejects non-distinct or wrong-length selections', () => {
+    expect(validateAnswer(board, [0, 1, 0], 6)).toBe(false);
+    expect(validateAnswer(board, [0, 1], 7)).toBe(false);
+  });
+  it('rejects non-integer division and non-positive results', () => {
+    expect(validateAnswer(board, [0, 7, 2], 0)).toBe(false); // 3/4 非整数
+    expect(validateAnswer(board, [2, 4, 3], -4)).toBe(false); // 4-8 为负
   });
 });
