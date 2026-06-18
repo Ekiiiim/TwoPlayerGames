@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { createBoard, evalExpr, isPositiveInt, solvableTargets, generateTarget, validateAnswer } from '../src/game';
+import {
+  createBoard, evalExpr, isPositiveInt, solvableTargets, generateTarget,
+  validateAnswer, createGame, reduce, DURATIONS, WIN_SCORE,
+} from '../src/game';
+import type { EngineCtx } from '../src/types';
+
+const ctx: EngineCtx = { now: 1_000_000, durations: DURATIONS };
 import type { CellBack, Operator } from '../src/types';
 
 function backKey(b: CellBack): string {
@@ -102,5 +108,36 @@ describe('validateAnswer', () => {
   it('rejects non-integer division and non-positive results', () => {
     expect(validateAnswer(board, [0, 7, 2], 0)).toBe(false); // 3/4 非整数
     expect(validateAnswer(board, [2, 4, 3], -4)).toBe(false); // 4-8 为负
+  });
+});
+
+describe('createGame', () => {
+  it('starts in preview with a full board and preview deadline', () => {
+    const g = createGame(ctx);
+    expect(g.phase).toBe('preview');
+    expect(g.board).toHaveLength(16);
+    expect(g.scores).toEqual({ p1: 0, p2: 0 });
+    expect(g.target).toBeNull();
+    expect(g.active).toBeNull();
+    expect(g.selection).toEqual([]);
+    expect(g.revealIndex).toBe(0);
+    expect(g.deadline).toBe(ctx.now + DURATIONS.previewMs);
+    expect(g.winner).toBeNull();
+  });
+});
+
+describe('reduce: PREVIEW_DONE', () => {
+  it('moves preview -> buzzing with a solvable target and no deadline', () => {
+    const g = createGame(ctx);
+    const g2 = reduce(g, { type: 'PREVIEW_DONE' }, ctx);
+    expect(g2.phase).toBe('buzzing');
+    expect(g2.target).not.toBeNull();
+    expect(solvableTargets(g2.board)).toContain(g2.target);
+    expect(g2.deadline).toBeNull(); // 抢答无超时
+  });
+  it('throws if called in the wrong phase', () => {
+    const g = createGame(ctx);
+    const buzzing = reduce(g, { type: 'PREVIEW_DONE' }, ctx);
+    expect(() => reduce(buzzing, { type: 'PREVIEW_DONE' }, ctx)).toThrow();
   });
 });

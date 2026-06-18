@@ -1,7 +1,13 @@
 import type {
+  Action,
   Cell,
   CellBack,
+  ClientView,
+  Durations,
+  EngineCtx,
+  GameState,
   Operator,
+  Phase,
   PlayerId,
 } from './types';
 
@@ -77,4 +83,51 @@ export function validateAnswer(board: Cell[], cells: number[], target: number): 
   if (a.kind !== 'num' || b.kind !== 'num' || op.kind !== 'op') return false;
   const r = evalExpr(a.value, op.op, b.value);
   return isPositiveInt(r) && r === target;
+}
+
+export const WIN_SCORE = 10;
+export const DURATIONS: Durations = {
+  previewMs: 10_000,
+  answerMs: 5_000,
+  revealMs: 3_000,
+  resolveMs: 1_500,
+};
+
+export function createGame(ctx: EngineCtx): GameState {
+  return {
+    board: createBoard(),
+    scores: { p1: 0, p2: 0 },
+    phase: 'preview',
+    target: null,
+    active: null,
+    selection: [],
+    revealIndex: 0,
+    revealedCells: [],
+    lastResolve: null,
+    deadline: ctx.now + ctx.durations.previewMs,
+    winner: null,
+  };
+}
+
+function requirePhase(s: GameState, p: Phase): void {
+  if (s.phase !== p) throw new Error(`Expected phase ${p}, got ${s.phase}`);
+}
+
+export function reduce(state: GameState, action: Action, ctx: EngineCtx): GameState {
+  switch (action.type) {
+    case 'PREVIEW_DONE': {
+      requirePhase(state, 'preview');
+      return {
+        ...state,
+        phase: 'buzzing',
+        target: generateTarget(state.board),
+        active: null,
+        selection: [],
+        revealedCells: [],
+        deadline: null,
+      };
+    }
+    default:
+      throw new Error(`Unhandled action ${(action as Action).type}`);
+  }
 }
