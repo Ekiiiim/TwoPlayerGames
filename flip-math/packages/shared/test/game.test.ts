@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   createBoard, evalExpr, isPositiveInt, solvableTargets, generateTarget,
-  validateAnswer, createGame, reduce, DURATIONS, WIN_SCORE,
+  validateAnswer, createGame, reduce, DURATIONS, WIN_SCORE, toClientView,
 } from '../src/game';
 import type { EngineCtx } from '../src/types';
 
@@ -286,5 +286,28 @@ describe('reduce: REVEAL_DONE', () => {
     expect(r.revealedCells).toEqual([]);
     expect(r.deadline).toBeNull();
     expect(solvableTargets(r.board)).toContain(r.target);
+  });
+});
+
+describe('toClientView', () => {
+  it('exposes the full board and maps me/opp perspective', () => {
+    let g = reduce(toBuzzing(), { type: 'BUZZ', player: 'p1' }, ctx);
+    g = { ...g, scores: { p1: 2, p2: 5 } };
+    const v1 = toClientView(g, 'p1');
+    expect(v1.board).toHaveLength(16);
+    expect(v1.board[0].back).toBeDefined(); // 反面公开
+    expect(v1.scores).toEqual({ me: 2, opp: 5 });
+    expect(v1.iAmActive).toBe(true);
+    expect(v1.active).toBe('me');
+
+    const v2 = toClientView(g, 'p2');
+    expect(v2.scores).toEqual({ me: 5, opp: 2 });
+    expect(v2.iAmActive).toBe(false);
+    expect(v2.active).toBe('opp');
+  });
+  it('maps winner perspective at finished', () => {
+    const g = { ...createGame(ctx), phase: 'finished' as const, winner: 'p2' as const };
+    expect(toClientView(g, 'p2').winner).toBe('me');
+    expect(toClientView(g, 'p1').winner).toBe('opp');
   });
 });

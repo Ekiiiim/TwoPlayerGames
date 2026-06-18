@@ -234,3 +234,21 @@ function resolveSelection(state: GameState, selection: number[], ctx: EngineCtx)
     deadline: ctx.now + ctx.durations.resolveMs,
   };
 }
+
+export function toClientView(g: GameState, me: PlayerId): ClientView {
+  const opp = otherPlayer(me);
+  const active = g.active === null ? null : g.active === me ? 'me' : 'opp';
+  const winner = g.winner === null ? null : g.winner === me ? 'me' : 'opp';
+  return {
+    board: g.board,
+    phase: g.phase,
+    target: g.target,
+    scores: { me: g.scores[me], opp: g.scores[opp] },
+    iAmActive: g.active === me,
+    active,
+    selection: g.selection,
+    revealedCells: g.revealedCells,
+    deadline: g.deadline,
+    winner,
+  };
+}
