@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { io as ioc, type Socket } from 'socket.io-client';
-import { evalExpr } from '@fm/shared';
+import { evalExpr, WIN_SCORE } from '@fm/shared';
 import type { ClientView, Cell } from '@fm/shared';
 import { startServer } from '../src/index';
 
@@ -62,6 +62,8 @@ async function createJoin(port: number) {
   return { a, b, roomCode };
 }
 
+// 本游戏无隐藏信息(preview 后整盘对双方公开),故 CLAUDE.md 要求的"防作弊回归"
+// 在此体现为服务器权威性测试:非己方回合作答被拒、得分只由服务器结算。
 describe('flip-math server', () => {
   it('create+join starts both in preview, then auto-advances to buzzing', async () => {
     const { port, close } = await startServer(0, { durations: FAST });
@@ -198,14 +200,14 @@ describe('flip-math server', () => {
       let v = await progressed;
       // 得分先于 resolve 阶段写入,finished 在随后的 RESOLVE_DONE 才到达;
       // 命中胜分但仍在 resolve 时,继续等待终局视图,避免回到 buzzing 的等待永久挂起。
-      if (v.phase !== 'finished' && v.scores.me >= 10) {
+      if (v.phase !== 'finished' && v.scores.me >= WIN_SCORE) {
         v = await waitView(a, (w) => w.phase === 'finished');
       }
       if (v.phase === 'finished') done = v;
     }
     expect(done).not.toBeNull();
     expect(done!.winner).toBe('me');
-    expect(done!.scores.me).toBe(10);
+    expect(done!.scores.me).toBe(WIN_SCORE);
 
     a.close();
     b.close();
