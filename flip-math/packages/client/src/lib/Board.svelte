@@ -21,7 +21,7 @@
   {#each view.board as cell (cell.index)}
     {@const sel = view.selection.indexOf(cell.index)}
     <button
-      class="relative flex h-[68px] w-[68px] items-center justify-center rounded-[12px] border-2 text-2xl font-bold transition
+      class="relative flex h-[76px] w-[76px] items-center justify-center rounded-[12px] border-2 text-3xl font-bold transition
              {showsBack(cell.index)
                ? 'border-accent bg-back text-accent'
                : 'border-line bg-card text-ink'}
@@ -32,7 +32,7 @@
     >
       {showsBack(cell.index) ? backText(cell) : cell.letter}
       {#if sel >= 0}
-        <span class="absolute right-1 top-1 text-xs text-accent">{sel + 1}</span>
+        <span class="absolute right-1.5 top-1 text-sm text-accent">{sel + 1}</span>
       {/if}
     </button>
   {/each}
