@@ -1,0 +1,20 @@
+{
+  "name": "@fm/server",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fm/shared": "*",
+    "socket.io": "^4.7.0",
+    "tsx": "^4.7.0"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
