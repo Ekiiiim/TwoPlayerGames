@@ -12,83 +12,41 @@
     if (!myTurn) return;
     dispatch('select', c);
   }
+
+  const base =
+    'relative flex h-[54px] w-[38px] cursor-pointer items-center justify-center ' +
+    'rounded-[6px] border-2 text-[1rem] font-medium transition duration-150 ' +
+    'disabled:cursor-not-allowed disabled:opacity-55';
+
+  // `sel` is passed in (not read from closure) so Svelte tracks `selected` as a
+  // dependency of the class expression and re-renders the highlight on change.
+  function cls(c: number, sel: number | null): string {
+    const isBlack = colorOf(c) === 'black';
+    const isSel = sel === c;
+    const bgText = isBlack
+      ? 'bg-card-black-bg text-card-black-text'
+      : 'bg-card-white-bg text-card-white-text';
+    const border = isSel
+      ? 'border-gold'
+      : isBlack
+        ? 'border-card-black-border'
+        : 'border-card-white-border';
+    const lift = isSel
+      ? '-translate-y-[8px] shadow-[0_0_0_2px_var(--color-gold),0_6px_16px_rgba(0,0,0,0.5)]'
+      : 'enabled:hover:-translate-y-[4px] enabled:hover:shadow-[0_4px_12px_rgba(0,0,0,0.4)]';
+    return `${base} ${bgText} ${border} ${lift}`;
+  }
 </script>
 
-<div class="hand">
+<div class="flex flex-wrap justify-center gap-[10px] pb-[16px] pt-[8px]">
   {#each cards as c (c)}
     <button
-      class="card-face"
-      class:black-card={colorOf(c) === 'black'}
-      class:white-card={colorOf(c) === 'white'}
-      class:selected={selected === c}
-      class:lifted={selected === c}
+      class={cls(c, selected)}
       disabled={!myTurn}
       on:click={() => handleClick(c)}
       aria-pressed={selected === c}
     >
-      <span class="card-num">{c}</span>
+      <span class="pointer-events-none select-none">{c}</span>
     </button>
   {/each}
 </div>
-
-<style>
-  .hand {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 8px 0 16px;
-  }
-
-  .card-face {
-    width: 38px;
-    height: 54px;
-    border-radius: 6px;
-    border: 2px solid transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 1rem;
-    transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
-    position: relative;
-    top: 0;
-  }
-
-  .card-face:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-
-  .black-card {
-    background: var(--card-black-bg);
-    color: var(--card-black-text);
-    border-color: var(--card-black-border);
-  }
-
-  .white-card {
-    background: var(--card-white-bg);
-    color: var(--card-white-text);
-    border-color: var(--card-white-border);
-  }
-
-  .card-face:not(:disabled):hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-  }
-
-  .selected {
-    border-color: var(--gold) !important;
-    box-shadow: 0 0 0 2px var(--gold), 0 6px 16px rgba(0,0,0,0.5) !important;
-  }
-
-  .lifted {
-    transform: translateY(-8px) !important;
-  }
-
-  .card-num {
-    pointer-events: none;
-    user-select: none;
-  }
-</style>
