@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ClientView } from '@fm/shared';
-  import { rematch, leaveRoom } from '../socket';
+  import { rematch, leaveRoom, status } from '../socket';
   import Button from './Button.svelte';
   export let view: ClientView;
 </script>
@@ -14,4 +14,5 @@
     <Button on:click={rematch}>再来一局</Button>
     <Button variant="ghost" on:click={leaveRoom}>返回大厅</Button>
   </div>
+  {#if $status}<p class="text-danger">{$status}</p>{/if}
 </div>
