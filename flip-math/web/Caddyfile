@@ -1,0 +1,19 @@
+# Internal front door for 《翻牌数式》 (plain HTTP on :80 — TLS handled by the
+# shared proxy in front). Serves the static client and forwards WebSocket /
+# Socket.IO traffic to the game server container.
+
+:80 {
+	encode gzip
+
+	# Socket.IO (incl. the WebSocket upgrade) -> game server
+	handle /socket.io/* {
+		reverse_proxy fm-server:3001
+	}
+
+	# Everything else -> static SPA with index.html fallback
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

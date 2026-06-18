@@ -13,6 +13,11 @@ bw.minyu.me {
 	reverse_proxy bw-web:80
 }
 
+# 《翻牌数式》
+flipmath.minyu.me {
+	reverse_proxy fm-web:80
+}
+
 # Add more projects like this:
 # foo.example.com {
 # 	reverse_proxy foo-web:80

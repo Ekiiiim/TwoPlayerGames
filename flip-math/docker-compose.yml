@@ -1,0 +1,37 @@
+name: flip-math
+
+# Two services on the shared "web" network:
+#   fm-server — Node/Socket.IO game server (internal only, port 3001)
+#   fm-web    — Caddy serving the static client and proxying /socket.io/ to fm-server
+# The shared proxy (../proxy) routes the public hostname to fm-web.
+#
+# Deploy from this folder:
+#   docker compose build
+#   docker compose up -d
+
+services:
+  fm-server:
+    build:
+      context: .
+      target: server
+    image: fm-server
+    restart: unless-stopped
+    expose:
+      - "3001"          # reachable only on the docker network, not published
+    networks:
+      - web
+
+  fm-web:
+    build:
+      context: .
+      target: web
+    image: fm-web
+    restart: unless-stopped
+    depends_on:
+      - fm-server
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
