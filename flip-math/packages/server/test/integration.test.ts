@@ -62,8 +62,8 @@ async function createJoin(port: number) {
   return { a, b, roomCode };
 }
 
-// 本游戏无隐藏信息(preview 后整盘对双方公开),故 CLAUDE.md 要求的"防作弊回归"
-// 在此体现为服务器权威性测试:非己方回合作答被拒、得分只由服务器结算。
+// 本游戏无隐藏信息(preview 后整盘对双方公开),无需防泄露回归。
+// 服务器权威性体现为:非己方回合作答被拒、得分只由服务器结算。
 describe('flip-math server', () => {
   it('create+join starts both in preview, then auto-advances to buzzing', async () => {
     const { port, close } = await startServer(0, { durations: FAST });

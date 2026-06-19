@@ -1,9 +1,9 @@
 # 部署《翻牌数式》(flip-math)
 
-与 `black-and-white` 完全同构,共用一台 droplet 上的共享 `proxy/`(占用 80/443、自动 TLS)。
+共用一台 droplet 上的共享 `proxy/`(占用 80/443、自动 TLS),自带 compose + Caddyfile。
 
 ## 前置
-- droplet 上已有外部 docker 网络 `web`(BW 部署时已建;若没有:`docker network create web`)。
+- droplet 上有外部 docker 网络 `web`(若不存在:`docker network create web`)。
 - 共享 `proxy/` 已在运行。
 - DNS:`flipmath.minyu.me` 的 A 记录指向本 droplet。
 
