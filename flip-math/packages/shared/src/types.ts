@@ -73,5 +73,6 @@ export interface ClientView {
   revealedCells: number[];
   deadline: number | null;
   ready: { me: boolean; opp: boolean };
+  lastResolve: { cells: number[]; correct: boolean } | null; // resolve 阶段的结算(供回合结果提示)
   winner: 'me' | 'opp' | null;
 }

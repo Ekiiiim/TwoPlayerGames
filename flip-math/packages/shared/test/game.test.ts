@@ -396,4 +396,9 @@ describe('toClientView', () => {
     expect(toClientView(g, 'p1').ready).toEqual({ me: true, opp: false });
     expect(toClientView(g, 'p2').ready).toEqual({ me: false, opp: true });
   });
+  it('passes through lastResolve (for the round-result popup)', () => {
+    const g = { ...createGame(ctx), lastResolve: { cells: [0, 1, 2], correct: true } };
+    expect(toClientView(g, 'p1').lastResolve).toEqual({ cells: [0, 1, 2], correct: true });
+    expect(toClientView(createGame(ctx), 'p1').lastResolve).toBeNull();
+  });
 });

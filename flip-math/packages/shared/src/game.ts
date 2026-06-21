@@ -3,13 +3,13 @@ import type {
   Cell,
   CellBack,
   ClientView,
-  Durations,
   EngineCtx,
   GameState,
   Operator,
   Phase,
   PlayerId,
 } from './types';
+import { WIN_SCORE } from './config'; // 内部 reduce 用;DURATIONS 见下方 re-export
 
 export const PLAYER_IDS: readonly PlayerId[] = ['p1', 'p2'];
 export function otherPlayer(p: PlayerId): PlayerId {
@@ -85,14 +85,8 @@ export function validateAnswer(board: Cell[], cells: number[], target: number): 
   return isPositiveInt(r) && r === target;
 }
 
-export const WIN_SCORE = 10;
-export const DURATIONS: Durations = {
-  previewMs: 10_000,
-  answerMs: 5_000,
-  revealMs: 3_000,
-  resolveMs: 1_500,
-  countdownMs: 3_000,
-};
+// DURATIONS / WIN_SCORE 集中定义在 config.ts;这里对外转发,保持 @fm/shared 的导出不变。
+export { DURATIONS, WIN_SCORE } from './config';
 
 // 开局从"准备门"开始(无 deadline,等双方各点一次准备);rematch 复用同一函数。
 export function createGame(_ctx: EngineCtx): GameState {
@@ -212,6 +206,7 @@ export function reduce(state: GameState, action: Action, ctx: EngineCtx): GameSt
           readyNext: 'reveal',
           ready: { p1: false, p2: false },
           target: null,
+          active: null,
           selection: [],
           revealedCells: [],
           lastResolve: null,
@@ -289,6 +284,7 @@ export function toClientView(g: GameState, me: PlayerId): ClientView {
     revealedCells: g.revealedCells,
     deadline: g.deadline,
     ready: { me: g.ready[me], opp: g.ready[opp] },
+    lastResolve: g.lastResolve,
     winner,
   };
 }
