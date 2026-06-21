@@ -1,11 +1,17 @@
 import { io, type Socket } from 'socket.io-client';
 import { writable } from 'svelte/store';
+import { UI } from '@fm/shared';
 import type { ClientView } from '@fm/shared';
+import { backText } from './lib/cellFace';
 
 export const view = writable<ClientView | null>(null);
 export const roomCode = writable<string | null>(null);
 export const status = writable<string>('');
 export const ended = writable<string | null>(null);
+// 回合结果小提示(toast),由 view_update 在有人答对时设置,UI.resultPopupMs 后自动清空。
+export const roundResult = writable<string | null>(null);
+let prevPhase: string | null = null;
+let resultTimer: ReturnType<typeof setTimeout> | undefined;
 
 const socket: Socket = io({ autoConnect: true });
 
@@ -31,6 +37,16 @@ socket.on('view_update', (v: ClientView) => {
   rejoining = false;
   view.set(v);
   if (v.phase !== 'finished') ended.set(null);
+  // 回合结束(有人答对)→ 弹出自动消失的结果提示。只在刚进入 resolve 且答对时触发一次。
+  if (v.phase === 'resolve' && prevPhase !== 'resolve' && v.lastResolve?.correct) {
+    const [ca, cop, cb] = v.lastResolve.cells.map((i) => v.board[i]);
+    const who = v.active === 'me' ? '你答对了' : '对方答对了';
+    const eq = ca && cop && cb ? `${backText(ca)} ${backText(cop)} ${backText(cb)} = ${v.target}` : '';
+    roundResult.set(eq ? `${who}　${eq}` : who);
+    clearTimeout(resultTimer);
+    resultTimer = setTimeout(() => roundResult.set(null), UI.resultPopupMs);
+  }
+  prevPhase = v.phase;
 });
 
 socket.on('error_msg', (e: { message: string }) => {
@@ -81,4 +97,6 @@ export function leaveRoom(): void {
   roomCode.set(null);
   ended.set(null);
   status.set('');
+  roundResult.set(null);
+  clearTimeout(resultTimer);
 }

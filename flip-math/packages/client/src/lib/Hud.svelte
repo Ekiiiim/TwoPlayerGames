@@ -3,10 +3,7 @@
   import { onDestroy } from 'svelte';
   import { buzz, ready, leaveRoom } from '../socket';
   import Button from './Button.svelte';
-  import Selection from './Selection.svelte';
   export let view: ClientView;
-  // 窄屏 true:在 Hud 内显示已选;宽屏布局传 false(右栏单独放 Selection)。
-  export let showSelection = true;
 
   let remaining = 0;
   let confirmQuit = false;
@@ -24,11 +21,11 @@
     <span class="text-ink">我 <b class="text-2xl text-accent">{view.scores.me}</b></span>
     {#if confirmQuit}
       <span class="flex items-center gap-3 text-sm">
-        <button class="text-danger underline" on:click={leaveRoom}>确认退出</button>
-        <button class="text-muted underline" on:click={() => (confirmQuit = false)}>取消</button>
+        <button class="cursor-pointer text-danger underline" on:click={leaveRoom}>确认退出</button>
+        <button class="cursor-pointer text-muted underline" on:click={() => (confirmQuit = false)}>取消</button>
       </span>
     {:else}
-      <button class="text-sm text-muted underline" on:click={() => (confirmQuit = true)}>退出</button>
+      <button class="cursor-pointer text-sm text-muted underline" on:click={() => (confirmQuit = true)}>退出</button>
     {/if}
     <span class="text-ink">对手 <b class="text-2xl text-accent">{view.scores.opp}</b></span>
   </div>
@@ -61,9 +58,6 @@
     <Button on:click={buzz}>抢答</Button>
   {:else if view.phase === 'answering'}
     <p class="text-lg text-ink">{view.iAmActive ? '你来作答（点 3 张组成算式）' : '对方作答中…'}</p>
-    {#if showSelection && view.active}
-      <Selection {view} />
-    {/if}
   {:else if view.phase === 'resolve'}
     <p class="text-lg text-ink">揭晓…</p>
   {:else if view.phase === 'reveal'}

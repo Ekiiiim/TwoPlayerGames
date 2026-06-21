@@ -1,12 +1,9 @@
 <script lang="ts">
-  import type { ClientView, Cell, Operator } from '@fm/shared';
+  import type { ClientView } from '@fm/shared';
   import { selectCell } from '../socket';
+  import { backText } from './cellFace';
   export let view: ClientView;
 
-  const opSym: Record<Operator, string> = { '+': '+', '-': '−', '*': '×', '/': '÷' };
-  function backText(cell: Cell): string {
-    return cell.back.kind === 'num' ? String(cell.back.value) : opSym[cell.back.op];
-  }
   // preview 阶段或 revealedCells 中的格子显示反面,否则显示字母。
   function showsBack(i: number): boolean {
     return view.phase === 'preview' || view.revealedCells.includes(i);

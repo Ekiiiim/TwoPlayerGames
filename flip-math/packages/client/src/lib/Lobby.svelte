@@ -14,7 +14,7 @@
     <p class="text-muted">等待对手加入…</p>
     {#if confirmDisband}
       <div class="flex items-center gap-3">
-        <Button variant="danger" on:click={leaveRoom}>确认解散</Button>
+        <Button variant="danger" on:click={() => { confirmDisband = false; leaveRoom(); }}>确认解散</Button>
         <Button variant="ghost" on:click={() => (confirmDisband = false)}>取消</Button>
       </div>
     {:else}
