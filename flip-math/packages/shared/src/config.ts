@@ -14,7 +14,7 @@ export const DURATIONS: Durations = {
   previewMs: 10_000,
   answerMs: 5_000,
   revealMs: 3_000,
-  resolveMs: 1_500,
+  resolveMs: 3_000,
   countdownMs: 3_000,
 };
 
