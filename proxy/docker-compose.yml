@@ -18,6 +18,11 @@ services:
       - "443:443"
       - "443:443/udp"   # HTTP/3
     volumes:
+      # Single-file bind mount: pinned to the file's inode. After editing this
+      # Caddyfile (incl. via `git pull` or an atomic-save editor), the running
+      # container keeps serving the OLD content — `caddy reload`, `restart`, and a
+      # plain `up -d` all miss the change. Re-bind by recreating the container:
+      #   docker compose up -d --force-recreate caddy
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data       # persisted certs — do NOT delete
       - caddy_config:/config

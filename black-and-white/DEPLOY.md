@@ -121,8 +121,16 @@ The shared proxy keeps running and does not need to be touched.
    }
    ```
 
-3. Reload the proxy: `cd proxy && docker compose up -d` (or
-   `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile`).
+3. Recreate the proxy so it loads the new block:
+   `cd proxy && docker compose up -d --force-recreate caddy`.
+
+   > **Use `--force-recreate`, not `reload`/`restart`/plain `up -d`.** The Caddyfile is
+   > bind-mounted as a *single file*, so the mount is pinned to that file's inode. Editing
+   > it (especially via `git pull` or an atomic-save editor) writes a *new* inode at the
+   > path, which the running container can't see — so `caddy reload`, `docker compose
+   > restart`, and a plain `docker compose up -d` (spec unchanged → no recreate) all keep
+   > serving the *old* config. `--force-recreate` re-binds the mount. Certs persist in the
+   > data volume, so it's a ~1s blip with no re-issuance.
 
 No port bookkeeping, no per-project TLS setup.
 
@@ -151,4 +159,4 @@ No port bookkeeping, no per-project TLS setup.
 | Start app | `docker compose up -d` |
 | Update app | `git pull && docker compose build && docker compose up -d` |
 | Logs | `docker compose logs -f bw-server` |
-| Reload proxy after Caddyfile edit | `cd proxy && docker compose up -d` |
+| Reload proxy after Caddyfile edit | `cd proxy && docker compose up -d --force-recreate caddy` (single-file mount — `reload`/`restart` won't pick up edits) |

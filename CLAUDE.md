@@ -65,7 +65,9 @@ Node 22 + TS 5（生产用 `tsx` 直跑 TS，不编译）｜ Vitest
 2. 把里面的服务名/镜像名前缀改成你的游戏名（如 `xx-web` / `xx-server`）。
 3. `*-server` 仅内网（`expose: 3001`，不 publish）；`*-web` 是 Caddy，服务静态客户端并把
    `/socket.io/` 反代到 server。
-4. 在 `proxy/Caddyfile` 加**一个块**：`yourgame.minyu.me { reverse_proxy xx-web:80 }`。
+4. 在 `proxy/Caddyfile` 加**一个块**：`yourgame.minyu.me { reverse_proxy xx-web:80 }`，
+   然后**重建**代理容器:`cd proxy && docker compose up -d --force-recreate caddy`
+   （Caddyfile 是单文件挂载、绑定到旧 inode，`reload`/`restart`/普通 `up -d` 都读不到改动）。
 5. 客户端用 `io()` 同源连接；`CORS_ORIGIN` 环境变量可覆盖（生产默认同源）。
 
 每个游戏自带一份 `DEPLOY.md` 记录自己的步骤。

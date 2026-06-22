@@ -15,7 +15,10 @@
        reverse_proxy fm-web:80
    }
    ```
-   改过 proxy 配置就重载:`cd proxy && docker compose up -d`(或 `docker compose restart`)。
+   改过 `proxy/Caddyfile` 后,**重建**代理容器让它重新挂载:
+   `cd proxy && docker compose up -d --force-recreate caddy`。
+   (单文件挂载绑定到旧 inode,`caddy reload`/`docker compose restart`/普通 `up -d` 都读不到新内容;
+   详见 `black-and-white/DEPLOY.md`。证书在数据卷里,重建只是约 1 秒抖动、不重签。)
 3. 构建并启动本游戏:
    ```
    cd flip-math
