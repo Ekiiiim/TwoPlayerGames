@@ -1,5 +1,5 @@
-import { createGame, reduce, toClientView, DURATIONS } from '@fm/shared';
-import type { Action, Durations, GameState, Phase, PlayerId } from '@fm/shared';
+import { createGame, reduce, toClientView, DURATIONS } from "@fm/shared";
+import type { Action, Durations, GameState, Phase, PlayerId } from "@fm/shared";
 
 export interface Player {
   id: PlayerId;
@@ -9,11 +9,11 @@ export interface Player {
 
 // 每个计时阶段到点后要注入的 action。buzzing/finished/waiting 无 deadline,不在此表。
 const TIMEOUT_ACTION: Partial<Record<Phase, Action>> = {
-  preview: { type: 'PREVIEW_DONE' },
-  countdown: { type: 'COUNTDOWN_DONE' },
-  answering: { type: 'ANSWER_TIMEOUT' },
-  resolve: { type: 'RESOLVE_DONE' },
-  reveal: { type: 'REVEAL_DONE' },
+  preview: { type: "PREVIEW_DONE" },
+  countdown: { type: "COUNTDOWN_DONE" },
+  answering: { type: "ANSWER_TIMEOUT" },
+  resolve: { type: "RESOLVE_DONE" },
+  reveal: { type: "REVEAL_DONE" },
 };
 
 export class GameSession {

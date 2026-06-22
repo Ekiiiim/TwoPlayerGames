@@ -1,18 +1,19 @@
-import { randomBytes } from 'node:crypto';
-import { DURATIONS } from '@fm/shared';
-import type { Durations } from '@fm/shared';
-import { GameSession } from './gameSession';
+import { randomBytes } from "node:crypto";
+import { DURATIONS } from "@fm/shared";
+import type { Durations } from "@fm/shared";
+import { GameSession } from "./gameSession";
 
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export function makeRoomCode(): string {
-  let s = '';
-  for (let i = 0; i < 6; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+  let s = "";
+  for (let i = 0; i < 6; i++)
+    s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
   return s;
 }
 
 export function makeToken(): string {
-  return randomBytes(16).toString('hex');
+  return randomBytes(16).toString("hex");
 }
 
 export class RoomRegistry {

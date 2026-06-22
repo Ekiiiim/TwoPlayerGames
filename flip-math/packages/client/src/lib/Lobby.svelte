@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { createRoom, joinRoom, leaveRoom, roomCode, status } from '../socket';
-  import Button from './Button.svelte';
-  let code = '';
+  import { createRoom, joinRoom, leaveRoom, roomCode, status } from "../socket";
+  import Button from "./Button.svelte";
+  let code = "";
   let confirmDisband = false;
 </script>
 
-<div class="flex w-full max-w-[380px] flex-col items-center gap-6 rounded-[16px] border border-line bg-panel p-8">
+<div
+  class="flex w-full max-w-[380px] flex-col items-center gap-6 rounded-[16px] border border-line bg-panel p-8"
+>
   <h1 class="text-4xl font-bold text-accent">翻牌数式</h1>
 
   {#if $roomCode}
@@ -14,11 +16,21 @@
     <p class="text-muted">等待对手加入…</p>
     {#if confirmDisband}
       <div class="flex items-center gap-3">
-        <Button variant="danger" on:click={() => { confirmDisband = false; leaveRoom(); }}>确认解散</Button>
-        <Button variant="ghost" on:click={() => (confirmDisband = false)}>取消</Button>
+        <Button
+          variant="danger"
+          on:click={() => {
+            confirmDisband = false;
+            leaveRoom();
+          }}>确认解散</Button
+        >
+        <Button variant="ghost" on:click={() => (confirmDisband = false)}
+          >取消</Button
+        >
       </div>
     {:else}
-      <Button variant="ghost" on:click={() => (confirmDisband = true)}>解散房间</Button>
+      <Button variant="ghost" on:click={() => (confirmDisband = true)}
+        >解散房间</Button
+      >
     {/if}
   {:else}
     <Button class="w-full" on:click={createRoom}>创建房间</Button>

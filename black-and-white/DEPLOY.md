@@ -125,12 +125,12 @@ The shared proxy keeps running and does not need to be touched.
    `cd proxy && docker compose up -d --force-recreate caddy`.
 
    > **Use `--force-recreate`, not `reload`/`restart`/plain `up -d`.** The Caddyfile is
-   > bind-mounted as a *single file*, so the mount is pinned to that file's inode. Editing
-   > it (especially via `git pull` or an atomic-save editor) writes a *new* inode at the
-   > path, which the running container can't see — so `caddy reload`, `docker compose
-   > restart`, and a plain `docker compose up -d` (spec unchanged → no recreate) all keep
-   > serving the *old* config. `--force-recreate` re-binds the mount. Certs persist in the
-   > data volume, so it's a ~1s blip with no re-issuance.
+   > bind-mounted as a _single file_, so the mount is pinned to that file's inode. Editing
+   > it (especially via `git pull` or an atomic-save editor) writes a _new_ inode at the
+   > path, which the running container can't see. So `caddy reload`, `docker compose restart`,
+   > and a plain `docker compose up -d` (spec unchanged → no recreate) all keep serving the
+   > _old_ config. `--force-recreate` re-binds the mount. Certs persist in the data volume,
+   > so it's a ~1s blip with no re-issuance.
 
 No port bookkeeping, no per-project TLS setup.
 
@@ -145,18 +145,18 @@ No port bookkeeping, no per-project TLS setup.
   re-requests certs and can hit Let's Encrypt rate limits.
 - **Why two Caddys?** The shared proxy only does TLS + hostname routing (one line per
   project); each project's own `*-web` container owns its internal layout (static files
-  + `/socket.io/` split). This keeps projects self-contained and the shared config tiny.
+  - `/socket.io/` split). This keeps projects self-contained and the shared config tiny.
 
 ---
 
 ## Quick reference
 
-| Step | Command |
-|------|---------|
-| Create shared network | `docker network create web` |
-| Start shared proxy | `cd proxy && docker compose up -d` |
-| Build app | `cd black-and-white && docker compose build` |
-| Start app | `docker compose up -d` |
-| Update app | `git pull && docker compose build && docker compose up -d` |
-| Logs | `docker compose logs -f bw-server` |
+| Step                              | Command                                                                                                                |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Create shared network             | `docker network create web`                                                                                            |
+| Start shared proxy                | `cd proxy && docker compose up -d`                                                                                     |
+| Build app                         | `cd black-and-white && docker compose build`                                                                           |
+| Start app                         | `docker compose up -d`                                                                                                 |
+| Update app                        | `git pull && docker compose build && docker compose up -d`                                                             |
+| Logs                              | `docker compose logs -f bw-server`                                                                                     |
 | Reload proxy after Caddyfile edit | `cd proxy && docker compose up -d --force-recreate caddy` (single-file mount — `reload`/`restart` won't pick up edits) |

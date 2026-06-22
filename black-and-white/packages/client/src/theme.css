@@ -35,17 +35,21 @@
   --color-win: #6fcf97;
   --color-lose: #e57373;
 
-  --font-sans: 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-sans: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
 
   /* 当前回合方头像的金色脉动光晕；生成 animate-turn-pulse 工具类 */
   --animate-turn-pulse: turn-pulse 1.5s ease-in-out infinite;
   @keyframes turn-pulse {
     0%,
     100% {
-      box-shadow: 0 0 0 1px var(--color-gold), 0 0 8px 2px rgba(217, 178, 91, 0.35);
+      box-shadow:
+        0 0 0 1px var(--color-gold),
+        0 0 8px 2px rgba(217, 178, 91, 0.35);
     }
     50% {
-      box-shadow: 0 0 0 2px var(--color-gold), 0 0 18px 6px rgba(217, 178, 91, 0.7);
+      box-shadow:
+        0 0 0 2px var(--color-gold),
+        0 0 18px 6px rgba(217, 178, 91, 0.7);
     }
   }
 }

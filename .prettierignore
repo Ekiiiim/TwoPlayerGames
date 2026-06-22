@@ -1,0 +1,12 @@
+# generated / vendored — not ours to format
+**/node_modules
+**/dist
+**/package-lock.json
+
+# point-in-time planning archives (spec/plan snapshots)
+**/docs/superpowers
+
+# tooling / OS junk
+.claude
+.clone
+.DS_Store

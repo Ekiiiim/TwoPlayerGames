@@ -1,17 +1,18 @@
-import { randomBytes } from 'node:crypto';
-import { GameSession } from './gameSession';
+import { randomBytes } from "node:crypto";
+import { GameSession } from "./gameSession";
 
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export function makeRoomCode(): string {
-  let s = '';
-  for (let i = 0; i < 6; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+  let s = "";
+  for (let i = 0; i < 6; i++)
+    s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
   return s;
 }
 
 // Item 6: Use crypto.randomBytes instead of Math.random for tokens
 export function makeToken(): string {
-  return randomBytes(16).toString('hex');
+  return randomBytes(16).toString("hex");
 }
 
 export class RoomRegistry {

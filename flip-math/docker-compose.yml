@@ -17,7 +17,7 @@ services:
     image: fm-server
     restart: unless-stopped
     expose:
-      - "3001"          # reachable only on the docker network, not published
+      - "3001" # reachable only on the docker network, not published
     networks:
       - web
 

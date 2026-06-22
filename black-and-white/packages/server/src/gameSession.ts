@@ -1,4 +1,10 @@
-import { createGame, toClientView, toReview, type GameState, type PlayerId } from '@bw/shared';
+import {
+  createGame,
+  toClientView,
+  toReview,
+  type GameState,
+  type PlayerId,
+} from "@bw/shared";
 
 export interface Player {
   id: PlayerId;

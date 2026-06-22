@@ -1,63 +1,74 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 import {
-  createBoard, evalExpr, isPositiveInt, solvableTargets, generateTarget,
-  validateAnswer, createGame, reduce, DURATIONS, WIN_SCORE, toClientView,
-} from '../src/game';
-import type { EngineCtx } from '../src/types';
+  createBoard,
+  evalExpr,
+  isPositiveInt,
+  solvableTargets,
+  generateTarget,
+  validateAnswer,
+  createGame,
+  reduce,
+  DURATIONS,
+  WIN_SCORE,
+  toClientView,
+} from "../src/game";
+import type { EngineCtx } from "../src/types";
 
 const ctx: EngineCtx = { now: 1_000_000, durations: DURATIONS };
-import type { CellBack, Operator } from '../src/types';
+import type { CellBack, Operator } from "../src/types";
 
 function backKey(b: CellBack): string {
-  return b.kind === 'num' ? `n${b.value}` : `o${b.op}`;
+  return b.kind === "num" ? `n${b.value}` : `o${b.op}`;
 }
 
-describe('createBoard', () => {
-  it('produces 16 cells with letters A..P in reading order', () => {
+describe("createBoard", () => {
+  it("produces 16 cells with letters A..P in reading order", () => {
     const board = createBoard();
     expect(board).toHaveLength(16);
-    const letters = board.map((c) => c.letter).join('');
-    expect(letters).toBe('ABCDEFGHIJKLMNOP');
+    const letters = board.map((c) => c.letter).join("");
+    expect(letters).toBe("ABCDEFGHIJKLMNOP");
     board.forEach((c, i) => expect(c.index).toBe(i));
   });
 
-  it('contains exactly 1..12 once and each operator once (no repeats)', () => {
+  it("contains exactly 1..12 once and each operator once (no repeats)", () => {
     const board = createBoard();
     const keys = board.map((c) => backKey(c.back)).sort();
     const expected = [
       ...Array.from({ length: 12 }, (_, i) => `n${i + 1}`),
-      ...(['+', '-', '*', '/'] as Operator[]).map((o) => `o${o}`),
+      ...(["+", "-", "*", "/"] as Operator[]).map((o) => `o${o}`),
     ].sort();
     expect(keys).toEqual(expected);
   });
 
-  it('shuffles using the injected rng (deterministic)', () => {
+  it("shuffles using the injected rng (deterministic)", () => {
     // rng 返回 0 → Fisher-Yates 每步 j=0,得到确定排列
     const board = createBoard(() => 0);
     const board2 = createBoard(() => 0);
-    expect(board.map((c) => backKey(c.back))).toEqual(board2.map((c) => backKey(c.back)));
+    expect(board.map((c) => backKey(c.back))).toEqual(
+      board2.map((c) => backKey(c.back)),
+    );
   });
 });
 
-describe('evalExpr', () => {
-  it('computes the four operators', () => {
-    expect(evalExpr(3, '+', 4)).toBe(7);
-    expect(evalExpr(9, '-', 4)).toBe(5);
-    expect(evalExpr(3, '*', 4)).toBe(12);
-    expect(evalExpr(12, '/', 4)).toBe(3);
+describe("evalExpr", () => {
+  it("computes the four operators", () => {
+    expect(evalExpr(3, "+", 4)).toBe(7);
+    expect(evalExpr(9, "-", 4)).toBe(5);
+    expect(evalExpr(3, "*", 4)).toBe(12);
+    expect(evalExpr(12, "/", 4)).toBe(3);
   });
-  it('returns null for non-integer or zero division', () => {
-    expect(evalExpr(7, '/', 2)).toBeNull();
-    expect(evalExpr(5, '/', 0)).toBeNull();
+  it("returns null for non-integer or zero division", () => {
+    expect(evalExpr(7, "/", 2)).toBeNull();
+    expect(evalExpr(5, "/", 0)).toBeNull();
   });
-  it('returns negative for a<b subtraction (caller filters)', () => {
-    expect(evalExpr(3, '-', 8)).toBe(-5);
-    expect(isPositiveInt(evalExpr(3, '-', 8))).toBe(false);
+  it("returns negative for a<b subtraction (caller filters)", () => {
+    expect(evalExpr(3, "-", 8)).toBe(-5);
+    expect(isPositiveInt(evalExpr(3, "-", 8))).toBe(false);
   });
 });
 
-describe('solvableTargets / generateTarget', () => {
-  it('every generated target is positive and actually solvable on the board', () => {
+describe("solvableTargets / generateTarget", () => {
+  it("every generated target is positive and actually solvable on the board", () => {
     for (let i = 0; i < 200; i++) {
       const board = createBoard();
       const targets = solvableTargets(board);
@@ -70,52 +81,56 @@ describe('solvableTargets / generateTarget', () => {
   });
 });
 
-import type { Cell } from '../src/types';
+import type { Cell } from "../src/types";
 
 // 固定一块用于断言的牌面(index→back),letter 不影响判定。
 function fixedBoard(): Cell[] {
   const backs = [
-    { kind: 'num', value: 3 }, // 0
-    { kind: 'op', op: '+' },   // 1
-    { kind: 'num', value: 4 }, // 2
-    { kind: 'num', value: 8 }, // 3
-    { kind: 'op', op: '-' },   // 4
-    { kind: 'op', op: '*' },   // 5
-    { kind: 'num', value: 2 }, // 6
-    { kind: 'op', op: '/' },   // 7
+    { kind: "num", value: 3 }, // 0
+    { kind: "op", op: "+" }, // 1
+    { kind: "num", value: 4 }, // 2
+    { kind: "num", value: 8 }, // 3
+    { kind: "op", op: "-" }, // 4
+    { kind: "op", op: "*" }, // 5
+    { kind: "num", value: 2 }, // 6
+    { kind: "op", op: "/" }, // 7
   ] as const;
-  return backs.map((back, i) => ({ index: i, letter: String.fromCharCode(65 + i), back: { ...back } }));
+  return backs.map((back, i) => ({
+    index: i,
+    letter: String.fromCharCode(65 + i),
+    back: { ...back },
+  }));
 }
 
-describe('validateAnswer', () => {
+describe("validateAnswer", () => {
   const board = fixedBoard();
-  it('accepts num-op-num equal to target', () => {
-    expect(validateAnswer(board, [0, 1, 2], 7)).toBe(true);  // 3 + 4
-    expect(validateAnswer(board, [3, 4, 2], 4)).toBe(true);  // 8 - 4
-    expect(validateAnswer(board, [3, 7, 2], 2)).toBe(true);  // 8 / 4
+  it("accepts num-op-num equal to target", () => {
+    expect(validateAnswer(board, [0, 1, 2], 7)).toBe(true); // 3 + 4
+    expect(validateAnswer(board, [3, 4, 2], 4)).toBe(true); // 8 - 4
+    expect(validateAnswer(board, [3, 7, 2], 2)).toBe(true); // 8 / 4
   });
-  it('rejects wrong result', () => {
+  it("rejects wrong result", () => {
     expect(validateAnswer(board, [0, 1, 2], 99)).toBe(false);
   });
-  it('rejects wrong cell types / order (op not in middle)', () => {
+  it("rejects wrong cell types / order (op not in middle)", () => {
     expect(validateAnswer(board, [1, 0, 2], 7)).toBe(false); // op,num,num
     expect(validateAnswer(board, [0, 2, 1], 7)).toBe(false); // num,num,op
   });
-  it('rejects non-distinct or wrong-length selections', () => {
+  it("rejects non-distinct or wrong-length selections", () => {
     expect(validateAnswer(board, [0, 1, 0], 6)).toBe(false);
     expect(validateAnswer(board, [0, 1], 7)).toBe(false);
   });
-  it('rejects non-integer division and non-positive results', () => {
+  it("rejects non-integer division and non-positive results", () => {
     expect(validateAnswer(board, [0, 7, 2], 0)).toBe(false); // 3/4 非整数
     expect(validateAnswer(board, [2, 4, 3], -4)).toBe(false); // 4-8 为负
   });
 });
 
-describe('createGame', () => {
-  it('starts in a ready gate (readyNext=preview), no deadline', () => {
+describe("createGame", () => {
+  it("starts in a ready gate (readyNext=preview), no deadline", () => {
     const g = createGame(ctx);
-    expect(g.phase).toBe('ready');
-    expect(g.readyNext).toBe('preview');
+    expect(g.phase).toBe("ready");
+    expect(g.readyNext).toBe("preview");
     expect(g.ready).toEqual({ p1: false, p2: false });
     expect(g.board).toHaveLength(16);
     expect(g.scores).toEqual({ p1: 0, p2: 0 });
@@ -132,109 +147,119 @@ describe('createGame', () => {
 // ready×2 → preview → PREVIEW_DONE → countdown → COUNTDOWN_DONE → buzzing
 function toBuzzing() {
   let g = createGame(ctx);
-  g = reduce(g, { type: 'READY', player: 'p1' }, ctx);
-  g = reduce(g, { type: 'READY', player: 'p2' }, ctx); // → preview
-  g = reduce(g, { type: 'PREVIEW_DONE' }, ctx); // → countdown
-  g = reduce(g, { type: 'COUNTDOWN_DONE' }, ctx); // → buzzing(target)
+  g = reduce(g, { type: "READY", player: "p1" }, ctx);
+  g = reduce(g, { type: "READY", player: "p2" }, ctx); // → preview
+  g = reduce(g, { type: "PREVIEW_DONE" }, ctx); // → countdown
+  g = reduce(g, { type: "COUNTDOWN_DONE" }, ctx); // → buzzing(target)
   return g;
 }
 
-describe('reduce: READY', () => {
-  it('one ready keeps phase ready; both ready -> readyNext(preview)', () => {
+describe("reduce: READY", () => {
+  it("one ready keeps phase ready; both ready -> readyNext(preview)", () => {
     let g = createGame(ctx);
-    g = reduce(g, { type: 'READY', player: 'p1' }, ctx);
-    expect(g.phase).toBe('ready');
+    g = reduce(g, { type: "READY", player: "p1" }, ctx);
+    expect(g.phase).toBe("ready");
     expect(g.ready).toEqual({ p1: true, p2: false });
-    g = reduce(g, { type: 'READY', player: 'p2' }, ctx);
-    expect(g.phase).toBe('preview');
+    g = reduce(g, { type: "READY", player: "p2" }, ctx);
+    expect(g.phase).toBe("preview");
     expect(g.deadline).toBe(ctx.now + DURATIONS.previewMs);
   });
-  it('both ready with readyNext=reveal -> reveal(revealedCells=revealIndex)', () => {
+  it("both ready with readyNext=reveal -> reveal(revealedCells=revealIndex)", () => {
     const g0 = {
       ...createGame(ctx),
-      readyNext: 'reveal' as const,
+      readyNext: "reveal" as const,
       revealIndex: 3,
     };
-    let g = reduce(g0, { type: 'READY', player: 'p1' }, ctx);
-    g = reduce(g, { type: 'READY', player: 'p2' }, ctx);
-    expect(g.phase).toBe('reveal');
+    let g = reduce(g0, { type: "READY", player: "p1" }, ctx);
+    g = reduce(g, { type: "READY", player: "p2" }, ctx);
+    expect(g.phase).toBe("reveal");
     expect(g.revealedCells).toEqual([3]);
     expect(g.deadline).toBe(ctx.now + DURATIONS.revealMs);
   });
-  it('repeated READY is idempotent', () => {
-    let g = reduce(createGame(ctx), { type: 'READY', player: 'p1' }, ctx);
-    g = reduce(g, { type: 'READY', player: 'p1' }, ctx);
+  it("repeated READY is idempotent", () => {
+    let g = reduce(createGame(ctx), { type: "READY", player: "p1" }, ctx);
+    g = reduce(g, { type: "READY", player: "p1" }, ctx);
     expect(g.ready).toEqual({ p1: true, p2: false });
-    expect(g.phase).toBe('ready');
+    expect(g.phase).toBe("ready");
   });
-  it('throws if READY outside ready phase', () => {
-    expect(() => reduce(toBuzzing(), { type: 'READY', player: 'p1' }, ctx)).toThrow();
+  it("throws if READY outside ready phase", () => {
+    expect(() =>
+      reduce(toBuzzing(), { type: "READY", player: "p1" }, ctx),
+    ).toThrow();
   });
 });
 
-describe('reduce: PREVIEW_DONE', () => {
-  it('moves preview -> countdown (no target yet, countdown deadline)', () => {
+describe("reduce: PREVIEW_DONE", () => {
+  it("moves preview -> countdown (no target yet, countdown deadline)", () => {
     let g = createGame(ctx);
-    g = reduce(g, { type: 'READY', player: 'p1' }, ctx);
-    g = reduce(g, { type: 'READY', player: 'p2' }, ctx); // preview
-    const c = reduce(g, { type: 'PREVIEW_DONE' }, ctx);
-    expect(c.phase).toBe('countdown');
+    g = reduce(g, { type: "READY", player: "p1" }, ctx);
+    g = reduce(g, { type: "READY", player: "p2" }, ctx); // preview
+    const c = reduce(g, { type: "PREVIEW_DONE" }, ctx);
+    expect(c.phase).toBe("countdown");
     expect(c.target).toBeNull();
     expect(c.deadline).toBe(ctx.now + DURATIONS.countdownMs);
   });
-  it('throws if called in the wrong phase', () => {
-    expect(() => reduce(createGame(ctx), { type: 'PREVIEW_DONE' }, ctx)).toThrow();
+  it("throws if called in the wrong phase", () => {
+    expect(() =>
+      reduce(createGame(ctx), { type: "PREVIEW_DONE" }, ctx),
+    ).toThrow();
   });
 });
 
-describe('reduce: COUNTDOWN_DONE', () => {
-  it('countdown -> buzzing with a solvable target and no deadline', () => {
+describe("reduce: COUNTDOWN_DONE", () => {
+  it("countdown -> buzzing with a solvable target and no deadline", () => {
     let g = createGame(ctx);
-    g = reduce(g, { type: 'READY', player: 'p1' }, ctx);
-    g = reduce(g, { type: 'READY', player: 'p2' }, ctx);
-    g = reduce(g, { type: 'PREVIEW_DONE' }, ctx); // countdown
-    const b = reduce(g, { type: 'COUNTDOWN_DONE' }, ctx);
-    expect(b.phase).toBe('buzzing');
+    g = reduce(g, { type: "READY", player: "p1" }, ctx);
+    g = reduce(g, { type: "READY", player: "p2" }, ctx);
+    g = reduce(g, { type: "PREVIEW_DONE" }, ctx); // countdown
+    const b = reduce(g, { type: "COUNTDOWN_DONE" }, ctx);
+    expect(b.phase).toBe("buzzing");
     expect(b.target).not.toBeNull();
     expect(solvableTargets(b.board)).toContain(b.target);
     expect(b.deadline).toBeNull();
   });
-  it('throws outside countdown', () => {
-    expect(() => reduce(createGame(ctx), { type: 'COUNTDOWN_DONE' }, ctx)).toThrow();
+  it("throws outside countdown", () => {
+    expect(() =>
+      reduce(createGame(ctx), { type: "COUNTDOWN_DONE" }, ctx),
+    ).toThrow();
   });
 });
 
-describe('reduce: BUZZ', () => {
-  it('buzzing -> answering, sets active and answer deadline', () => {
-    const g = reduce(toBuzzing(), { type: 'BUZZ', player: 'p2' }, ctx);
-    expect(g.phase).toBe('answering');
-    expect(g.active).toBe('p2');
+describe("reduce: BUZZ", () => {
+  it("buzzing -> answering, sets active and answer deadline", () => {
+    const g = reduce(toBuzzing(), { type: "BUZZ", player: "p2" }, ctx);
+    expect(g.phase).toBe("answering");
+    expect(g.active).toBe("p2");
     expect(g.selection).toEqual([]);
     expect(g.deadline).toBe(ctx.now + DURATIONS.answerMs);
   });
-  it('throws if buzz outside buzzing phase', () => {
-    expect(() => reduce(createGame(ctx), { type: 'BUZZ', player: 'p1' }, ctx)).toThrow();
+  it("throws if buzz outside buzzing phase", () => {
+    expect(() =>
+      reduce(createGame(ctx), { type: "BUZZ", player: "p1" }, ctx),
+    ).toThrow();
   });
 });
 
-describe('reduce: SELECT toggle (before 3)', () => {
-  it('adds an unselected cell, removes an already-selected one', () => {
-    let g = reduce(toBuzzing(), { type: 'BUZZ', player: 'p1' }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 5 }, ctx);
+describe("reduce: SELECT toggle (before 3)", () => {
+  it("adds an unselected cell, removes an already-selected one", () => {
+    let g = reduce(toBuzzing(), { type: "BUZZ", player: "p1" }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 5 }, ctx);
     expect(g.selection).toEqual([5]);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 2 }, ctx);
     expect(g.selection).toEqual([5, 2]);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 5 }, ctx); // 撤销 5
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 5 }, ctx); // 撤销 5
     expect(g.selection).toEqual([2]);
-    expect(g.phase).toBe('answering'); // 不足 3 张,仍在作答
+    expect(g.phase).toBe("answering"); // 不足 3 张,仍在作答
   });
-  it('rejects select from the non-active player', () => {
-    const g = reduce(toBuzzing(), { type: 'BUZZ', player: 'p1' }, ctx);
-    expect(() => reduce(g, { type: 'SELECT', player: 'p2', cell: 0 }, ctx)).toThrow();
+  it("rejects select from the non-active player", () => {
+    const g = reduce(toBuzzing(), { type: "BUZZ", player: "p1" }, ctx);
+    expect(() =>
+      reduce(g, { type: "SELECT", player: "p2", cell: 0 }, ctx),
+    ).toThrow();
   });
 });
 
-import type { GameState } from '../src/types';
+import type { GameState } from "../src/types";
 
 // 用 fixedBoard 造一个处于 answering、active=p1 的状态,目标可控。
 function answering(target: number): GameState {
@@ -242,125 +267,125 @@ function answering(target: number): GameState {
   return {
     ...base,
     board: fixedBoard(),
-    phase: 'answering',
-    active: 'p1',
+    phase: "answering",
+    active: "p1",
     target,
     selection: [],
     deadline: ctx.now + DURATIONS.answerMs,
   };
 }
 
-describe('reduce: SELECT completes -> resolve', () => {
-  it('correct answer: +1 score, enters resolve with revealed cells', () => {
+describe("reduce: SELECT completes -> resolve", () => {
+  it("correct answer: +1 score, enters resolve with revealed cells", () => {
     let g = answering(7); // 3 + 4
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
-    expect(g.phase).toBe('resolve');
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 0 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 1 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 2 }, ctx);
+    expect(g.phase).toBe("resolve");
     expect(g.lastResolve).toEqual({ cells: [0, 1, 2], correct: true });
     expect(g.revealedCells).toEqual([0, 1, 2]);
     expect(g.scores.p1).toBe(1);
     expect(g.deadline).toBe(ctx.now + DURATIONS.resolveMs);
   });
-  it('wrong answer: no score, resolve with correct=false', () => {
+  it("wrong answer: no score, resolve with correct=false", () => {
     let g = answering(99);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
-    expect(g.phase).toBe('resolve');
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 0 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 1 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 2 }, ctx);
+    expect(g.phase).toBe("resolve");
     expect(g.lastResolve).toEqual({ cells: [0, 1, 2], correct: false });
     expect(g.scores.p1).toBe(0);
   });
 });
 
-describe('reduce: RESOLVE_DONE', () => {
-  it('correct -> ready gate (readyNext=reveal), no deadline', () => {
+describe("reduce: RESOLVE_DONE", () => {
+  it("correct -> ready gate (readyNext=reveal), no deadline", () => {
     let g = answering(7);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
-    const r = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
-    expect(r.phase).toBe('ready');
-    expect(r.readyNext).toBe('reveal');
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 0 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 1 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 2 }, ctx);
+    const r = reduce(g, { type: "RESOLVE_DONE" }, ctx);
+    expect(r.phase).toBe("ready");
+    expect(r.readyNext).toBe("reveal");
     expect(r.ready).toEqual({ p1: false, p2: false });
     expect(r.selection).toEqual([]);
     expect(r.deadline).toBeNull();
   });
-  it('correct reaching WIN_SCORE -> finished (skip reveal)', () => {
+  it("correct reaching WIN_SCORE -> finished (skip reveal)", () => {
     let g = answering(7);
     g = { ...g, scores: { p1: WIN_SCORE - 1, p2: 0 } };
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
-    const r = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
-    expect(r.phase).toBe('finished');
-    expect(r.winner).toBe('p1');
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 0 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 1 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 2 }, ctx);
+    const r = reduce(g, { type: "RESOLVE_DONE" }, ctx);
+    expect(r.phase).toBe("finished");
+    expect(r.winner).toBe("p1");
     expect(r.deadline).toBeNull();
   });
-  it('wrong -> switches active back to answering with fresh deadline', () => {
+  it("wrong -> switches active back to answering with fresh deadline", () => {
     let g = answering(99);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
-    const r = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
-    expect(r.phase).toBe('answering');
-    expect(r.active).toBe('p2');
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 0 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 1 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 2 }, ctx);
+    const r = reduce(g, { type: "RESOLVE_DONE" }, ctx);
+    expect(r.phase).toBe("answering");
+    expect(r.active).toBe("p2");
     expect(r.selection).toEqual([]);
     expect(r.revealedCells).toEqual([]);
     expect(r.deadline).toBe(ctx.now + DURATIONS.answerMs);
   });
-  it('repeated wrong answers force A->B->A on the same target', () => {
+  it("repeated wrong answers force A->B->A on the same target", () => {
     // target 99 无解,任意三张都是错的 → 强制交替直到有人答对(spec §2.5)
     let g = answering(99);
     // p1 选三张(错)
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 1 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 2 }, ctx);
-    g = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
-    expect(g.active).toBe('p2');
-    expect(g.phase).toBe('answering');
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 0 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 1 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 2 }, ctx);
+    g = reduce(g, { type: "RESOLVE_DONE" }, ctx);
+    expect(g.active).toBe("p2");
+    expect(g.phase).toBe("answering");
     expect(g.target).toBe(99);
     expect(g.selection).toEqual([]);
     expect(g.revealedCells).toEqual([]);
     // p2 选三张(同样错)→ 应翻回 p1,目标不变
-    g = reduce(g, { type: 'SELECT', player: 'p2', cell: 0 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p2', cell: 1 }, ctx);
-    g = reduce(g, { type: 'SELECT', player: 'p2', cell: 2 }, ctx);
-    g = reduce(g, { type: 'RESOLVE_DONE' }, ctx);
-    expect(g.active).toBe('p1');
-    expect(g.phase).toBe('answering');
+    g = reduce(g, { type: "SELECT", player: "p2", cell: 0 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p2", cell: 1 }, ctx);
+    g = reduce(g, { type: "SELECT", player: "p2", cell: 2 }, ctx);
+    g = reduce(g, { type: "RESOLVE_DONE" }, ctx);
+    expect(g.active).toBe("p1");
+    expect(g.phase).toBe("answering");
     expect(g.target).toBe(99);
     expect(g.selection).toEqual([]);
   });
 });
 
-describe('reduce: ANSWER_TIMEOUT', () => {
-  it('switches active and resets selection with a fresh deadline', () => {
+describe("reduce: ANSWER_TIMEOUT", () => {
+  it("switches active and resets selection with a fresh deadline", () => {
     let g = answering(7);
-    g = reduce(g, { type: 'SELECT', player: 'p1', cell: 0 }, ctx); // 只选 1 张
-    const r = reduce(g, { type: 'ANSWER_TIMEOUT' }, ctx);
-    expect(r.phase).toBe('answering');
-    expect(r.active).toBe('p2');
+    g = reduce(g, { type: "SELECT", player: "p1", cell: 0 }, ctx); // 只选 1 张
+    const r = reduce(g, { type: "ANSWER_TIMEOUT" }, ctx);
+    expect(r.phase).toBe("answering");
+    expect(r.active).toBe("p2");
     expect(r.selection).toEqual([]);
     expect(r.target).toBe(7); // 同一目标
     expect(r.deadline).toBe(ctx.now + DURATIONS.answerMs);
   });
 });
 
-describe('reduce: REVEAL_DONE', () => {
-  it('reveal -> countdown, advances revealIndex (cycling), no target yet', () => {
+describe("reduce: REVEAL_DONE", () => {
+  it("reveal -> countdown, advances revealIndex (cycling), no target yet", () => {
     // 构造一个 reveal 状态,revealIndex=15 用于验证回绕
     const base = { ...answering(7), board: createBoard() };
     const reveal: GameState = {
       ...base,
-      phase: 'reveal',
+      phase: "reveal",
       revealIndex: 15,
       revealedCells: [15],
       selection: [],
       deadline: ctx.now + DURATIONS.revealMs,
     };
-    const r = reduce(reveal, { type: 'REVEAL_DONE' }, ctx);
-    expect(r.phase).toBe('countdown');
+    const r = reduce(reveal, { type: "REVEAL_DONE" }, ctx);
+    expect(r.phase).toBe("countdown");
     expect(r.revealIndex).toBe(0); // (15+1)%16
     expect(r.active).toBeNull();
     expect(r.selection).toEqual([]);
@@ -370,35 +395,45 @@ describe('reduce: REVEAL_DONE', () => {
   });
 });
 
-describe('toClientView', () => {
-  it('exposes the full board and maps me/opp perspective', () => {
-    let g = reduce(toBuzzing(), { type: 'BUZZ', player: 'p1' }, ctx);
+describe("toClientView", () => {
+  it("exposes the full board and maps me/opp perspective", () => {
+    let g = reduce(toBuzzing(), { type: "BUZZ", player: "p1" }, ctx);
     g = { ...g, scores: { p1: 2, p2: 5 } };
-    const v1 = toClientView(g, 'p1');
+    const v1 = toClientView(g, "p1");
     expect(v1.board).toHaveLength(16);
     expect(v1.board[0].back).toBeDefined(); // 反面公开
     expect(v1.scores).toEqual({ me: 2, opp: 5 });
     expect(v1.iAmActive).toBe(true);
-    expect(v1.active).toBe('me');
+    expect(v1.active).toBe("me");
 
-    const v2 = toClientView(g, 'p2');
+    const v2 = toClientView(g, "p2");
     expect(v2.scores).toEqual({ me: 5, opp: 2 });
     expect(v2.iAmActive).toBe(false);
-    expect(v2.active).toBe('opp');
+    expect(v2.active).toBe("opp");
   });
-  it('maps winner perspective at finished', () => {
-    const g = { ...createGame(ctx), phase: 'finished' as const, winner: 'p2' as const };
-    expect(toClientView(g, 'p2').winner).toBe('me');
-    expect(toClientView(g, 'p1').winner).toBe('opp');
+  it("maps winner perspective at finished", () => {
+    const g = {
+      ...createGame(ctx),
+      phase: "finished" as const,
+      winner: "p2" as const,
+    };
+    expect(toClientView(g, "p2").winner).toBe("me");
+    expect(toClientView(g, "p1").winner).toBe("opp");
   });
-  it('maps ready flags to me/opp', () => {
+  it("maps ready flags to me/opp", () => {
     const g = { ...createGame(ctx), ready: { p1: true, p2: false } };
-    expect(toClientView(g, 'p1').ready).toEqual({ me: true, opp: false });
-    expect(toClientView(g, 'p2').ready).toEqual({ me: false, opp: true });
+    expect(toClientView(g, "p1").ready).toEqual({ me: true, opp: false });
+    expect(toClientView(g, "p2").ready).toEqual({ me: false, opp: true });
   });
-  it('passes through lastResolve (for the round-result popup)', () => {
-    const g = { ...createGame(ctx), lastResolve: { cells: [0, 1, 2], correct: true } };
-    expect(toClientView(g, 'p1').lastResolve).toEqual({ cells: [0, 1, 2], correct: true });
-    expect(toClientView(createGame(ctx), 'p1').lastResolve).toBeNull();
+  it("passes through lastResolve (for the round-result popup)", () => {
+    const g = {
+      ...createGame(ctx),
+      lastResolve: { cells: [0, 1, 2], correct: true },
+    };
+    expect(toClientView(g, "p1").lastResolve).toEqual({
+      cells: [0, 1, 2],
+      correct: true,
+    });
+    expect(toClientView(createGame(ctx), "p1").lastResolve).toBeNull();
   });
 });

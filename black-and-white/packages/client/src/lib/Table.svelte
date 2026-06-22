@@ -142,8 +142,13 @@
           对
         </div>
         <div class="flex flex-col gap-[2px]">
-          <span class="text-[0.9rem] font-semibold tracking-[0.5px] text-felt-text">对手</span>
-          <span class="text-[0.78rem] text-gold-muted">剩 {view.opponentCardsLeft} 张</span>
+          <span
+            class="text-[0.9rem] font-semibold tracking-[0.5px] text-felt-text"
+            >对手</span
+          >
+          <span class="text-[0.78rem] text-gold-muted"
+            >剩 {view.opponentCardsLeft} 张</span
+          >
         </div>
       </div>
 
@@ -175,18 +180,28 @@
         第 {cr.index} / 9 回合
       </div>
 
-      <div class="flex items-center gap-[8px] text-[1.6rem] font-bold text-felt-text">
-        我 <span class="min-w-[2ch] text-center text-gold">{view.scores.me}</span>
+      <div
+        class="flex items-center gap-[8px] text-[1.6rem] font-bold text-felt-text"
+      >
+        我 <span class="min-w-[2ch] text-center text-gold"
+          >{view.scores.me}</span
+        >
         <span class="font-normal text-gold-muted">:</span>
         <span class="min-w-[2ch] text-center text-gold">{view.scores.opp}</span> 对手
       </div>
 
       <!-- Play zone -->
-      <div class="flex min-h-[80px] w-full flex-col items-center justify-center gap-[8px]">
+      <div
+        class="flex min-h-[80px] w-full flex-col items-center justify-center gap-[8px]"
+      >
         {#if flipping}
-          <p class="text-center text-[0.9rem] font-semibold text-gold">决定先手中…</p>
+          <p class="text-center text-[0.9rem] font-semibold text-gold">
+            决定先手中…
+          </p>
         {:else if cr.iAmLeader && !cr.leaderHasPlayed && view.turn === "me"}
-          <p class="text-center text-[0.9rem] font-semibold text-felt-text">轮到你先出牌</p>
+          <p class="text-center text-[0.9rem] font-semibold text-felt-text">
+            轮到你先出牌
+          </p>
         {:else if !cr.iAmLeader && cr.leaderHasPlayed}
           <div class="flex flex-col items-center gap-[8px]">
             <div class={backCls(cr.leaderColor ?? "black", true)}></div>
@@ -194,11 +209,15 @@
               对方出牌（{colorLabel[cr.leaderColor ?? "black"]}）
             </p>
             {#if view.turn === "me"}
-              <p class="text-center text-[0.9rem] font-semibold text-felt-text">轮到你出牌</p>
+              <p class="text-center text-[0.9rem] font-semibold text-felt-text">
+                轮到你出牌
+              </p>
             {/if}
           </div>
         {:else if view.turn === "opp"}
-          <p class="text-center text-[0.9rem] italic text-gold-muted">等待对手出牌…</p>
+          <p class="text-center text-[0.9rem] italic text-gold-muted">
+            等待对手出牌…
+          </p>
         {/if}
       </div>
 
@@ -227,7 +246,10 @@
           我
         </div>
         <div class="flex flex-col gap-[2px]">
-          <span class="text-[0.9rem] font-semibold tracking-[0.5px] text-felt-text">我</span>
+          <span
+            class="text-[0.9rem] font-semibold tracking-[0.5px] text-felt-text"
+            >我</span
+          >
         </div>
       </div>
 
@@ -239,7 +261,11 @@
       />
 
       <div class="flex flex-wrap items-center justify-center gap-[10px]">
-        <Button class="min-w-[160px]" disabled={!canConfirm} on:click={onConfirm}>
+        <Button
+          class="min-w-[160px]"
+          disabled={!canConfirm}
+          on:click={onConfirm}
+        >
           确认出牌{selectedCard !== null ? ` · ${selectedCard}` : ""}
         </Button>
         <Button variant="ghost" on:click={openLeaveModal}>退出牌局</Button>
@@ -261,7 +287,10 @@
     <div
       class="flex w-[90%] max-w-[360px] flex-col items-center gap-[24px] rounded-[14px] border-2 border-gold bg-felt px-[40px] py-[32px] shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
     >
-      <p class="text-center text-[1rem] leading-[1.6] text-felt-text" id="leave-modal-title">
+      <p
+        class="text-center text-[1rem] leading-[1.6] text-felt-text"
+        id="leave-modal-title"
+      >
         确定退出？退出将判负，对手获胜。
       </p>
       <div class="flex gap-[12px]">
