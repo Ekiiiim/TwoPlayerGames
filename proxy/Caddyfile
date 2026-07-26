@@ -18,6 +18,11 @@ flipmath.minyu.me {
 	reverse_proxy fm-web:80
 }
 
+# Add to Fifty
+add2fifty.minyu.me {
+	reverse_proxy add-to-fifty-web:80
+}
+
 # Add more projects like this:
 # foo.example.com {
 # 	reverse_proxy foo-web:80

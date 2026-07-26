@@ -1,0 +1,33 @@
+name: add-to-fifty
+
+# Two services on the shared "web" network:
+#   add-to-fifty-server — Node/Socket.IO game server (internal only, port 3001)
+#   add-to-fifty-web    — Caddy serving the static client and proxying /socket.io/ to the server
+# The shared proxy (../proxy) routes add2fifty.minyu.me to add-to-fifty-web.
+
+services:
+  add-to-fifty-server:
+    build:
+      context: .
+      target: server
+    image: add-to-fifty-server
+    restart: unless-stopped
+    expose:
+      - "3001"
+    networks:
+      - web
+
+  add-to-fifty-web:
+    build:
+      context: .
+      target: web
+    image: add-to-fifty-web
+    restart: unless-stopped
+    depends_on:
+      - add-to-fifty-server
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

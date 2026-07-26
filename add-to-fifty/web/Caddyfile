@@ -1,0 +1,15 @@
+# Internal front door for Add to Fifty. TLS is handled by the shared proxy.
+
+:80 {
+	encode gzip
+
+	handle /socket.io/* {
+		reverse_proxy add-to-fifty-server:3001
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -1,0 +1,11 @@
+{
+  "name": "add-to-fifty",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm test --workspaces --if-present"
+  }
+}

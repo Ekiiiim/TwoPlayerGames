@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #143526;
+  --color-felt: #1d4d36;
+  --color-felt-dark: #143526;
+  --color-gold: #d9b25b;
+  --color-gold-muted: #cbb98a;
+  --color-felt-text: #f3ead2;
+
+  --color-panel: #f5f3ec;
+  --color-card: #fffdf7;
+  --color-card-red: #c0392b;
+  --color-card-black: #15171a;
+  --color-card-border: #e0ddd0;
+  --color-back-bg: #143526;
+  --color-back-border: #d9b25b;
+
+  --color-ink: #15171a;
+  --color-muted: #6f6758;
+  --color-line: #d8d1bd;
+  --color-accent: #d9b25b;
+  --color-accent-ink: #3a2c08;
+  --color-danger: #c0392b;
+  --color-success: #6fcf97;
+
+  --font-sans: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --animate-turn-pulse: turn-pulse 1.5s ease-in-out infinite;
+  @keyframes turn-pulse {
+    0%,
+    100% {
+      box-shadow:
+        0 0 0 1px var(--color-gold),
+        0 0 8px 2px rgba(217, 178, 91, 0.35);
+    }
+    50% {
+      box-shadow:
+        0 0 0 2px var(--color-gold),
+        0 0 18px 6px rgba(217, 178, 91, 0.7);
+    }
+  }
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    font-size: 14px;
+    background: var(--color-felt-dark);
+    color: var(--color-felt-text);
+    font-family: var(--font-sans);
+  }
+
+  #app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+}
