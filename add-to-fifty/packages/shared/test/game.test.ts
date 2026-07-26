@@ -167,4 +167,23 @@ describe("add-to-fifty rules", () => {
     expect(toClientView(game, "p2").loser).toBe("opp");
     expect(otherPlayer("p1")).toBe("p2");
   });
+
+  it("exposes the discard top to each viewer", () => {
+    const p1Card = card("9", "9S");
+    const p2Card = card("J", "JS");
+    const game = {
+      ...stateWithHands({ p1: [], p2: [] }, [], 9, "p1"),
+      history: [
+        { player: "p1" as const, card: p1Card, delta: 9, total: 9 },
+        { player: "p2" as const, card: p2Card, delta: -10, total: -1 },
+      ],
+      discardTotal: -1,
+    };
+
+    const p1View = toClientView(game, "p1");
+    const p2View = toClientView(game, "p2");
+
+    expect(p1View.topDiscard?.card).toEqual(p2Card);
+    expect(p2View.topDiscard?.card).toEqual(p2Card);
+  });
 });

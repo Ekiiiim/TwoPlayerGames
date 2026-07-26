@@ -159,6 +159,7 @@ export function toClientView(game: GameState, me: PlayerId): ClientView {
     game.loser === undefined ? null : game.loser === me ? "me" : "opp";
   const winner =
     game.loser === undefined ? null : game.loser === me ? "opp" : "me";
+  const history = game.history.map((entry) => ({ ...entry }));
 
   return {
     myHand: [...game.hands[me]],
@@ -166,7 +167,8 @@ export function toClientView(game: GameState, me: PlayerId): ClientView {
     deckCount: game.deck.length,
     discardTotal: game.discardTotal,
     turn: game.turn === me ? "me" : "opp",
-    history: game.history.map((entry) => ({ ...entry })),
+    history,
+    topDiscard: history.at(-1) ?? null,
     phase: game.phase,
     winner,
     loser,

@@ -48,6 +48,7 @@ export interface ClientView {
   discardTotal: number;
   turn: "me" | "opp";
   history: PlayedCard[];
+  topDiscard: PlayedCard | null;
   phase: Phase;
   winner: "me" | "opp" | null;
   loser: "me" | "opp" | null;
