@@ -26,6 +26,18 @@
   onMount(tryRejoin);
 
   type Lang = "zh" | "en";
+  type GuideCard =
+    | string
+    | {
+        rank: string;
+        suit: "spades" | "hearts" | "diamonds" | "clubs";
+      };
+  type HandRankGuide = {
+    name: Record<Lang, string>;
+    label: string;
+    sample: GuideCard[];
+    note: Record<Lang, string>;
+  };
 
   let amountInput = "5";
   let lastAmountContext = "";
@@ -61,6 +73,7 @@
       foldEnd: "弃牌结束",
       nextHand: "下一手",
       restartMatch: "重开牌局",
+      restartMatchNote: "重置双方筹码并开始新牌局",
       settlement: "结算",
       backLobby: "返回大厅",
       close: "关闭",
@@ -110,6 +123,7 @@
       foldEnd: "Fold complete",
       nextHand: "Next hand",
       restartMatch: "Restart match",
+      restartMatchNote: "Reset both stacks and start a new match",
       settlement: "Settlement",
       backLobby: "Back to lobby",
       close: "Close",
@@ -134,17 +148,29 @@
     },
   } as const;
 
-  const handRanks = [
+  const handRanks: HandRankGuide[] = [
     {
       name: { zh: "皇家同花顺", en: "Royal Flush" },
       label: "Royal Flush",
-      sample: ["A", "K", "Q", "J", "10"],
+      sample: [
+        { rank: "A", suit: "hearts" },
+        { rank: "K", suit: "hearts" },
+        { rank: "Q", suit: "hearts" },
+        { rank: "J", suit: "hearts" },
+        { rank: "10", suit: "hearts" },
+      ],
       note: { zh: "同花色最大顺子", en: "Ace-high straight flush" },
     },
     {
       name: { zh: "同花顺", en: "Straight Flush" },
       label: "Straight Flush",
-      sample: ["9", "8", "7", "6", "5"],
+      sample: [
+        { rank: "9", suit: "spades" },
+        { rank: "8", suit: "spades" },
+        { rank: "7", suit: "spades" },
+        { rank: "6", suit: "spades" },
+        { rank: "5", suit: "spades" },
+      ],
       note: { zh: "同花色连续五张", en: "Five suited cards in order" },
     },
     {
@@ -162,7 +188,13 @@
     {
       name: { zh: "同花", en: "Flush" },
       label: "Flush",
-      sample: ["A", "J", "8", "5", "2"],
+      sample: [
+        { rank: "A", suit: "diamonds" },
+        { rank: "J", suit: "diamonds" },
+        { rank: "8", suit: "diamonds" },
+        { rank: "5", suit: "diamonds" },
+        { rank: "2", suit: "diamonds" },
+      ],
       note: { zh: "五张同花色", en: "Five cards of one suit" },
     },
     {
@@ -238,6 +270,16 @@
   $: callIsAllIn =
     !!legal?.canCall && !!$view && legal.callAmount >= $view.players.me.chips;
 
+  const guideSuitSymbol: Record<
+    Exclude<GuideCard, string>["suit"],
+    string
+  > = {
+    spades: "♠",
+    hearts: "♥",
+    diamonds: "♦",
+    clubs: "♣",
+  };
+
   function handleAmountInput(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
     const digits = input.value.replace(/\D/g, "");
@@ -262,6 +304,21 @@
   function actionAmount(): number {
     commitAmountBounds();
     return Number(amountInput);
+  }
+
+  function guideCardRank(card: GuideCard): string {
+    return typeof card === "string" ? card : card.rank;
+  }
+
+  function guideCardSuit(card: GuideCard): string {
+    return typeof card === "string" ? "" : guideSuitSymbol[card.suit];
+  }
+
+  function guideCardRed(card: GuideCard): boolean {
+    return (
+      typeof card !== "string" &&
+      (card.suit === "hearts" || card.suit === "diamonds")
+    );
   }
 
   function blindBadge(
@@ -782,11 +839,16 @@
                       </p>
                     </div>
                     <div class="flex shrink-0 -space-x-1.5">
-                      {#each hand.sample as rank}
+                      {#each hand.sample as card}
                         <span
-                          class="flex h-11 w-8 items-center justify-center rounded-[6px] border border-card-border bg-card text-[0.95rem] font-black text-card-black shadow-[0_3px_8px_rgba(0,0,0,0.2)]"
+                          class={`flex h-11 w-8 flex-col items-center justify-center rounded-[6px] border border-card-border bg-card text-[0.95rem] font-black leading-none shadow-[0_3px_8px_rgba(0,0,0,0.2)] ${guideCardRed(card) ? "text-card-red" : "text-card-black"}`}
                         >
-                          {rank}
+                          <span>{guideCardRank(card)}</span>
+                          {#if guideCardSuit(card)}
+                            <span class="text-[0.8rem] leading-none">
+                              {guideCardSuit(card)}
+                            </span>
+                          {/if}
                         </span>
                       {/each}
                     </div>
@@ -851,6 +913,29 @@
                     })}
                 />
               </label>
+              <div
+                class="mt-5 flex items-center justify-between gap-4 border-t border-white/10 pt-5"
+              >
+                <span class="text-left">
+                  <span class="block text-[1.08rem] font-black text-felt-text">
+                    {copy.restartMatch}
+                  </span>
+                  <span
+                    class="mt-1 block text-[0.95rem] font-semibold leading-snug text-gold-muted"
+                  >
+                    {copy.restartMatchNote}
+                  </span>
+                </span>
+                <Button
+                  variant="secondary"
+                  on:click={() => {
+                    restartMatch();
+                    showSettings = false;
+                  }}
+                >
+                  {copy.restartMatch}
+                </Button>
+              </div>
             </div>
           </div>
         {/if}
