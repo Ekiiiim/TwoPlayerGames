@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #10171f;
+  --color-felt: #1d4d36;
+  --color-felt-dark: #143526;
+  --color-gold: #d9b25b;
+  --color-gold-muted: #cbb98a;
+  --color-felt-text: #f3ead2;
+  --color-panel: #f5f3ec;
+  --color-card: #fffdf7;
+  --color-card-red: #c0392b;
+  --color-card-black: #15171a;
+  --color-card-border: #e0ddd0;
+  --color-back-bg: #143526;
+  --color-back-border: #d9b25b;
+  --color-ink: #15171a;
+  --color-muted: #6f6758;
+  --color-line: #d8d1bd;
+  --color-danger: #c0392b;
+  --color-success: #6fcf97;
+
+  --font-sans: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  --animate-turn-pulse: turn-pulse 1.5s ease-in-out infinite;
+  --animate-deal-card: deal-card 360ms ease-out;
+  @keyframes turn-pulse {
+    0%,
+    100% {
+      box-shadow:
+        0 0 0 1px var(--color-gold),
+        0 0 8px 2px rgba(217, 178, 91, 0.35);
+    }
+    50% {
+      box-shadow:
+        0 0 0 2px var(--color-gold),
+        0 0 18px 6px rgba(217, 178, 91, 0.7);
+    }
+  }
+  @keyframes deal-card {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.96);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    font-size: 14px;
+    background: var(--color-bg);
+    color: var(--color-felt-text);
+    font-family: var(--font-sans);
+  }
+
+  #app {
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .poker-table-size {
+    width: min(1240px, calc((100vh - 96px) * 1.7778), calc(100vw - 24px));
+    aspect-ratio: 16 / 9;
+  }
+
+  .no-spinner {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  .no-spinner::-webkit-inner-spin-button,
+  .no-spinner::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+  }
+}

@@ -23,6 +23,11 @@ add2fifty.minyu.me {
 	reverse_proxy add-to-fifty-web:80
 }
 
+# Texas Poker
+poker.minyu.me {
+	reverse_proxy texas-poker-web:80
+}
+
 # Add more projects like this:
 # foo.example.com {
 # 	reverse_proxy foo-web:80

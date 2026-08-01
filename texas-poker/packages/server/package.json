@@ -1,0 +1,22 @@
+{
+  "name": "@texas-poker/server",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@texas-poker/shared": "*",
+    "socket.io": "^4.7.0",
+    "svelte": "5.56.8",
+    "tsx": "^4.7.0",
+    "vite": "8.2.0"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.10"
+  }
+}

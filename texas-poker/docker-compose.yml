@@ -1,0 +1,28 @@
+name: texas-poker
+
+services:
+  texas-poker-server:
+    build:
+      context: .
+      target: server
+    image: texas-poker-server
+    restart: unless-stopped
+    expose:
+      - "3001"
+    networks:
+      - web
+
+  texas-poker-web:
+    build:
+      context: .
+      target: web
+    image: texas-poker-web
+    restart: unless-stopped
+    depends_on:
+      - texas-poker-server
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
