@@ -64,6 +64,7 @@ export interface GameConfig {
 
 export interface GameState {
   deck: Card[];
+  startingChips: number;
   dealer: PlayerId;
   street: Street;
   phase: Phase;
@@ -114,6 +115,7 @@ export interface ClientView {
   legalActions: LegalActions;
   settings: {
     enforceMinRaise: boolean;
+    startingChips: number;
   };
   winner: "me" | "opp" | "split" | null;
   winReason: GameState["winReason"];

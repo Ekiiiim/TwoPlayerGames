@@ -239,4 +239,31 @@ describe("texas-poker server", () => {
     a.close();
     b.close();
   });
+
+  it("uses updated starting chips when restarting a match", async () => {
+    const { port, close } = await startServer(0, { deck: fixtureDeck() });
+    stop = close;
+    const { a, b } = await createJoin(port);
+
+    const restartA = waitView(
+      a,
+      (v) => v.phase === "betting" && v.players.me.chips === 415,
+    );
+    const restartB = waitView(
+      b,
+      (v) => v.phase === "betting" && v.players.me.chips === 410,
+    );
+    a.emit("update_settings", { startingChips: 420 });
+    a.emit("restart_match");
+
+    const viewA = await restartA;
+    const viewB = await restartB;
+
+    expect(viewA.settings.startingChips).toBe(420);
+    expect(viewB.settings.startingChips).toBe(420);
+    expect(viewA.players.opp.chips).toBe(410);
+    expect(viewB.players.opp.chips).toBe(415);
+    a.close();
+    b.close();
+  });
 });

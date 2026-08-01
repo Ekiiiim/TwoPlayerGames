@@ -72,7 +72,7 @@ export function restartMatch(): void {
 }
 
 export function updateSettings(
-  settings: Partial<Pick<GameConfig, "enforceMinRaise">>,
+  settings: Partial<Pick<GameConfig, "enforceMinRaise" | "startingChips">>,
 ): void {
   socket.emit("update_settings", settings);
 }

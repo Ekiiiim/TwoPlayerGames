@@ -29,6 +29,15 @@ function deck(ids: string[]): Card[] {
 }
 
 describe("texas poker rules", () => {
+  it("starts default hands from 300 chips before blinds", () => {
+    const game = createHand("p1", deck([]));
+
+    expect(game.players.p1.chips).toBe(295);
+    expect(game.players.p2.chips).toBe(290);
+    expect(game.players.p1.streetBet).toBe(5);
+    expect(game.players.p2.streetBet).toBe(10);
+  });
+
   it("posts heads-up blinds and starts preflop with the dealer acting first", () => {
     const game = createHand("p1", deck([]), CONFIG);
 

@@ -16,7 +16,7 @@ import type {
 
 export const PLAYER_IDS: readonly PlayerId[] = ["p1", "p2"];
 export const DEFAULT_CONFIG: GameConfig = {
-  startingChips: 1000,
+  startingChips: 300,
   smallBlind: 5,
   bigBlind: 10,
   enforceMinRaise: false,
@@ -125,6 +125,7 @@ export function createHand(
 
   return {
     deck,
+    startingChips: config.startingChips,
     dealer,
     street: "preflop",
     phase: "betting",
@@ -475,6 +476,7 @@ export function toClientView(game: GameState, me: PlayerId): ClientView {
     legalActions: legalActionsFor(game, me),
     settings: {
       enforceMinRaise: game.enforceMinRaise,
+      startingChips: game.startingChips,
     },
     winner,
     winReason: game.winReason,

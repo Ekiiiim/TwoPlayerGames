@@ -73,7 +73,9 @@ export class GameSession {
     this.state = createHand("p1", this.makeDeck(), this.config);
   }
 
-  updateSettings(settings: Partial<Pick<GameConfig, "enforceMinRaise">>): void {
+  updateSettings(
+    settings: Partial<Pick<GameConfig, "enforceMinRaise" | "startingChips">>,
+  ): void {
     this.config = { ...this.config, ...settings };
     if (this.state) {
       const baseRaiseIncrement = this.config.enforceMinRaise
@@ -81,6 +83,7 @@ export class GameSession {
         : 5;
       this.state = {
         ...this.state,
+        startingChips: this.config.startingChips,
         enforceMinRaise: this.config.enforceMinRaise,
         baseRaiseIncrement,
         minRaise: baseRaiseIncrement,

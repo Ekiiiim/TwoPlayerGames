@@ -41,6 +41,8 @@
 
   let amountInput = "5";
   let lastAmountContext = "";
+  let startingChipsInput = "300";
+  let lastStartingChips = 0;
   let showHandGuide = false;
   let showSettings = false;
   let lang: Lang = "zh";
@@ -54,6 +56,9 @@
       standardMinRaise: "启用标准最小加注幅度",
       standardMinRaiseNote:
         "关闭时，每次最小加注增量固定为 5。开启后，最小加注增量等于上一次加注幅度。",
+      startingChips: "初始筹码",
+      startingChipsNote: "保存后，下一次重开牌局会按这个数值开始。",
+      save: "保存",
       room: "房间",
       leave: "离开",
       opponent: "对手",
@@ -104,6 +109,9 @@
       standardMinRaise: "Use standard minimum raise",
       standardMinRaiseNote:
         "Off: every minimum raise increment is fixed at 5. On: the minimum raise increment follows the previous raise size.",
+      startingChips: "Starting chips",
+      startingChipsNote: "Saved value applies the next time the match restarts.",
+      save: "Save",
       room: "Room",
       leave: "Leave",
       opponent: "Opponent",
@@ -264,6 +272,13 @@
     amountInput = String(minAmount);
     lastAmountContext = amountContext;
   }
+  $: if (
+    $view?.settings.startingChips &&
+    $view.settings.startingChips !== lastStartingChips
+  ) {
+    startingChipsInput = String($view.settings.startingChips);
+    lastStartingChips = $view.settings.startingChips;
+  }
   $: payableCall = $view
     ? Math.min(legal?.callAmount ?? 0, $view.players.me.chips)
     : 0;
@@ -304,6 +319,34 @@
   function actionAmount(): number {
     commitAmountBounds();
     return Number(amountInput);
+  }
+
+  function handleStartingChipsInput(event: Event): void {
+    const input = event.currentTarget as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, "");
+    if (digits === "") {
+      startingChipsInput = "";
+      return;
+    }
+    const value = Number(digits);
+    startingChipsInput = String(value > 100000 ? 100000 : value);
+  }
+
+  function boundedStartingChips(): number {
+    const value = Number(startingChipsInput);
+    return Number.isFinite(value)
+      ? Math.min(100000, Math.max(20, Math.round(value)))
+      : 300;
+  }
+
+  function commitStartingChipsBounds(): void {
+    startingChipsInput = String(boundedStartingChips());
+  }
+
+  function saveStartingChips(): void {
+    const bounded = boundedStartingChips();
+    startingChipsInput = String(bounded);
+    updateSettings({ startingChips: bounded });
   }
 
   function guideCardRank(card: GuideCard): string {
@@ -913,6 +956,35 @@
                     })}
                 />
               </label>
+              <div
+                class="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-[12px] border border-[rgba(217,178,91,0.28)] bg-black/20 p-4"
+              >
+                <span class="min-w-[210px] flex-1">
+                  <span class="block text-[1.18rem] font-black text-felt-text">
+                    {copy.startingChips}
+                  </span>
+                  <span
+                    class="mt-1 block text-[0.98rem] font-semibold leading-snug text-gold-muted"
+                  >
+                    {copy.startingChipsNote}
+                  </span>
+                </span>
+                <div class="flex shrink-0 items-center gap-2">
+                  <input
+                    class="no-spinner h-[46px] w-[92px] rounded-[8px] border border-[rgba(217,178,91,0.45)] bg-black/25 px-2 text-center text-[1.45rem] font-black text-felt-text outline-none focus:border-gold"
+                    type="text"
+                    inputmode="numeric"
+                    min="20"
+                    max="100000"
+                    step="5"
+                    value={startingChipsInput}
+                    on:input={handleStartingChipsInput}
+                    on:blur={commitStartingChipsBounds}
+                    aria-label={copy.startingChips}
+                  />
+                  <Button on:click={saveStartingChips}>{copy.save}</Button>
+                </div>
+              </div>
               <div
                 class="mt-5 flex items-center justify-between gap-4 border-t border-white/10 pt-5"
               >

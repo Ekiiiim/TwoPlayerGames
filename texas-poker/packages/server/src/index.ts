@@ -40,12 +40,25 @@ function parseAction(data: unknown): PlayerAction | null {
 
 function parseSettings(
   data: unknown,
-): Partial<Pick<GameConfig, "enforceMinRaise">> | null {
+): Partial<Pick<GameConfig, "enforceMinRaise" | "startingChips">> | null {
   if (!isRecord(data)) return null;
-  const settings: Partial<Pick<GameConfig, "enforceMinRaise">> = {};
+  const settings: Partial<
+    Pick<GameConfig, "enforceMinRaise" | "startingChips">
+  > = {};
   if ("enforceMinRaise" in data) {
     if (typeof data.enforceMinRaise !== "boolean") return null;
     settings.enforceMinRaise = data.enforceMinRaise;
+  }
+  if ("startingChips" in data) {
+    if (
+      typeof data.startingChips !== "number" ||
+      !Number.isInteger(data.startingChips) ||
+      data.startingChips < 20 ||
+      data.startingChips > 100000
+    ) {
+      return null;
+    }
+    settings.startingChips = data.startingChips;
   }
   return settings;
 }
