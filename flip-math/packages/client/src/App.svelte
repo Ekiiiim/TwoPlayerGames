@@ -2,12 +2,14 @@
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
   import { view, ended, roundResult, tryRejoin, leaveRoom } from "./socket";
+  import { t } from "./i18n";
   import Lobby from "./lib/Lobby.svelte";
   import Board from "./lib/Board.svelte";
   import Hud from "./lib/Hud.svelte";
   import Selection from "./lib/Selection.svelte";
   import GameOver from "./lib/GameOver.svelte";
   import Button from "./lib/Button.svelte";
+  import LangToggle from "./lib/LangToggle.svelte";
 
   onMount(tryRejoin);
 </script>
@@ -17,9 +19,15 @@
     class="fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-[12px] border-2 border-accent bg-panel px-6 py-3 text-center text-lg font-semibold text-accent"
     transition:fade={{ duration: 200 }}
   >
-    {$roundResult}
+    {$roundResult.by === "me"
+      ? $t.round.correctMe
+      : $t.round.correctOpp}{$roundResult.equation
+      ? `\u3000${$roundResult.equation}`
+      : ""}
   </div>
 {/if}
+
+<LangToggle />
 
 <div
   class="flex min-h-screen w-full flex-col items-center justify-center gap-6"
@@ -28,8 +36,10 @@
     <div
       class="flex flex-col items-center gap-7 rounded-[16px] border-2 border-accent bg-panel px-14 py-12 text-center"
     >
-      <p class="text-[1.4rem] font-semibold leading-[1.5] text-ink">{$ended}</p>
-      <Button on:click={leaveRoom}>返回大厅</Button>
+      <p class="text-[1.4rem] font-semibold leading-[1.5] text-ink">
+        {$t.ended[$ended]}
+      </p>
+      <Button on:click={leaveRoom}>{$t.backToLobby}</Button>
     </div>
   {:else if $view && $view.phase === "finished"}
     <GameOver view={$view} />

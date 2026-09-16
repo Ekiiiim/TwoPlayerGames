@@ -1,15 +1,20 @@
 import { io, type Socket } from "socket.io-client";
 import { writable } from "svelte/store";
 import { UI } from "@fm/shared";
-import type { ClientView } from "@fm/shared";
+import type { ClientView, ErrorMsg } from "@fm/shared";
+import type { EndedCode, StatusCode } from "./i18n";
 import { backText } from "./lib/cellFace";
 
 export const view = writable<ClientView | null>(null);
 export const roomCode = writable<string | null>(null);
-export const status = writable<string>("");
-export const ended = writable<string | null>(null);
+export const status = writable<StatusCode | null>(null);
+export const ended = writable<EndedCode | null>(null);
 // 回合结果小提示(toast),由 view_update 在有人答对时设置,UI.resultPopupMs 后自动清空。
-export const roundResult = writable<string | null>(null);
+// 存结构化数据而非成品文案:玩家中途切换语言时,提示要跟着一起变。
+export const roundResult = writable<{
+  by: "me" | "opp";
+  equation: string;
+} | null>(null);
 let prevPhase: string | null = null;
 let resultTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -25,7 +30,7 @@ function clearStoredSession() {
 
 function onRoomAccepted(d: { roomCode: string; sessionToken: string }) {
   rejoining = false;
-  status.set("");
+  status.set(null);
   roomCode.set(d.roomCode);
   localStorage.setItem("fm_token", d.sessionToken);
   localStorage.setItem("fm_room", d.roomCode);
@@ -44,32 +49,31 @@ socket.on("view_update", (v: ClientView) => {
     v.lastResolve?.correct
   ) {
     const [ca, cop, cb] = v.lastResolve.cells.map((i) => v.board[i]);
-    const who = v.active === "me" ? "你答对了" : "对方答对了";
-    const eq =
+    const equation =
       ca && cop && cb
         ? `${backText(ca)} ${backText(cop)} ${backText(cb)} = ${v.target}`
         : "";
-    roundResult.set(eq ? `${who}　${eq}` : who);
+    roundResult.set({ by: v.active === "me" ? "me" : "opp", equation });
     clearTimeout(resultTimer);
     resultTimer = setTimeout(() => roundResult.set(null), UI.resultPopupMs);
   }
   prevPhase = v.phase;
 });
 
-socket.on("error_msg", (e: { message: string }) => {
+socket.on("error_msg", (e: ErrorMsg) => {
   if (rejoining) {
     rejoining = false;
     clearStoredSession();
     roomCode.set(null);
-    status.set("");
+    status.set(null);
     return;
   }
-  status.set(e.message);
+  status.set(e.code);
 });
 
-socket.on("opponent_disconnected", () => status.set("对手掉线，等待重连…"));
-socket.on("opponent_reconnected", () => status.set(""));
-socket.on("opponent_left", () => ended.set("对手已退出本局，你获胜 🎉"));
+socket.on("opponent_disconnected", () => status.set("OPPONENT_DISCONNECTED"));
+socket.on("opponent_reconnected", () => status.set(null));
+socket.on("opponent_left", () => ended.set("OPPONENT_LEFT"));
 
 export function createRoom(): void {
   socket.emit("create_room");
@@ -103,7 +107,7 @@ export function leaveRoom(): void {
   view.set(null);
   roomCode.set(null);
   ended.set(null);
-  status.set("");
+  status.set(null);
   roundResult.set(null);
   clearTimeout(resultTimer);
 }

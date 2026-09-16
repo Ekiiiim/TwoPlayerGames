@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ClientView } from "@fm/shared";
   import { rematch, leaveRoom, status } from "../socket";
+  import { t } from "../i18n";
   import Button from "./Button.svelte";
   export let view: ClientView;
 </script>
@@ -13,14 +14,14 @@
       ? 'text-win'
       : 'text-danger'}"
   >
-    {view.winner === "me" ? "你赢了 🎉" : "你输了"}
+    {view.winner === "me" ? $t.gameOver.win : $t.gameOver.lose}
   </p>
   <p class="text-3xl font-bold text-ink">
     {view.scores.me} : {view.scores.opp}
   </p>
   <div class="flex gap-3">
-    <Button on:click={rematch}>再来一局</Button>
-    <Button variant="ghost" on:click={leaveRoom}>返回大厅</Button>
+    <Button on:click={rematch}>{$t.gameOver.rematch}</Button>
+    <Button variant="ghost" on:click={leaveRoom}>{$t.backToLobby}</Button>
   </div>
-  {#if $status}<p class="text-danger">{$status}</p>{/if}
+  {#if $status}<p class="text-danger">{$t.status[$status]}</p>{/if}
 </div>

@@ -2,6 +2,7 @@
   import type { ClientView } from "@fm/shared";
   import { onDestroy } from "svelte";
   import { buzz, ready, leaveRoom } from "../socket";
+  import { t } from "../i18n";
   import Button from "./Button.svelte";
   export let view: ClientView;
 
@@ -21,33 +22,34 @@
 <div class="flex w-full max-w-[420px] flex-col items-center gap-4">
   <div class="flex w-full items-center justify-between text-xl">
     <span class="text-ink"
-      >我 <b class="text-2xl text-accent">{view.scores.me}</b></span
+      >{$t.hud.me} <b class="text-2xl text-accent">{view.scores.me}</b></span
     >
     {#if confirmQuit}
       <span class="flex items-center gap-3 text-sm">
         <button
           class="cursor-pointer text-danger underline"
-          on:click={leaveRoom}>确认退出</button
+          on:click={leaveRoom}>{$t.hud.quitYes}</button
         >
         <button
           class="cursor-pointer text-muted underline"
-          on:click={() => (confirmQuit = false)}>取消</button
+          on:click={() => (confirmQuit = false)}>{$t.hud.cancel}</button
         >
       </span>
     {:else}
       <button
         class="cursor-pointer text-sm text-muted underline"
-        on:click={() => (confirmQuit = true)}>退出</button
+        on:click={() => (confirmQuit = true)}>{$t.hud.quit}</button
       >
     {/if}
     <span class="text-ink"
-      >对手 <b class="text-2xl text-accent">{view.scores.opp}</b></span
+      >{$t.hud.opponent}
+      <b class="text-2xl text-accent">{view.scores.opp}</b></span
     >
   </div>
 
   {#if view.target !== null && view.phase !== "finished"}
     <div class="text-center">
-      <div class="text-sm tracking-widest text-muted">目标</div>
+      <div class="text-sm tracking-widest text-muted">{$t.hud.target}</div>
       <div class="text-[60px] font-bold leading-none text-accent">
         {view.target}
       </div>
@@ -60,30 +62,28 @@
 
   {#if view.phase === "ready"}
     {#if view.ready.me}
-      <p class="text-lg text-ink">已准备，等待对方…</p>
+      <p class="text-lg text-ink">{$t.hud.readyWaiting}</p>
     {:else}
-      <Button on:click={ready}>准备</Button>
+      <Button on:click={ready}>{$t.hud.ready}</Button>
     {/if}
     <p class="text-sm text-muted">
-      {view.ready.me ? "✓ 你" : "○ 你"} ｜ {view.ready.opp
-        ? "✓ 对方"
-        : "○ 对方"}
+      {$t.hud.readyMark(view.ready.me)} ｜ {$t.hud.readyMarkOpp(view.ready.opp)}
     </p>
   {:else if view.phase === "preview"}
-    <p class="text-lg text-muted">记住每格的背面！</p>
+    <p class="text-lg text-muted">{$t.hud.memorize}</p>
   {:else if view.phase === "countdown"}
     <div class="text-[64px] font-bold leading-none text-accent">
       {remaining}
     </div>
   {:else if view.phase === "buzzing"}
-    <Button on:click={buzz}>抢答</Button>
+    <Button on:click={buzz}>{$t.hud.buzz}</Button>
   {:else if view.phase === "answering"}
     <p class="text-lg text-ink">
-      {view.iAmActive ? "你来作答（点 3 张组成算式）" : "对方作答中…"}
+      {view.iAmActive ? $t.hud.yourAnswer : $t.hud.opponentAnswering}
     </p>
   {:else if view.phase === "resolve"}
-    <p class="text-lg text-ink">揭晓…</p>
+    <p class="text-lg text-ink">{$t.hud.revealing}</p>
   {:else if view.phase === "reveal"}
-    <p class="text-lg text-muted">记忆提示中…</p>
+    <p class="text-lg text-muted">{$t.hud.memoryHint}</p>
   {/if}
 </div>

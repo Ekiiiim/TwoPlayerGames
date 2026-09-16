@@ -174,10 +174,10 @@ describe("flip-math server", () => {
     await readyRound(a, b);
     a.emit("buzz"); // a 抢到
     await waitView(a, (v) => v.phase === "answering" && v.iAmActive);
-    const pErr = once<{ message: string }>(b, "error_msg");
+    const pErr = once<{ code: string }>(b, "error_msg");
     b.emit("select_cell", { index: 0 }); // b 不是 active
     const err = await pErr;
-    expect(err.message).toBeTruthy();
+    expect(err.code).toBe("INVALID_MOVE");
     a.close();
     b.close();
   });
@@ -262,4 +262,45 @@ describe("flip-math server", () => {
     a.close();
     b.close();
   }, 20000);
+
+  // 显示语言归客户端。服务器只给稳定的错误码、从不下发本地化文案,
+  // 玩家选的语言就不会被服务器碰巧发来的文字推翻。
+  it("error_msg carries only a machine-readable code, never display text", async () => {
+    const { port, close } = await startServer(0, { durations: FAST });
+    stop = close;
+
+    const expectBareCode = (err: Record<string, unknown>) => {
+      expect(Object.keys(err)).toEqual(["code"]);
+      expect(err.code).toMatch(/^[A-Z_]+$/);
+      expect(JSON.stringify(err)).not.toMatch(/[\u4e00-\u9fff]/);
+    };
+
+    const lone = connect(port);
+    await once<void>(lone, "connect");
+    for (const [event, payload] of [
+      ["join_room", { roomCode: "ZZZZZZ" }],
+      ["join_room", { nope: true }],
+      ["rejoin", undefined],
+    ] as [string, unknown][]) {
+      const pErr = once<Record<string, unknown>>(lone, "error_msg");
+      lone.emit(event, payload);
+      expectBareCode(await pErr);
+    }
+    lone.close();
+
+    // 规则引擎抛出的是面向开发者的英文 Error。这条路径最容易把原始文案
+    // 泄漏给玩家,所以要断言 handler 换成了错误码而不是转发 e.message。
+    const { a, b } = await createJoin(port);
+    await readyRound(a, b);
+    a.emit("buzz");
+    await waitView(a, (v) => v.phase === "answering" && v.iAmActive);
+    const pErr = once<Record<string, unknown>>(b, "error_msg");
+    b.emit("select_cell", { index: 0 });
+    const err = await pErr;
+    expectBareCode(err);
+    expect(err.code).toBe("INVALID_MOVE");
+
+    a.close();
+    b.close();
+  });
 });

@@ -1,15 +1,16 @@
 <script lang="ts">
   import type { ClientView } from "@fm/shared";
   import { backText } from "./cellFace";
+  import { t } from "../i18n";
   export let view: ClientView;
   // 谁在作答就展示谁已选的牌;没人作答则空。
   $: cells = view.active ? view.selection.map((i) => view.board[i]) : [];
   $: title =
     view.active === "me"
-      ? "你的选择"
+      ? $t.selection.mine
       : view.active === "opp"
-        ? "对方选择"
-        : "已选";
+        ? $t.selection.opponent
+        : $t.selection.none;
   // resolve 阶段已选三张随棋盘一起翻面(revealedCells 同时包含这三格)。
   function showsBack(index: number): boolean {
     return view.revealedCells.includes(index);
