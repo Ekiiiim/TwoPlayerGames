@@ -4,8 +4,66 @@
     {
       "name": "bw-client",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "black-and-white", "run", "dev", "--workspace", "@bw/client"],
+      "runtimeArgs": [
+        "--prefix",
+        "black-and-white",
+        "run",
+        "dev",
+        "--workspace",
+        "@bw/client"
+      ],
       "port": 5173
+    },
+    {
+      "name": "flip-client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "flip-math",
+        "run",
+        "dev",
+        "--workspace",
+        "@fm/client",
+        "--",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "a2f-client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "add-to-fifty",
+        "run",
+        "dev",
+        "--workspace",
+        "@add-to-fifty/client",
+        "--",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
+    },
+    {
+      "name": "texas-client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "texas-poker",
+        "run",
+        "dev",
+        "--workspace",
+        "@texas-poker/client",
+        "--",
+        "--port",
+        "5176",
+        "--strictPort"
+      ],
+      "port": 5176
     }
   ]
 }
