@@ -1,17 +1,18 @@
 import { io, type Socket } from "socket.io-client";
 import { writable } from "svelte/store";
-import type { ClientView, GameReview } from "@bw/shared";
+import type { ClientView, ErrorMsg, GameReview } from "@bw/shared";
+import type { EndedCode, StatusCode } from "./i18n";
 
 export const view = writable<ClientView | null>(null);
 export const review = writable<GameReview | null>(null);
 export const roomCode = writable<string | null>(null);
-export const status = writable<string>("");
-export const ended = writable<string | null>(null);
+export const status = writable<StatusCode | null>(null);
+export const ended = writable<EndedCode | null>(null);
 
 const socket: Socket = io({ autoConnect: true });
 
 // True while an auto-rejoin (from a stored session) is in flight. Lets us tell a
-// failed *silent* rejoin (stale localStorage → server says 房间不存在/会话无效)
+// failed *silent* rejoin (stale localStorage → ROOM_NOT_FOUND/INVALID_SESSION)
 // apart from a real user error, so we drop the dead session instead of greeting
 // the player with a scary error on the lobby.
 let rejoining = false;
@@ -23,7 +24,7 @@ function clearStoredSession() {
 
 function onRoomAccepted(d: { roomCode: string; sessionToken: string }) {
   rejoining = false;
-  status.set("");
+  status.set(null);
   roomCode.set(d.roomCode);
   localStorage.setItem("bw_token", d.sessionToken);
   localStorage.setItem("bw_room", d.roomCode);
@@ -42,21 +43,21 @@ socket.on("view_update", (v: ClientView) => {
   }
 });
 socket.on("game_over", (r: GameReview) => review.set(r));
-socket.on("error_msg", (e: { message: string }) => {
+socket.on("error_msg", (e: ErrorMsg) => {
   // A failed auto-rejoin means the stored session is dead (room gone / server
   // restarted). Drop it silently and show a clean lobby instead of the error.
   if (rejoining) {
     rejoining = false;
     clearStoredSession();
     roomCode.set(null);
-    status.set("");
+    status.set(null);
     return;
   }
-  status.set(e.message);
+  status.set(e.code);
 });
-socket.on("opponent_disconnected", () => status.set("对手掉线，等待重连…"));
-socket.on("opponent_reconnected", () => status.set(""));
-socket.on("opponent_left", () => ended.set("对手已退出本局，你获胜 🎉"));
+socket.on("opponent_disconnected", () => status.set("OPPONENT_DISCONNECTED"));
+socket.on("opponent_reconnected", () => status.set(null));
+socket.on("opponent_left", () => ended.set("OPPONENT_LEFT"));
 
 export function createRoom(): void {
   socket.emit("create_room");
@@ -91,5 +92,5 @@ export function leaveRoom(): void {
   review.set(null);
   roomCode.set(null);
   ended.set(null);
-  status.set("");
+  status.set(null);
 }

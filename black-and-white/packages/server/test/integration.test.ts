@@ -237,7 +237,7 @@ describe("rejoin", () => {
     const pErr = once<any>(a, "error_msg");
     a.emit("rejoin", undefined);
     const err = await pErr;
-    expect(err.message).toBeTruthy();
+    expect(err.code).toBeTruthy();
     a.close();
 
     // Verify server still alive: a new socket can create_room
@@ -271,9 +271,7 @@ describe("rejoin", () => {
     const restored = await Promise.race([
       pRestored,
       pErr.then((e: any) => {
-        throw new Error(
-          `expected room_created but got error_msg: ${e.message}`,
-        );
+        throw new Error(`expected room_created but got error_msg: ${e.code}`);
       }),
     ]);
     expect((restored as any).roomCode).toBe(created.roomCode);
@@ -413,7 +411,7 @@ describe("leave_room (explicit forfeit)", () => {
     b.close();
   });
 
-  it("after leave_room the room is destroyed: join_room with that code yields error_msg (房间不存在)", async () => {
+  it("after leave_room the room is destroyed: join_room with that code yields ROOM_NOT_FOUND", async () => {
     const { port, close } = await startServer(0);
     stop = close;
     const a = connect(port);
@@ -439,7 +437,7 @@ describe("leave_room (explicit forfeit)", () => {
     const pErr = once<any>(c, "error_msg");
     c.emit("join_room", { roomCode });
     const err = await pErr;
-    expect(err.message).toBe("房间不存在");
+    expect(err.code).toBe("ROOM_NOT_FOUND");
 
     a.close();
     b.close();
@@ -469,7 +467,7 @@ describe("leave_room (explicit forfeit)", () => {
 });
 
 describe("out-of-turn play_card (item 9)", () => {
-  it("produces error_msg matching /not your turn/i and does not crash the server", async () => {
+  it("produces error_msg with code INVALID_MOVE and does not crash the server", async () => {
     const { port, close } = await startServer(0);
     stop = close;
     const a = connect(port);
@@ -491,7 +489,7 @@ describe("out-of-turn play_card (item 9)", () => {
     const pErr = once<any>(follower, "error_msg");
     follower.emit("play_card", { card: 3 });
     const err = await pErr;
-    expect(err.message).toMatch(/not your turn/i);
+    expect(err.code).toBe("INVALID_MOVE");
 
     // Server still alive
     a.close();
@@ -555,14 +553,14 @@ describe("rematch (再来一局)", () => {
     const pErr = once<any>(a, "error_msg");
     a.emit("rematch");
     const err = await pErr;
-    expect(err.message).toContain("对手");
+    expect(err.code).toBe("OPPONENT_GONE");
 
     a.close();
   }, 15000);
 });
 
 describe("abandoned-room garbage collection", () => {
-  it("a room left fully empty past the TTL is swept (join_room yields 房间不存在)", async () => {
+  it("a room left fully empty past the TTL is swept (join_room yields ROOM_NOT_FOUND)", async () => {
     // Tiny TTL + fast sweep so the test runs quickly.
     const { port, close } = await startServer(0, {
       roomTtlMs: 60,
@@ -584,7 +582,7 @@ describe("abandoned-room garbage collection", () => {
     const pErr = once<any>(b, "error_msg");
     b.emit("join_room", { roomCode });
     const err = await pErr;
-    expect(err.message).toBe("房间不存在");
+    expect(err.code).toBe("ROOM_NOT_FOUND");
     b.close();
   });
 
@@ -609,14 +607,14 @@ describe("abandoned-room garbage collection", () => {
     // so the sweeper must leave the room alone.
     await new Promise((r) => setTimeout(r, 200));
 
-    // A third socket joining gets 房间已满 (room still exists), NOT 房间不存在
+    // A third socket joining gets ROOM_FULL (room still exists), NOT ROOM_NOT_FOUND
     // (which would mean it was incorrectly swept).
     const c = connect(port);
     await once<void>(c, "connect");
     const pErr = once<any>(c, "error_msg");
     c.emit("join_room", { roomCode });
     const err = await pErr;
-    expect(err.message).toBe("房间已满");
+    expect(err.code).toBe("ROOM_FULL");
 
     a.close();
     b.close();
@@ -653,12 +651,62 @@ describe("stale room membership recovery", () => {
     const created = await Promise.race([
       pCreated,
       pErr.then((e: any) => {
-        throw new Error(
-          `expected room_created but got error_msg: ${e.message}`,
-        );
+        throw new Error(`expected room_created but got error_msg: ${e.code}`);
       }),
     ]);
     expect((created as any).roomCode).toBeTruthy();
+
+    a.close();
+    b.close();
+  });
+
+  // Display language belongs to the client. The server names what went wrong
+  // with a stable code and never ships localized text, so a player's language
+  // choice can't be contradicted by whatever the server happened to send.
+  it("error_msg carries only a machine-readable code, never display text", async () => {
+    const { port, close } = await startServer(0);
+    stop = close;
+
+    const expectBareCode = (err: any) => {
+      expect(Object.keys(err)).toEqual(["code"]);
+      expect(err.code).toMatch(/^[A-Z_]+$/);
+      expect(JSON.stringify(err)).not.toMatch(/[\u4e00-\u9fff]/);
+    };
+
+    // Errors reachable from a socket that never joined a room.
+    const lone = connect(port);
+    await once<void>(lone, "connect");
+    for (const [event, payload] of [
+      ["join_room", { roomCode: "ZZZZZZ" }],
+      ["join_room", { nope: true }],
+      ["rejoin", undefined],
+    ] as [string, unknown][]) {
+      const pErr = once<any>(lone, "error_msg");
+      lone.emit(event, payload);
+      expectBareCode(await pErr);
+    }
+    lone.close();
+
+    // The rules engine throws Error objects with developer-facing English text.
+    // This is the path where that text could leak to a player, so assert the
+    // handler replaces it with a code rather than forwarding e.message.
+    const a = connect(port);
+    const b = connect(port);
+    a.emit("create_room");
+    const { roomCode } = await once<any>(a, "room_created");
+    const pA0 = once<any>(a, "view_update");
+    const pB0 = once<any>(b, "view_update");
+    b.emit("join_room", { roomCode });
+    const va0 = await pA0;
+    await pB0;
+
+    const follower = va0.currentRound.iAmLeader ? b : a;
+    const pErr = once<any>(follower, "error_msg");
+    follower.emit("play_card", { card: 3 });
+    const err = await pErr;
+    expectBareCode(err);
+    expect(err.code).toBe("INVALID_MOVE");
+    expect(JSON.stringify(err)).not.toMatch(/not your turn/i);
 
     a.close();
     b.close();

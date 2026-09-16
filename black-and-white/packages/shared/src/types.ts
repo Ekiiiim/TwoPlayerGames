@@ -54,3 +54,18 @@ export interface GameReview {
   finalScore: { me: number; opp: number };
   winner: "me" | "opp" | "draw";
 }
+
+// Wire-level error identifiers. The server never sends display text: it names
+// what went wrong and the client renders it in the player's current language.
+export type ErrorCode =
+  | "ALREADY_IN_ROOM"
+  | "INVALID_REQUEST"
+  | "ROOM_NOT_FOUND"
+  | "ROOM_FULL"
+  | "INVALID_SESSION"
+  | "INVALID_MOVE"
+  | "OPPONENT_GONE";
+
+export interface ErrorMsg {
+  code: ErrorCode;
+}

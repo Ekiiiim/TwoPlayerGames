@@ -5,6 +5,7 @@
   import Chip from "./Chip.svelte";
   import Button from "./Button.svelte";
   import { status, playCard, leaveRoom } from "../socket";
+  import { t } from "../i18n";
 
   export let view: ClientView;
 
@@ -109,7 +110,10 @@
     leaveRoom();
   }
 
-  const colorLabel: Record<string, string> = { black: "黑", white: "白" };
+  $: colorLabel = { black: $t.table.black, white: $t.table.white } as Record<
+    string,
+    string
+  >;
 
   function backCls(color: string, lg = false): string {
     const size = lg
@@ -139,15 +143,15 @@
         <div
           class={`flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full border-2 border-gold bg-[rgba(217,178,91,0.18)] text-[1rem] font-bold text-gold transition duration-150 ${oppGlow}`}
         >
-          对
+          {$t.table.opponentInitial}
         </div>
         <div class="flex flex-col gap-[2px]">
           <span
             class="text-[0.9rem] font-semibold tracking-[0.5px] text-felt-text"
-            >对手</span
+            >{$t.table.opponent}</span
           >
           <span class="text-[0.78rem] text-gold-muted"
-            >剩 {view.opponentCardsLeft} 张</span
+            >{$t.table.cardsLeft(view.opponentCardsLeft)}</span
           >
         </div>
       </div>
@@ -177,17 +181,17 @@
       <div
         class="rounded-[100px] border border-[rgba(217,178,91,0.3)] bg-black/25 px-[20px] py-[4px] text-[0.82rem] tracking-[1px] text-gold-muted"
       >
-        第 {cr.index} / 9 回合
+        {$t.table.round(cr.index, 9)}
       </div>
 
       <div
         class="flex items-center gap-[8px] text-[1.6rem] font-bold text-felt-text"
       >
-        我 <span class="min-w-[2ch] text-center text-gold"
-          >{view.scores.me}</span
-        >
+        {$t.table.me}
+        <span class="min-w-[2ch] text-center text-gold">{view.scores.me}</span>
         <span class="font-normal text-gold-muted">:</span>
-        <span class="min-w-[2ch] text-center text-gold">{view.scores.opp}</span> 对手
+        <span class="min-w-[2ch] text-center text-gold">{view.scores.opp}</span>
+        {$t.table.opponent}
       </div>
 
       <!-- Play zone -->
@@ -196,27 +200,27 @@
       >
         {#if flipping}
           <p class="text-center text-[0.9rem] font-semibold text-gold">
-            决定先手中…
+            {$t.table.decidingLeader}
           </p>
         {:else if cr.iAmLeader && !cr.leaderHasPlayed && view.turn === "me"}
           <p class="text-center text-[0.9rem] font-semibold text-felt-text">
-            轮到你先出牌
+            {$t.table.yourLeadTurn}
           </p>
         {:else if !cr.iAmLeader && cr.leaderHasPlayed}
           <div class="flex flex-col items-center gap-[8px]">
             <div class={backCls(cr.leaderColor ?? "black", true)}></div>
             <p class="text-center text-[0.9rem] text-gold-muted">
-              对方出牌（{colorLabel[cr.leaderColor ?? "black"]}）
+              {$t.table.opponentLed(colorLabel[cr.leaderColor ?? "black"])}
             </p>
             {#if view.turn === "me"}
               <p class="text-center text-[0.9rem] font-semibold text-felt-text">
-                轮到你出牌
+                {$t.table.yourTurn}
               </p>
             {/if}
           </div>
         {:else if view.turn === "opp"}
           <p class="text-center text-[0.9rem] italic text-gold-muted">
-            等待对手出牌…
+            {$t.table.waitingOpponent}
           </p>
         {/if}
       </div>
@@ -231,7 +235,7 @@
       {/if}
 
       {#if $status}
-        <p class="text-center text-[0.85rem] text-lose">{$status}</p>
+        <p class="text-center text-[0.85rem] text-lose">{$t.status[$status]}</p>
       {/if}
     </div>
 
@@ -243,12 +247,12 @@
         <div
           class={`flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full border-2 border-gold bg-[rgba(217,178,91,0.25)] text-[1rem] font-bold text-gold transition duration-150 ${meGlow}`}
         >
-          我
+          {$t.table.meInitial}
         </div>
         <div class="flex flex-col gap-[2px]">
           <span
             class="text-[0.9rem] font-semibold tracking-[0.5px] text-felt-text"
-            >我</span
+            >{$t.table.me}</span
           >
         </div>
       </div>
@@ -266,9 +270,13 @@
           disabled={!canConfirm}
           on:click={onConfirm}
         >
-          确认出牌{selectedCard !== null ? ` · ${selectedCard}` : ""}
+          {selectedCard !== null
+            ? $t.table.confirmPlayCard(selectedCard)
+            : $t.table.confirmPlay}
         </Button>
-        <Button variant="ghost" on:click={openLeaveModal}>退出牌局</Button>
+        <Button variant="ghost" on:click={openLeaveModal}
+          >{$t.table.quit}</Button
+        >
       </div>
     </div>
   </div>
@@ -291,11 +299,15 @@
         class="text-center text-[1rem] leading-[1.6] text-felt-text"
         id="leave-modal-title"
       >
-        确定退出？退出将判负，对手获胜。
+        {$t.table.quitConfirm}
       </p>
       <div class="flex gap-[12px]">
-        <Button variant="danger" on:click={confirmLeave}>确认退出</Button>
-        <Button variant="ghost" on:click={closeLeaveModal}>取消</Button>
+        <Button variant="danger" on:click={confirmLeave}
+          >{$t.table.quitYes}</Button
+        >
+        <Button variant="ghost" on:click={closeLeaveModal}
+          >{$t.table.cancel}</Button
+        >
       </div>
     </div>
   </div>

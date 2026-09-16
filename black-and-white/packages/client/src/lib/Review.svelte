@@ -1,6 +1,7 @@
 <script lang="ts">
   import { colorOf, type GameReview } from "@bw/shared";
   import { rematch, leaveRoom, status } from "../socket";
+  import { t } from "../i18n";
   import Chip from "./Chip.svelte";
   import Button from "./Button.svelte";
 
@@ -34,15 +35,15 @@
   <div class="flex flex-col items-center gap-[6px]">
     {#if review.winner === "me"}
       <span class="text-[1.8rem] font-extrabold tracking-[1px] text-win"
-        >你赢了 🎉</span
+        >{$t.review.win}</span
       >
     {:else if review.winner === "opp"}
       <span class="text-[1.8rem] font-extrabold tracking-[1px] text-lose"
-        >你输了</span
+        >{$t.review.lose}</span
       >
     {:else}
       <span class="text-[1.8rem] font-extrabold tracking-[1px] text-gold-muted"
-        >平局</span
+        >{$t.review.draw}</span
       >
     {/if}
     <span class="text-[1.1rem] tracking-[2px] text-gold-muted">
@@ -53,18 +54,20 @@
   <table class="w-full border-collapse text-[0.88rem]">
     <thead>
       <tr>
-        <th class={th}>回合</th>
-        <th class={th}>先手</th>
-        <th class={th}>我的牌</th>
-        <th class={th}>对手的牌</th>
-        <th class={th}>结果</th>
+        <th class={th}>{$t.review.colRound}</th>
+        <th class={th}>{$t.review.colLeader}</th>
+        <th class={th}>{$t.review.colMyCard}</th>
+        <th class={th}>{$t.review.colOppCard}</th>
+        <th class={th}>{$t.review.colResult}</th>
       </tr>
     </thead>
     <tbody>
       {#each review.rounds as r (r.round)}
         <tr class={rowBg(r.result)}>
           <td class={td}>{r.round}</td>
-          <td class={td}>{r.firstPlayer === "me" ? "我" : "对手"}</td>
+          <td class={td}
+            >{r.firstPlayer === "me" ? $t.review.me : $t.review.opp}</td
+          >
           <td class={td}><span class={badge(r.myCard)}>{r.myCard}</span></td>
           <td class={td}><span class={badge(r.oppCard)}>{r.oppCard}</span></td>
           <td class={td}><Chip result={r.result} /></td>
@@ -74,11 +77,11 @@
   </table>
 
   <div class="flex flex-wrap items-center justify-center gap-[12px]">
-    <Button on:click={rematch}>再来一局</Button>
-    <Button variant="ghost" on:click={leaveRoom}>返回大厅</Button>
+    <Button on:click={rematch}>{$t.review.rematch}</Button>
+    <Button variant="ghost" on:click={leaveRoom}>{$t.backToLobby}</Button>
   </div>
 
   {#if $status}
-    <p class="text-center text-[0.85rem] text-lose">{$status}</p>
+    <p class="text-center text-[0.85rem] text-lose">{$t.status[$status]}</p>
   {/if}
 </div>
