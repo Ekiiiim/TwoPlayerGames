@@ -52,7 +52,7 @@ export async function startServer(
 
     socket.on("create_room", () => {
       if (myRoom !== null && rooms.get(myRoom)) {
-        socket.emit("error_msg", { message: "已在房间中" });
+        socket.emit("error_msg", { code: "ALREADY_IN_ROOM" });
         return;
       }
 
@@ -67,21 +67,21 @@ export async function startServer(
 
     socket.on("join_room", (data: unknown) => {
       if (myRoom !== null && rooms.get(myRoom)) {
-        socket.emit("error_msg", { message: "已在房间中" });
+        socket.emit("error_msg", { code: "ALREADY_IN_ROOM" });
         return;
       }
       if (!isRecord(data) || typeof data.roomCode !== "string") {
-        socket.emit("error_msg", { message: "请求无效" });
+        socket.emit("error_msg", { code: "INVALID_REQUEST" });
         return;
       }
 
       const session = rooms.get(data.roomCode);
       if (!session) {
-        socket.emit("error_msg", { message: "房间不存在" });
+        socket.emit("error_msg", { code: "ROOM_NOT_FOUND" });
         return;
       }
       if (session.isFull()) {
-        socket.emit("error_msg", { message: "房间已满" });
+        socket.emit("error_msg", { code: "ROOM_FULL" });
         return;
       }
 
@@ -101,7 +101,7 @@ export async function startServer(
     socket.on("play_card", (data: unknown) => {
       if (!myRoom || !myId) return;
       if (!isRecord(data) || typeof data.cardId !== "string") {
-        socket.emit("error_msg", { message: "请求无效" });
+        socket.emit("error_msg", { code: "INVALID_REQUEST" });
         return;
       }
 
@@ -116,7 +116,7 @@ export async function startServer(
         );
         broadcastViews(io, session);
       } catch (error) {
-        socket.emit("error_msg", { message: (error as Error).message });
+        socket.emit("error_msg", { code: "INVALID_MOVE" });
       }
     });
 
@@ -126,13 +126,13 @@ export async function startServer(
         typeof data.roomCode !== "string" ||
         typeof data.sessionToken !== "string"
       ) {
-        socket.emit("error_msg", { message: "请求无效" });
+        socket.emit("error_msg", { code: "INVALID_REQUEST" });
         return;
       }
 
       const session = rooms.get(data.roomCode);
       if (!session) {
-        socket.emit("error_msg", { message: "房间不存在" });
+        socket.emit("error_msg", { code: "ROOM_NOT_FOUND" });
         return;
       }
 
@@ -140,7 +140,7 @@ export async function startServer(
         (player) => player?.sessionToken === data.sessionToken,
       );
       if (!entry) {
-        socket.emit("error_msg", { message: "会话无效" });
+        socket.emit("error_msg", { code: "INVALID_SESSION" });
         return;
       }
 
@@ -170,7 +170,7 @@ export async function startServer(
         !!session.players.p1?.socketId &&
         !!session.players.p2?.socketId;
       if (!session || !bothConnected) {
-        socket.emit("error_msg", { message: "对手已离开，无法再来一局" });
+        socket.emit("error_msg", { code: "OPPONENT_GONE" });
         return;
       }
       if (session.state?.phase !== "finished") return;

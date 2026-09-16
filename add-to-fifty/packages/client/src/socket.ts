@@ -1,14 +1,15 @@
 import { io, type Socket } from "socket.io-client";
 import { writable } from "svelte/store";
-import type { ClientView } from "@add-to-fifty/shared";
+import type { ClientView, ErrorMsg } from "@add-to-fifty/shared";
+import type { EndedCode, StatusCode } from "./i18n";
 
 const STORAGE_ROOM = "add2fifty_room";
 const STORAGE_TOKEN = "add2fifty_token";
 
 export const view = writable<ClientView | null>(null);
 export const roomCode = writable<string | null>(null);
-export const status = writable("");
-export const ended = writable<string | null>(null);
+export const status = writable<StatusCode | null>(null);
+export const ended = writable<EndedCode | null>(null);
 
 const socket: Socket = io({ autoConnect: true });
 let rejoining = false;
@@ -23,7 +24,7 @@ function onRoomAccepted(data: {
   sessionToken: string;
 }): void {
   rejoining = false;
-  status.set("");
+  status.set(null);
   roomCode.set(data.roomCode);
   localStorage.setItem(STORAGE_ROOM, data.roomCode);
   localStorage.setItem(STORAGE_TOKEN, data.sessionToken);
@@ -36,19 +37,19 @@ socket.on("view_update", (next: ClientView) => {
   view.set(next);
   if (next.phase !== "finished") ended.set(null);
 });
-socket.on("error_msg", (error: { message: string }) => {
+socket.on("error_msg", (error: ErrorMsg) => {
   if (rejoining) {
     rejoining = false;
     clearStoredSession();
     roomCode.set(null);
-    status.set("");
+    status.set(null);
     return;
   }
-  status.set(error.message);
+  status.set(error.code);
 });
-socket.on("opponent_disconnected", () => status.set("对手掉线，等待重连..."));
-socket.on("opponent_reconnected", () => status.set(""));
-socket.on("opponent_left", () => ended.set("对手已退出本局，你获胜"));
+socket.on("opponent_disconnected", () => status.set("OPPONENT_DISCONNECTED"));
+socket.on("opponent_reconnected", () => status.set(null));
+socket.on("opponent_left", () => ended.set("OPPONENT_LEFT"));
 
 export function createRoom(): void {
   socket.emit("create_room");
@@ -81,5 +82,5 @@ export function leaveRoom(): void {
   view.set(null);
   roomCode.set(null);
   ended.set(null);
-  status.set("");
+  status.set(null);
 }

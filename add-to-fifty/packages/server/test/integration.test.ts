@@ -135,17 +135,20 @@ describe("add-to-fifty server", () => {
     stop = close;
     const { a, b } = await createJoin(port);
 
-    const outOfTurn = once<{ message: string }>(b, "error_msg");
+    // The wire carries one code for every rules-engine rejection; which rule
+    // fired is pinned down by the engine's own unit tests, where the
+    // developer-facing English never reaches a player.
+    const outOfTurn = once<{ code: string }>(b, "error_msg");
     b.emit("play_card", { cardId: "9-spades" });
-    expect((await outOfTurn).message).toContain("not your turn");
+    expect((await outOfTurn).code).toBe("INVALID_MOVE");
 
-    const forged = once<{ message: string }>(a, "error_msg");
+    const forged = once<{ code: string }>(a, "error_msg");
     a.emit("play_card", { cardId: "9-spades" });
-    expect((await forged).message).toContain("not in hand");
+    expect((await forged).code).toBe("INVALID_MOVE");
 
-    const invalidK = once<{ message: string }>(a, "error_msg");
+    const invalidK = once<{ code: string }>(a, "error_msg");
     a.emit("play_card", { cardId: "K-spades", kingDelta: 11 });
-    expect((await invalidK).message).toContain("between -10 and 10");
+    expect((await invalidK).code).toBe("INVALID_MOVE");
 
     a.close();
     b.close();
@@ -212,8 +215,49 @@ describe("add-to-fifty server", () => {
 
     const b = connect(port);
     b.emit("join_room", { roomCode: created.roomCode });
-    const err = await once<{ message: string }>(b, "error_msg");
-    expect(err.message).toContain("房间不存在");
+    const err = await once<{ code: string }>(b, "error_msg");
+    expect(err.code).toBe("ROOM_NOT_FOUND");
+    b.close();
+  });
+
+  // Display language belongs to the client. The server names what went wrong
+  // with a stable code and never ships localized text, so a player's language
+  // choice can't be contradicted by whatever the server happened to send.
+  it("error_msg carries only a machine-readable code, never display text", async () => {
+    const { port, close } = await startServer(0, { deck: fixtureDeck() });
+    stop = close;
+
+    const expectBareCode = (err: Record<string, unknown>) => {
+      expect(Object.keys(err)).toEqual(["code"]);
+      expect(err.code).toMatch(/^[A-Z_]+$/);
+      expect(JSON.stringify(err)).not.toMatch(/[\u4e00-\u9fff]/);
+    };
+
+    const lone = connect(port);
+    await once<void>(lone, "connect");
+    for (const [event, payload] of [
+      ["join_room", { roomCode: "ZZZZZZ" }],
+      ["join_room", { nope: true }],
+      ["rejoin", undefined],
+    ] as [string, unknown][]) {
+      const pErr = once<Record<string, unknown>>(lone, "error_msg");
+      lone.emit(event, payload);
+      expectBareCode(await pErr);
+    }
+    lone.close();
+
+    // The rules engine throws Error objects with developer-facing English text.
+    // This is the path where that text could leak to a player, so assert the
+    // handler replaces it with a code rather than forwarding error.message.
+    const { a, b } = await createJoin(port);
+    const pErr = once<Record<string, unknown>>(b, "error_msg");
+    b.emit("play_card", { cardId: "9-spades" });
+    const err = await pErr;
+    expectBareCode(err);
+    expect(err.code).toBe("INVALID_MOVE");
+    expect(JSON.stringify(err)).not.toMatch(/not your turn/i);
+
+    a.close();
     b.close();
   });
 });
