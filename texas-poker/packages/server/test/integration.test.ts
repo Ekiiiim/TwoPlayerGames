@@ -142,13 +142,16 @@ describe("texas-poker server", () => {
     stop = close;
     const { a, b } = await createJoin(port);
 
-    const outOfTurn = once<{ message: string }>(b, "error_msg");
+    // The wire carries one code for every rules-engine rejection; which rule
+    // fired is pinned down by the engine's own unit tests, where the
+    // developer-facing English never reaches a player.
+    const outOfTurn = once<{ code: string }>(b, "error_msg");
     b.emit("poker_action", { type: "call", player: "p1" });
-    expect((await outOfTurn).message).toContain("not your turn");
+    expect((await outOfTurn).code).toBe("INVALID_MOVE");
 
-    const invalid = once<{ message: string }>(a, "error_msg");
+    const invalid = once<{ code: string }>(a, "error_msg");
     a.emit("poker_action", { type: "check" });
-    expect((await invalid).message).toContain("Cannot check");
+    expect((await invalid).code).toBe("INVALID_MOVE");
 
     a.close();
     b.close();
@@ -226,8 +229,14 @@ describe("texas-poker server", () => {
     a.emit("poker_action", { type: "fold" });
     await waitView(a, (v) => v.phase === "finished");
 
-    const nextA = waitView(a, (v) => v.phase === "betting" && v.street === "preflop");
-    const nextB = waitView(b, (v) => v.phase === "betting" && v.street === "preflop");
+    const nextA = waitView(
+      a,
+      (v) => v.phase === "betting" && v.street === "preflop",
+    );
+    const nextB = waitView(
+      b,
+      (v) => v.phase === "betting" && v.street === "preflop",
+    );
     b.emit("next_hand");
     const viewA = await nextA;
     const viewB = await nextB;
@@ -263,6 +272,47 @@ describe("texas-poker server", () => {
     expect(viewB.settings.startingChips).toBe(420);
     expect(viewA.players.opp.chips).toBe(410);
     expect(viewB.players.opp.chips).toBe(415);
+    a.close();
+    b.close();
+  });
+
+  // Display language belongs to the client. The server names what went wrong
+  // with a stable code and never ships localized text, so a player's language
+  // choice can't be contradicted by whatever the server happened to send.
+  it("error_msg carries only a machine-readable code, never display text", async () => {
+    const { port, close } = await startServer(0, { deck: fixtureDeck() });
+    stop = close;
+
+    const expectBareCode = (err: Record<string, unknown>) => {
+      expect(Object.keys(err)).toEqual(["code"]);
+      expect(err.code).toMatch(/^[A-Z_]+$/);
+      expect(JSON.stringify(err)).not.toMatch(/[\u4e00-\u9fff]/);
+    };
+
+    const lone = connect(port);
+    await once<void>(lone, "connect");
+    for (const [event, payload] of [
+      ["join_room", { roomCode: "ZZZZZZ" }],
+      ["join_room", { nope: true }],
+      ["rejoin", undefined],
+    ] as [string, unknown][]) {
+      const pErr = once<Record<string, unknown>>(lone, "error_msg");
+      lone.emit(event, payload);
+      expectBareCode(await pErr);
+    }
+    lone.close();
+
+    // The rules engine throws Error objects with developer-facing English text.
+    // This is the path where that text could leak to a player, so assert the
+    // handler replaces it with a code rather than forwarding error.message.
+    const { a, b } = await createJoin(port);
+    const pErr = once<Record<string, unknown>>(b, "error_msg");
+    b.emit("poker_action", { type: "call", player: "p1" });
+    const err = await pErr;
+    expectBareCode(err);
+    expect(err.code).toBe("INVALID_MOVE");
+    expect(JSON.stringify(err)).not.toMatch(/not your turn/i);
+
     a.close();
     b.close();
   });

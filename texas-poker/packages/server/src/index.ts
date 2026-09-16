@@ -100,7 +100,7 @@ export async function startServer(
 
     socket.on("create_room", () => {
       if (myRoom !== null && rooms.get(myRoom)) {
-        socket.emit("error_msg", { message: "已在房间中" });
+        socket.emit("error_msg", { code: "ALREADY_IN_ROOM" });
         return;
       }
       const { roomCode, session } = rooms.create();
@@ -114,20 +114,20 @@ export async function startServer(
 
     socket.on("join_room", (data: unknown) => {
       if (myRoom !== null && rooms.get(myRoom)) {
-        socket.emit("error_msg", { message: "已在房间中" });
+        socket.emit("error_msg", { code: "ALREADY_IN_ROOM" });
         return;
       }
       if (!isRecord(data) || typeof data.roomCode !== "string") {
-        socket.emit("error_msg", { message: "请求无效" });
+        socket.emit("error_msg", { code: "INVALID_REQUEST" });
         return;
       }
       const session = rooms.get(data.roomCode);
       if (!session) {
-        socket.emit("error_msg", { message: "房间不存在" });
+        socket.emit("error_msg", { code: "ROOM_NOT_FOUND" });
         return;
       }
       if (session.isFull()) {
-        socket.emit("error_msg", { message: "房间已满" });
+        socket.emit("error_msg", { code: "ROOM_FULL" });
         return;
       }
       const token = makeToken();
@@ -147,7 +147,7 @@ export async function startServer(
       if (!myRoom || !myId) return;
       const action = parseAction(data);
       if (!action) {
-        socket.emit("error_msg", { message: "请求无效" });
+        socket.emit("error_msg", { code: "INVALID_REQUEST" });
         return;
       }
       const session = rooms.get(myRoom);
@@ -156,7 +156,7 @@ export async function startServer(
         session.dispatch(myId, action);
         broadcastViews(io, session);
       } catch (error) {
-        socket.emit("error_msg", { message: (error as Error).message });
+        socket.emit("error_msg", { code: "INVALID_MOVE" });
       }
     });
 
@@ -169,14 +169,14 @@ export async function startServer(
         !!session.players.p1?.socketId &&
         !!session.players.p2?.socketId;
       if (!bothConnected) {
-        socket.emit("error_msg", { message: "对手已离开，无法开下一手" });
+        socket.emit("error_msg", { code: "OPPONENT_GONE" });
         return;
       }
       try {
         session.nextHand();
         broadcastViews(io, session);
       } catch (error) {
-        socket.emit("error_msg", { message: (error as Error).message });
+        socket.emit("error_msg", { code: "INVALID_MOVE" });
       }
     });
 
@@ -189,14 +189,14 @@ export async function startServer(
         !!session.players.p1?.socketId &&
         !!session.players.p2?.socketId;
       if (!bothConnected) {
-        socket.emit("error_msg", { message: "对手已离开，无法重开牌局" });
+        socket.emit("error_msg", { code: "OPPONENT_GONE" });
         return;
       }
       try {
         session.restartMatch();
         broadcastViews(io, session);
       } catch (error) {
-        socket.emit("error_msg", { message: (error as Error).message });
+        socket.emit("error_msg", { code: "INVALID_MOVE" });
       }
     });
 
@@ -204,7 +204,7 @@ export async function startServer(
       if (!myRoom || !myId) return;
       const settings = parseSettings(data);
       if (!settings) {
-        socket.emit("error_msg", { message: "请求无效" });
+        socket.emit("error_msg", { code: "INVALID_REQUEST" });
         return;
       }
       const session = rooms.get(myRoom);
@@ -219,19 +219,19 @@ export async function startServer(
         typeof data.roomCode !== "string" ||
         typeof data.sessionToken !== "string"
       ) {
-        socket.emit("error_msg", { message: "请求无效" });
+        socket.emit("error_msg", { code: "INVALID_REQUEST" });
         return;
       }
       const session = rooms.get(data.roomCode);
       if (!session) {
-        socket.emit("error_msg", { message: "房间不存在" });
+        socket.emit("error_msg", { code: "ROOM_NOT_FOUND" });
         return;
       }
       const entry = PLAYER_IDS.map((id) => session.players[id]).find(
         (player) => player?.sessionToken === data.sessionToken,
       );
       if (!entry) {
-        socket.emit("error_msg", { message: "会话无效" });
+        socket.emit("error_msg", { code: "INVALID_SESSION" });
         return;
       }
       session.markConnected(entry.id, socket.id);

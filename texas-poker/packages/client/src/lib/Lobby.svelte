@@ -1,33 +1,11 @@
 <script lang="ts">
   import { createRoom, joinRoom, leaveRoom, roomCode, status } from "../socket";
+  import { t } from "../i18n";
   import Button from "./Button.svelte";
-
-  export let lang: "zh" | "en" = "zh";
 
   let code = "";
 
-  const text = {
-    zh: {
-      title: "Texas Poker",
-      subtitle: "双人 heads-up 德州扑克",
-      roomCode: "房间码",
-      waiting: "等待第二位玩家加入",
-      dissolve: "解散房间",
-      create: "创建房间",
-      join: "加入",
-    },
-    en: {
-      title: "Texas Poker",
-      subtitle: "Two-player heads-up poker",
-      roomCode: "Room code",
-      waiting: "Waiting for player two",
-      dissolve: "Dissolve room",
-      create: "Create room",
-      join: "Join",
-    },
-  } as const;
-
-  $: copy = text[lang];
+  $: copy = $t.lobby;
 
   function submitJoin(): void {
     if (code.trim()) joinRoom(code);
@@ -38,7 +16,7 @@
   class="flex w-full max-w-[420px] flex-col gap-5 rounded-[12px] border border-[rgba(217,178,91,0.25)] bg-felt p-6 shadow-[0_18px_50px_rgba(0,0,0,0.35)]"
 >
   <div class="space-y-2 text-center">
-    <h1 class="text-2xl font-black text-felt-text">{copy.title}</h1>
+    <h1 class="text-2xl font-black text-felt-text">{$t.title}</h1>
     <p class="text-sm leading-6 text-gold-muted">{copy.subtitle}</p>
   </div>
 
@@ -68,7 +46,7 @@
     <p
       class="rounded-[8px] border border-danger/40 bg-black/20 px-3 py-2 text-sm text-danger"
     >
-      {$status}
+      {$t.status[$status]}
     </p>
   {/if}
 </section>

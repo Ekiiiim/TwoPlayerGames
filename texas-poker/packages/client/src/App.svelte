@@ -18,14 +18,15 @@
     updateSettings,
     view,
   } from "./socket";
+  import { lang, t, type GuideKey } from "./i18n";
   import Button from "./lib/Button.svelte";
   import ChipStack from "./lib/ChipStack.svelte";
+  import LangToggle from "./lib/LangToggle.svelte";
   import Lobby from "./lib/Lobby.svelte";
   import PlayingCard from "./lib/PlayingCard.svelte";
 
   onMount(tryRejoin);
 
-  type Lang = "zh" | "en";
   type GuideCard =
     | string
     | {
@@ -33,10 +34,9 @@
         suit: "spades" | "hearts" | "diamonds" | "clubs";
       };
   type HandRankGuide = {
-    name: Record<Lang, string>;
+    key: GuideKey;
     label: string;
     sample: GuideCard[];
-    note: Record<Lang, string>;
   };
 
   let amountInput = "5";
@@ -45,120 +45,11 @@
   let lastStartingChips = 0;
   let showHandGuide = false;
   let showSettings = false;
-  let lang: Lang = "zh";
 
-  const text = {
-    zh: {
-      langButton: "EN",
-      handGuide: "牌型",
-      settings: "设置",
-      settingsTitle: "牌局设置",
-      standardMinRaise: "启用标准最小加注幅度",
-      standardMinRaiseNote:
-        "关闭时，每次最小加注增量固定为 5。开启后，最小加注增量等于上一次加注幅度。",
-      startingChips: "初始筹码",
-      startingChipsNote: "保存后，下一次重开牌局会按这个数值开始。",
-      save: "保存",
-      room: "房间",
-      leave: "离开",
-      opponent: "对手",
-      me: "我",
-      chips: "筹码",
-      betPlaced: "已下注",
-      deck: "牌堆",
-      pot: "底池",
-      yourTurn: "轮到你行动",
-      waiting: "等待对手行动",
-      split: "平分底池",
-      handWin: "你赢得本手",
-      handLose: "对手赢得本手",
-      matchWin: "你赢得牌局",
-      matchLose: "对手赢得牌局",
-      showdownEnd: "摊牌结束",
-      foldEnd: "弃牌结束",
-      nextHand: "下一手",
-      restartMatch: "重开牌局",
-      restartMatchNote: "重置双方筹码并开始新牌局",
-      settlement: "结算",
-      backLobby: "返回大厅",
-      close: "关闭",
-      strongest: "从强到弱",
-      handGuideTitle: "牌型大小",
-      actions: {
-        fold: "弃牌",
-        check: "过牌",
-        call: "跟注",
-        bet: "下注",
-        raise: "加注",
-        allIn: "全下",
-        callAllIn: "跟注全下",
-      },
-      street: {
-        preflop: "翻牌前",
-        flop: "翻牌",
-        turn: "转牌",
-        river: "河牌",
-        showdown: "摊牌",
-      },
-    },
-    en: {
-      langButton: "中文",
-      handGuide: "Hands",
-      settings: "Settings",
-      settingsTitle: "Game Settings",
-      standardMinRaise: "Use standard minimum raise",
-      standardMinRaiseNote:
-        "Off: every minimum raise increment is fixed at 5. On: the minimum raise increment follows the previous raise size.",
-      startingChips: "Starting chips",
-      startingChipsNote: "Saved value applies the next time the match restarts.",
-      save: "Save",
-      room: "Room",
-      leave: "Leave",
-      opponent: "Opponent",
-      me: "Me",
-      chips: "chips",
-      betPlaced: "Bet",
-      deck: "Deck",
-      pot: "Pot",
-      yourTurn: "Your turn",
-      waiting: "Waiting",
-      split: "Split pot",
-      handWin: "You win the hand",
-      handLose: "Opponent wins the hand",
-      matchWin: "You win the match",
-      matchLose: "Opponent wins the match",
-      showdownEnd: "Showdown complete",
-      foldEnd: "Fold complete",
-      nextHand: "Next hand",
-      restartMatch: "Restart match",
-      restartMatchNote: "Reset both stacks and start a new match",
-      settlement: "Settlement",
-      backLobby: "Back to lobby",
-      close: "Close",
-      strongest: "Strongest to weakest",
-      handGuideTitle: "Hand Rankings",
-      actions: {
-        fold: "Fold",
-        check: "Check",
-        call: "Call",
-        bet: "Bet",
-        raise: "Raise",
-        allIn: "All-in",
-        callAllIn: "Call all-in",
-      },
-      street: {
-        preflop: "Preflop",
-        flop: "Flop",
-        turn: "Turn",
-        river: "River",
-        showdown: "Showdown",
-      },
-    },
-  } as const;
-
+  // Layout data only — the names and notes live in the dictionary.
   const handRanks: HandRankGuide[] = [
     {
-      name: { zh: "皇家同花顺", en: "Royal Flush" },
+      key: "royal-flush",
       label: "Royal Flush",
       sample: [
         { rank: "A", suit: "hearts" },
@@ -167,10 +58,9 @@
         { rank: "J", suit: "hearts" },
         { rank: "10", suit: "hearts" },
       ],
-      note: { zh: "同花色最大顺子", en: "Ace-high straight flush" },
     },
     {
-      name: { zh: "同花顺", en: "Straight Flush" },
+      key: "straight-flush",
       label: "Straight Flush",
       sample: [
         { rank: "9", suit: "spades" },
@@ -179,22 +69,11 @@
         { rank: "6", suit: "spades" },
         { rank: "5", suit: "spades" },
       ],
-      note: { zh: "同花色连续五张", en: "Five suited cards in order" },
     },
+    { key: "four-kind", label: "Four of a Kind", sample: ["Q", "Q", "Q", "Q", "4"] },
+    { key: "full-house", label: "Full House", sample: ["J", "J", "J", "7", "7"] },
     {
-      name: { zh: "四条", en: "Four of a Kind" },
-      label: "Four of a Kind",
-      sample: ["Q", "Q", "Q", "Q", "4"],
-      note: { zh: "四张同点数", en: "Four cards of one rank" },
-    },
-    {
-      name: { zh: "葫芦", en: "Full House" },
-      label: "Full House",
-      sample: ["J", "J", "J", "7", "7"],
-      note: { zh: "三条加一对", en: "Trips plus a pair" },
-    },
-    {
-      name: { zh: "同花", en: "Flush" },
+      key: "flush",
       label: "Flush",
       sample: [
         { rank: "A", suit: "diamonds" },
@@ -203,56 +82,15 @@
         { rank: "5", suit: "diamonds" },
         { rank: "2", suit: "diamonds" },
       ],
-      note: { zh: "五张同花色", en: "Five cards of one suit" },
     },
-    {
-      name: { zh: "顺子", en: "Straight" },
-      label: "Straight",
-      sample: ["10", "9", "8", "7", "6"],
-      note: { zh: "连续五张", en: "Five cards in order" },
-    },
-    {
-      name: { zh: "三条", en: "Three of a Kind" },
-      label: "Three of a Kind",
-      sample: ["8", "8", "8", "K", "3"],
-      note: { zh: "三张同点数", en: "Three cards of one rank" },
-    },
-    {
-      name: { zh: "两对", en: "Two Pair" },
-      label: "Two Pair",
-      sample: ["A", "A", "5", "5", "9"],
-      note: { zh: "两组对子", en: "Two separate pairs" },
-    },
-    {
-      name: { zh: "一对", en: "One Pair" },
-      label: "One Pair",
-      sample: ["K", "K", "Q", "8", "2"],
-      note: { zh: "一组对子", en: "One pair" },
-    },
-    {
-      name: { zh: "高牌", en: "High Card" },
-      label: "High Card",
-      sample: ["A", "Q", "9", "6", "3"],
-      note: { zh: "没有成牌时比最大牌", en: "Highest cards decide" },
-    },
+    { key: "straight", label: "Straight", sample: ["10", "9", "8", "7", "6"] },
+    { key: "three-kind", label: "Three of a Kind", sample: ["8", "8", "8", "K", "3"] },
+    { key: "two-pair", label: "Two Pair", sample: ["A", "A", "5", "5", "9"] },
+    { key: "pair", label: "One Pair", sample: ["K", "K", "Q", "8", "2"] },
+    { key: "high-card", label: "High Card", sample: ["A", "Q", "9", "6", "3"] },
   ];
 
-  const handCategoryText: Record<
-    HandCategory,
-    { zh: string; en: string }
-  > = {
-    "high-card": { zh: "高牌", en: "High Card" },
-    pair: { zh: "一对", en: "One Pair" },
-    "two-pair": { zh: "两对", en: "Two Pair" },
-    "three-kind": { zh: "三条", en: "Three of a Kind" },
-    straight: { zh: "顺子", en: "Straight" },
-    flush: { zh: "同花", en: "Flush" },
-    "full-house": { zh: "葫芦", en: "Full House" },
-    "four-kind": { zh: "四条", en: "Four of a Kind" },
-    "straight-flush": { zh: "同花顺", en: "Straight Flush" },
-  };
-
-  $: copy = text[lang];
+  $: copy = $t;
   $: legal = $view?.legalActions;
   $: myTurn = $view?.phase === "betting" && $view.actionOn === "me";
   $: minAmount = legal?.minBet ?? legal?.minRaiseTo ?? 0;
@@ -364,15 +202,8 @@
     );
   }
 
-  function blindBadge(
-    activeView: ClientView,
-    seat: "me" | "opp",
-    activeLang: Lang,
-  ): string {
-    if (activeView.dealer === seat) {
-      return activeLang === "zh" ? "庄 / 小盲" : "D / SB";
-    }
-    return activeLang === "zh" ? "大盲" : "BB";
+  function blindBadge(activeView: ClientView, seat: "me" | "opp"): string {
+    return activeView.dealer === seat ? copy.blind.dealer : copy.blind.bigBlind;
   }
 
   function playerIdFor(activeView: ClientView, seat: "me" | "opp"): PlayerId {
@@ -391,9 +222,9 @@
   function handLabel(hand: HandValue | null): string {
     if (!hand) return "";
     if (hand.category === "straight-flush" && hand.ranks[0] === 14) {
-      return lang === "zh" ? "皇家同花顺" : "Royal Flush";
+      return copy.royalFlush;
     }
-    return handCategoryText[hand.category][lang];
+    return copy.handCategory[hand.category];
   }
 
   function isWinnerSeat(activeView: ClientView, seat: "me" | "opp"): boolean {
@@ -429,13 +260,12 @@
   function resultText(activeView: ClientView): string {
     const label = handLabel(winnerHand(activeView));
     if (activeView.winner === "split") {
-      return label ? `${copy.split} ${label}` : copy.split;
+      return copy.splitWith(label);
     }
     if (activeView.winner === "me" || activeView.winner === "opp") {
       const winnerName =
         activeView.winner === "me" ? copy.me : copy.opponent;
-      if (lang === "zh") return `${winnerName}胜${label ? ` ${label}` : ""}`;
-      return `${winnerName} wins${label ? ` with ${label}` : ""}`;
+      return copy.winsWith(winnerName, label);
     }
     return "";
   }
@@ -444,22 +274,15 @@
 <main
   class="min-h-screen w-full overflow-hidden bg-bg px-3 py-3 text-felt-text"
 >
+  <LangToggle />
   <div
     class="mx-auto flex h-[calc(100vh-24px)] w-full max-w-[1320px] items-center justify-center"
   >
     {#if $ended}
-      <div class="fixed right-4 top-4 z-30">
-        <Button
-          variant="secondary"
-          on:click={() => (lang = lang === "zh" ? "en" : "zh")}
-        >
-          {copy.langButton}
-        </Button>
-      </div>
       <section
         class="flex w-full max-w-[460px] flex-col items-center gap-5 rounded-[16px] border-2 border-gold bg-felt p-7 text-center"
       >
-        <p class="text-xl font-bold text-felt-text">{$ended}</p>
+        <p class="text-xl font-bold text-felt-text">{copy.ended[$ended]}</p>
         <Button on:click={leaveRoom}>{copy.backLobby}</Button>
       </section>
     {:else if $view}
@@ -469,7 +292,7 @@
         >
           <div class="flex flex-wrap items-center gap-2">
             <Button variant="secondary" on:click={() => (showHandGuide = true)}>
-              {copy.handGuide}
+              {copy.handGuideBtn}
             </Button>
             <Button variant="secondary" on:click={() => (showSettings = true)}>
               {copy.settings}
@@ -481,13 +304,7 @@
               {$roomCode}
             </span>
           </div>
-          <div class="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              on:click={() => (lang = lang === "zh" ? "en" : "zh")}
-            >
-              {copy.langButton}
-            </Button>
+          <div class="flex items-center gap-2 pr-[72px]">
             <Button variant="secondary" on:click={leaveRoom}
               >{copy.leave}</Button
             >
@@ -500,7 +317,7 @@
           <div
             class={`flex h-[58px] w-[58px] items-center justify-center rounded-full border-2 border-gold bg-[rgba(217,178,91,0.18)] text-2xl font-black text-gold ${$view.actionOn === "opp" ? "animate-turn-pulse" : ""}`}
           >
-            {lang === "zh" ? "对" : "O"}
+            {copy.opponentInitial}
           </div>
           <div class="min-w-[144px]">
             <div class="flex items-center gap-2">
@@ -510,7 +327,7 @@
               <span
                 class="rounded-[999px] border border-gold/45 px-2 py-0.5 text-[0.78rem] font-black text-gold"
               >
-                {blindBadge($view, "opp", lang)}
+                {blindBadge($view, "opp")}
               </span>
             </div>
             <p class="text-[1.02rem] font-bold leading-tight text-gold-muted">
@@ -527,7 +344,7 @@
           <div
             class={`flex h-[58px] w-[58px] items-center justify-center rounded-full border-2 border-gold bg-[rgba(217,178,91,0.25)] text-2xl font-black text-gold ${$view.actionOn === "me" ? "animate-turn-pulse" : ""}`}
           >
-            {lang === "zh" ? "我" : "M"}
+            {copy.meInitial}
           </div>
           <div class="min-w-[144px]">
             <div class="flex items-center gap-2">
@@ -537,7 +354,7 @@
               <span
                 class="rounded-[999px] border border-gold/45 px-2 py-0.5 text-[0.78rem] font-black text-gold"
               >
-                {blindBadge($view, "me", lang)}
+                {blindBadge($view, "me")}
               </span>
             </div>
             <p class="text-[1.02rem] font-bold leading-tight text-gold-muted">
@@ -594,7 +411,7 @@
 
           <div
             class="deck-stack absolute left-[8%] top-1/2 hidden -translate-y-1/2 sm:block"
-            aria-label="牌堆"
+            aria-label={copy.deck}
           >
             <div class="relative h-[116px] w-[84px]">
               <div
@@ -715,7 +532,7 @@
                       value={amountInput}
                       on:input={handleAmountInput}
                       on:blur={commitAmountBounds}
-                      aria-label="下注金额"
+                      aria-label={copy.betAmount}
                     />
                     <Button
                       disabled={maxAmount <= 0}
@@ -867,9 +684,9 @@
                         class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5"
                       >
                         <h3 class="text-[1.34rem] font-black text-felt-text">
-                          {hand.name[lang]}
+                          {copy.handGuide[hand.key].name}
                         </h3>
-                        {#if lang === "zh"}
+                        {#if $lang === "zh"}
                           <span
                             class="text-[0.95rem] font-semibold text-gold-muted"
                           >
@@ -878,7 +695,7 @@
                         {/if}
                       </div>
                       <p class="text-[0.98rem] font-semibold text-gold-muted">
-                        {hand.note[lang]}
+                        {copy.handGuide[hand.key].note}
                       </p>
                     </div>
                     <div class="flex shrink-0 -space-x-1.5">
@@ -1013,20 +830,12 @@
         {/if}
         {#if $status}
           <p class="shrink-0 text-center text-[0.85rem] text-danger">
-            {$status}
+            {copy.status[$status]}
           </p>
         {/if}
       </section>
     {:else}
-      <div class="fixed right-4 top-4 z-30">
-        <Button
-          variant="secondary"
-          on:click={() => (lang = lang === "zh" ? "en" : "zh")}
-        >
-          {copy.langButton}
-        </Button>
-      </div>
-      <Lobby {lang} />
+      <Lobby />
     {/if}
   </div>
 </main>

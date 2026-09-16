@@ -1,0 +1,274 @@
+import { derived, writable } from "svelte/store";
+import type { ErrorCode, HandCategory } from "@texas-poker/shared";
+
+export type Lang = "en" | "zh";
+
+/** Anything that can land in the `status` store: a wire error, or a local notice. */
+export type StatusCode = ErrorCode | "OPPONENT_DISCONNECTED";
+export type EndedCode = "OPPONENT_LEFT";
+
+/** Hand-guide rows: every scoring category, plus the ace-high straight flush. */
+export type GuideKey = HandCategory | "royal-flush";
+
+const STORAGE_KEY = "texas_poker_lang";
+
+// English is the source of truth for the dictionary's shape; `zh` is checked
+// against it below, so a missing translation is a type error, not a runtime hole.
+const en = {
+  title: "Texas Poker",
+  lobby: {
+    subtitle: "Two-player heads-up poker",
+    roomCode: "Room code",
+    waiting: "Waiting for player two",
+    dissolve: "Dissolve room",
+    create: "Create room",
+    join: "Join",
+  },
+  handGuideBtn: "Hands",
+  settings: "Settings",
+  settingsTitle: "Game Settings",
+  standardMinRaise: "Use standard minimum raise",
+  standardMinRaiseNote:
+    "Off: every minimum raise increment is fixed at 5. On: the minimum raise increment follows the previous raise size.",
+  startingChips: "Starting chips",
+  startingChipsNote: "Saved value applies the next time the match restarts.",
+  save: "Save",
+  room: "Room",
+  leave: "Leave",
+  opponent: "Opponent",
+  me: "Me",
+  opponentInitial: "O",
+  meInitial: "M",
+  chips: "chips",
+  betPlaced: "Bet",
+  deck: "Deck",
+  betAmount: "Bet amount",
+  pot: "Pot",
+  yourTurn: "Your turn",
+  waiting: "Waiting",
+  split: "Split pot",
+  handWin: "You win the hand",
+  handLose: "Opponent wins the hand",
+  matchWin: "You win the match",
+  matchLose: "Opponent wins the match",
+  showdownEnd: "Showdown complete",
+  foldEnd: "Fold complete",
+  nextHand: "Next hand",
+  restartMatch: "Restart match",
+  restartMatchNote: "Reset both stacks and start a new match",
+  settlement: "Settlement",
+  backLobby: "Back to lobby",
+  close: "Close",
+  strongest: "Strongest to weakest",
+  handGuideTitle: "Hand Rankings",
+  blind: { dealer: "D / SB", bigBlind: "BB" },
+  /** Composition differs per language, so the dictionary owns the whole phrase. */
+  winsWith: (who: string, label: string) =>
+    `${who} wins${label ? ` with ${label}` : ""}`,
+  splitWith: (label: string) => (label ? `Split pot ${label}` : "Split pot"),
+  actions: {
+    fold: "Fold",
+    check: "Check",
+    call: "Call",
+    bet: "Bet",
+    raise: "Raise",
+    allIn: "All-in",
+    callAllIn: "Call all-in",
+  },
+  street: {
+    preflop: "Preflop",
+    flop: "Flop",
+    turn: "Turn",
+    river: "River",
+    showdown: "Showdown",
+  },
+  handCategory: {
+    "high-card": "High Card",
+    pair: "One Pair",
+    "two-pair": "Two Pair",
+    "three-kind": "Three of a Kind",
+    straight: "Straight",
+    flush: "Flush",
+    "full-house": "Full House",
+    "four-kind": "Four of a Kind",
+    "straight-flush": "Straight Flush",
+  } satisfies Record<HandCategory, string>,
+  royalFlush: "Royal Flush",
+  handGuide: {
+    "royal-flush": { name: "Royal Flush", note: "Ace-high straight flush" },
+    "straight-flush": {
+      name: "Straight Flush",
+      note: "Five suited cards in order",
+    },
+    "four-kind": { name: "Four of a Kind", note: "Four cards of one rank" },
+    "full-house": { name: "Full House", note: "Trips plus a pair" },
+    flush: { name: "Flush", note: "Five cards of one suit" },
+    straight: { name: "Straight", note: "Five cards in order" },
+    "three-kind": { name: "Three of a Kind", note: "Three cards of one rank" },
+    "two-pair": { name: "Two Pair", note: "Two separate pairs" },
+    pair: { name: "One Pair", note: "One pair" },
+    "high-card": { name: "High Card", note: "Highest cards decide" },
+  } satisfies Record<GuideKey, { name: string; note: string }>,
+  status: {
+    OPPONENT_DISCONNECTED: "Opponent disconnected, waiting to reconnect…",
+    ALREADY_IN_ROOM: "You are already in a room",
+    INVALID_REQUEST: "Invalid request",
+    ROOM_NOT_FOUND: "Room not found",
+    ROOM_FULL: "Room is full",
+    INVALID_SESSION: "Invalid session",
+    INVALID_MOVE: "That move is not allowed",
+    OPPONENT_GONE: "Your opponent left, so a rematch is not possible",
+  } satisfies Record<StatusCode, string>,
+  ended: {
+    OPPONENT_LEFT: "Your opponent left the match",
+  } satisfies Record<EndedCode, string>,
+};
+
+export type Dict = typeof en;
+
+const zh: Dict = {
+  // Shipped product name; it was already English-only in the Chinese UI.
+  title: "Texas Poker",
+  lobby: {
+    subtitle: "双人 heads-up 德州扑克",
+    roomCode: "房间码",
+    waiting: "等待第二位玩家加入",
+    dissolve: "解散房间",
+    create: "创建房间",
+    join: "加入",
+  },
+  handGuideBtn: "牌型",
+  settings: "设置",
+  settingsTitle: "牌局设置",
+  standardMinRaise: "启用标准最小加注幅度",
+  standardMinRaiseNote:
+    "关闭时，每次最小加注增量固定为 5。开启后，最小加注增量等于上一次加注幅度。",
+  startingChips: "初始筹码",
+  startingChipsNote: "保存后，下一次重开牌局会按这个数值开始。",
+  save: "保存",
+  room: "房间",
+  leave: "离开",
+  opponent: "对手",
+  me: "我",
+  opponentInitial: "对",
+  meInitial: "我",
+  chips: "筹码",
+  betPlaced: "已下注",
+  deck: "牌堆",
+  betAmount: "下注金额",
+  pot: "底池",
+  yourTurn: "轮到你行动",
+  waiting: "等待对手行动",
+  split: "平分底池",
+  handWin: "你赢得本手",
+  handLose: "对手赢得本手",
+  matchWin: "你赢得牌局",
+  matchLose: "对手赢得牌局",
+  showdownEnd: "摊牌结束",
+  foldEnd: "弃牌结束",
+  nextHand: "下一手",
+  restartMatch: "重开牌局",
+  restartMatchNote: "重置双方筹码并开始新牌局",
+  settlement: "结算",
+  backLobby: "返回大厅",
+  close: "关闭",
+  strongest: "从强到弱",
+  handGuideTitle: "牌型大小",
+  blind: { dealer: "庄 / 小盲", bigBlind: "大盲" },
+  winsWith: (who: string, label: string) =>
+    `${who}胜${label ? ` ${label}` : ""}`,
+  splitWith: (label: string) => (label ? `平分底池 ${label}` : "平分底池"),
+  actions: {
+    fold: "弃牌",
+    check: "过牌",
+    call: "跟注",
+    bet: "下注",
+    raise: "加注",
+    allIn: "全下",
+    callAllIn: "跟注全下",
+  },
+  street: {
+    preflop: "翻牌前",
+    flop: "翻牌",
+    turn: "转牌",
+    river: "河牌",
+    showdown: "摊牌",
+  },
+  handCategory: {
+    "high-card": "高牌",
+    pair: "一对",
+    "two-pair": "两对",
+    "three-kind": "三条",
+    straight: "顺子",
+    flush: "同花",
+    "full-house": "葫芦",
+    "four-kind": "四条",
+    "straight-flush": "同花顺",
+  },
+  royalFlush: "皇家同花顺",
+  handGuide: {
+    "royal-flush": { name: "皇家同花顺", note: "同花色最大顺子" },
+    "straight-flush": { name: "同花顺", note: "同花色连续五张" },
+    "four-kind": { name: "四条", note: "四张同点数" },
+    "full-house": { name: "葫芦", note: "三条加一对" },
+    flush: { name: "同花", note: "五张同花色" },
+    straight: { name: "顺子", note: "连续五张" },
+    "three-kind": { name: "三条", note: "三张同点数" },
+    "two-pair": { name: "两对", note: "两组对子" },
+    pair: { name: "一对", note: "一组对子" },
+    "high-card": { name: "高牌", note: "没有成牌时比最大牌" },
+  },
+  status: {
+    OPPONENT_DISCONNECTED: "对手掉线，等待重连...",
+    ALREADY_IN_ROOM: "已在房间中",
+    INVALID_REQUEST: "请求无效",
+    ROOM_NOT_FOUND: "房间不存在",
+    ROOM_FULL: "房间已满",
+    INVALID_SESSION: "会话无效",
+    INVALID_MOVE: "该操作不合法",
+    OPPONENT_GONE: "对手已离开，无法再来一局",
+  },
+  ended: {
+    OPPONENT_LEFT: "对手已退出牌局",
+  },
+};
+
+export const dict: Record<Lang, Dict> = { en, zh };
+
+/**
+ * Pure so it is testable without a DOM. English is the fallback: only a browser
+ * that actually asks for Chinese gets Chinese.
+ */
+export function resolveLang(saved: string | null, navigatorLang: string): Lang {
+  if (saved === "en" || saved === "zh") return saved;
+  return navigatorLang.toLowerCase().startsWith("zh") ? "zh" : "en";
+}
+
+const inBrowser = typeof window !== "undefined";
+
+export const lang = writable<Lang>(
+  inBrowser
+    ? resolveLang(localStorage.getItem(STORAGE_KEY), navigator.language)
+    : "en",
+);
+
+if (inBrowser) {
+  lang.subscribe((l) => {
+    document.documentElement.lang = l === "zh" ? "zh-CN" : "en";
+    document.title = dict[l].title;
+  });
+}
+
+/**
+ * Persist only on an explicit choice, so browser detection stays in effect
+ * until the player actually states a preference.
+ */
+export function toggleLang(): void {
+  lang.update((l) => {
+    const next: Lang = l === "zh" ? "en" : "zh";
+    localStorage.setItem(STORAGE_KEY, next);
+    return next;
+  });
+}
+
+export const t = derived(lang, ($lang) => dict[$lang]);
