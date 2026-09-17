@@ -1,18 +1,26 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { view, review, ended, tryRejoin, leaveRoom } from "./socket";
-  import { t } from "./i18n";
-  import Lobby from "./lib/Lobby.svelte";
+  import { Button, LangToggle, Lobby } from "@tpg/ui";
+  import {
+    view,
+    review,
+    ended,
+    roomCode,
+    status,
+    createRoom,
+    joinRoom,
+    tryRejoin,
+    leaveRoom,
+  } from "./socket";
+  import { lang, t, toggleLang } from "./i18n";
   import Table from "./lib/Table.svelte";
   import Review from "./lib/Review.svelte";
-  import Button from "./lib/Button.svelte";
-  import LangToggle from "./lib/LangToggle.svelte";
 
   onMount(tryRejoin);
 </script>
 
 <div class="flex min-h-screen w-full items-center justify-center">
-  <LangToggle />
+  <LangToggle lang={$lang} onToggle={toggleLang} />
   {#if $ended}
     <div class="flex w-full items-center justify-center">
       <div
@@ -29,6 +37,15 @@
   {:else if $view}
     <Table view={$view} />
   {:else}
-    <Lobby />
+    <Lobby
+      title={$t.title}
+      subtitle={$t.subtitle}
+      copy={$t.lobby}
+      statusText={$status ? $t.status[$status] : null}
+      roomCode={$roomCode}
+      onCreate={createRoom}
+      onJoin={joinRoom}
+      onClose={leaveRoom}
+    />
   {/if}
 </div>
