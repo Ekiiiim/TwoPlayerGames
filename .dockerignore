@@ -1,0 +1,19 @@
+# 依赖与构建产物 —— 镜像里由 npm ci / vite build 重新生成
+node_modules
+**/node_modules
+**/dist
+
+# 版本库与本地工具配置
+.git
+.gitignore
+.claude
+.clone
+.DS_Store
+
+# 文档不进镜像
+**/*.md
+docs
+
+# 注意:不要按游戏名排除源码。根 package-lock.json 覆盖全部 workspace,
+# npm ci 要求 lockfile 与 workspace 树一致,所以四个游戏的 package.json
+# 都得进镜像(见 Dockerfile 的 deps stage)。

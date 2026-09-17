@@ -1,4 +1,11 @@
-export type PlayerId = "p1" | "p2";
+import type { ErrorCode, ErrorMsg, PlayerId } from "@tpg/protocol";
+
+// 会话层类型统一由 @tpg/protocol 定义。这里 re-export,让游戏代码里现有的
+// `from "@fm/shared"` 继续有效。PlayerId 在本文件内部还被大量引用,
+// 所以 import 和 export 分两句写 —— `export type { X } from "..."` 不产生
+// 本地绑定。
+export type { ErrorCode, ErrorMsg, PlayerId };
+
 export type Operator = "+" | "-" | "*" | "/";
 
 export type CellBack =
@@ -79,15 +86,3 @@ export interface ClientView {
 
 // Wire-level error identifiers. The server never sends display text: it names
 // what went wrong and the client renders it in the player's current language.
-export type ErrorCode =
-  | "ALREADY_IN_ROOM"
-  | "INVALID_REQUEST"
-  | "ROOM_NOT_FOUND"
-  | "ROOM_FULL"
-  | "INVALID_SESSION"
-  | "INVALID_MOVE"
-  | "OPPONENT_GONE";
-
-export interface ErrorMsg {
-  code: ErrorCode;
-}

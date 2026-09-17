@@ -3,7 +3,8 @@ name: texas-poker
 services:
   texas-poker-server:
     build:
-      context: .
+      context: ..
+      dockerfile: texas-poker/Dockerfile
       target: server
     image: texas-poker-server
     restart: unless-stopped
@@ -14,7 +15,8 @@ services:
 
   texas-poker-web:
     build:
-      context: .
+      context: ..
+      dockerfile: texas-poker/Dockerfile
       target: web
     image: texas-poker-web
     restart: unless-stopped

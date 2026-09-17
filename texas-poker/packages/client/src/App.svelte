@@ -70,8 +70,16 @@
         { rank: "5", suit: "spades" },
       ],
     },
-    { key: "four-kind", label: "Four of a Kind", sample: ["Q", "Q", "Q", "Q", "4"] },
-    { key: "full-house", label: "Full House", sample: ["J", "J", "J", "7", "7"] },
+    {
+      key: "four-kind",
+      label: "Four of a Kind",
+      sample: ["Q", "Q", "Q", "Q", "4"],
+    },
+    {
+      key: "full-house",
+      label: "Full House",
+      sample: ["J", "J", "J", "7", "7"],
+    },
     {
       key: "flush",
       label: "Flush",
@@ -84,7 +92,11 @@
       ],
     },
     { key: "straight", label: "Straight", sample: ["10", "9", "8", "7", "6"] },
-    { key: "three-kind", label: "Three of a Kind", sample: ["8", "8", "8", "K", "3"] },
+    {
+      key: "three-kind",
+      label: "Three of a Kind",
+      sample: ["8", "8", "8", "K", "3"],
+    },
     { key: "two-pair", label: "Two Pair", sample: ["A", "A", "5", "5", "9"] },
     { key: "pair", label: "One Pair", sample: ["K", "K", "Q", "8", "2"] },
     { key: "high-card", label: "High Card", sample: ["A", "Q", "9", "6", "3"] },
@@ -123,10 +135,7 @@
   $: callIsAllIn =
     !!legal?.canCall && !!$view && legal.callAmount >= $view.players.me.chips;
 
-  const guideSuitSymbol: Record<
-    Exclude<GuideCard, string>["suit"],
-    string
-  > = {
+  const guideSuitSymbol: Record<Exclude<GuideCard, string>["suit"], string> = {
     spades: "♠",
     hearts: "♥",
     diamonds: "♦",
@@ -141,7 +150,9 @@
       return;
     }
     const value = Number(digits);
-    amountInput = String(maxAmount > 0 && value > maxAmount ? maxAmount : value);
+    amountInput = String(
+      maxAmount > 0 && value > maxAmount ? maxAmount : value,
+    );
   }
 
   function commitAmountBounds(): void {
@@ -151,7 +162,9 @@
       return;
     }
     const cappedMax = maxAmount > 0 ? Math.min(value, maxAmount) : value;
-    amountInput = String(minAmount > 0 ? Math.max(cappedMax, minAmount) : cappedMax);
+    amountInput = String(
+      minAmount > 0 ? Math.max(cappedMax, minAmount) : cappedMax,
+    );
   }
 
   function actionAmount(): number {
@@ -243,7 +256,10 @@
     return handFor(activeView, seat)?.cardIds.includes(cardId) ?? false;
   }
 
-  function highlightedCommunity(activeView: ClientView, cardId: string): boolean {
+  function highlightedCommunity(
+    activeView: ClientView,
+    cardId: string,
+  ): boolean {
     if (!activeView.showdown) return false;
     return activeView.showdown.winners.some((winner) =>
       activeView.showdown?.hands[winner].cardIds.includes(cardId),
@@ -263,8 +279,7 @@
       return copy.splitWith(label);
     }
     if (activeView.winner === "me" || activeView.winner === "opp") {
-      const winnerName =
-        activeView.winner === "me" ? copy.me : copy.opponent;
+      const winnerName = activeView.winner === "me" ? copy.me : copy.opponent;
       return copy.winsWith(winnerName, label);
     }
     return "";
@@ -602,7 +617,6 @@
               </span>
             {/if}
           </div>
-
         </div>
         {#if $view.matchOver}
           <section
@@ -767,9 +781,8 @@
                   checked={$view.settings.enforceMinRaise}
                   on:change={(event) =>
                     updateSettings({
-                      enforceMinRaise: (
-                        event.currentTarget as HTMLInputElement
-                      ).checked,
+                      enforceMinRaise: (event.currentTarget as HTMLInputElement)
+                        .checked,
                     })}
                 />
               </label>

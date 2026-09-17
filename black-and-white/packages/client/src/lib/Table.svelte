@@ -88,9 +88,9 @@
     selectedCard = null;
   }
 
-  function onSelect(e: CustomEvent<number>): void {
+  function onSelect(card: number): void {
     if (!myTurn) return;
-    selectedCard = e.detail === selectedCard ? null : e.detail;
+    selectedCard = card === selectedCard ? null : card;
   }
 
   function onConfirm(): void {
@@ -257,12 +257,7 @@
         </div>
       </div>
 
-      <Hand
-        cards={view.myHand}
-        {myTurn}
-        selected={selectedCard}
-        on:select={onSelect}
-      />
+      <Hand cards={view.myHand} {myTurn} selected={selectedCard} {onSelect} />
 
       <div class="flex flex-wrap items-center justify-center gap-[10px]">
         <Button
@@ -289,6 +284,7 @@
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60"
     on:click|self={closeLeaveModal}
     role="dialog"
+    tabindex="-1"
     aria-modal="true"
     aria-labelledby="leave-modal-title"
   >

@@ -2,7 +2,10 @@
 .claude/settings.local.json
 .claude/worktrees/
 
-# repo-root tooling deps + OS/editor junk
-/node_modules/
+# 依赖与工具缓存。不带前导斜杠,所以任意层级都匹配 —— vite/vitest 会在
+# 每个 workspace 下建 packages/*/node_modules/.vite 缓存。
+node_modules/
+
+# OS/editor junk
 .DS_Store
 .clone/

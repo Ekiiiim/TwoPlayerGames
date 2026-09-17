@@ -10,6 +10,11 @@ Public hostname: `add2fifty.minyu.me`
    docker compose up -d
    ```
 
+> 构建上下文是 repo 根（compose 里写的是 `context: ..`），不是本游戏目录。
+> 命令仍在本目录里敲，但 Docker 读的是 repo 根的 `.dockerignore`，并且会把
+> 四个游戏和 `platform/*` 的 `package.json` 全部读进去 —— 根
+> `package-lock.json` 覆盖全部 workspace，`npm ci` 要求两者一致。
+
 2. Ensure the shared Docker network exists:
 
    ```bash

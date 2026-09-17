@@ -1,3 +1,4 @@
+import { PLAYER_IDS } from "@tpg/protocol";
 import { compareHandValues, evaluateSeven } from "./hand";
 import type {
   ActionType,
@@ -14,7 +15,7 @@ import type {
   Suit,
 } from "./types";
 
-export const PLAYER_IDS: readonly PlayerId[] = ["p1", "p2"];
+export { PLAYER_IDS };
 export const DEFAULT_CONFIG: GameConfig = {
   startingChips: 300,
   smallBlind: 5,
@@ -447,7 +448,7 @@ export function toClientView(game: GameState, me: PlayerId): ClientView {
     game.phase === "finished" &&
     PLAYER_IDS.some((id) => game.players[id].chips <= 0);
   const matchWinnerId = matchOver
-    ? PLAYER_IDS.find((id) => game.players[id].chips > 0) ?? null
+    ? (PLAYER_IDS.find((id) => game.players[id].chips > 0) ?? null)
     : null;
   const winner =
     game.winner === null || game.winner === "split"

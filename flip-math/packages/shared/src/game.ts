@@ -1,3 +1,4 @@
+import { PLAYER_IDS } from "@tpg/protocol";
 import type {
   Action,
   Cell,
@@ -11,7 +12,7 @@ import type {
 } from "./types";
 import { WIN_SCORE } from "./config"; // 内部 reduce 用;DURATIONS 见下方 re-export
 
-export const PLAYER_IDS: readonly PlayerId[] = ["p1", "p2"];
+export { PLAYER_IDS };
 export function otherPlayer(p: PlayerId): PlayerId {
   return p === "p1" ? "p2" : "p1";
 }

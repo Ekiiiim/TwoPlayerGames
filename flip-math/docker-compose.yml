@@ -12,7 +12,8 @@ name: flip-math
 services:
   fm-server:
     build:
-      context: .
+      context: ..
+      dockerfile: flip-math/Dockerfile
       target: server
     image: fm-server
     restart: unless-stopped
@@ -23,7 +24,8 @@ services:
 
   fm-web:
     build:
-      context: .
+      context: ..
+      dockerfile: flip-math/Dockerfile
       target: web
     image: fm-web
     restart: unless-stopped
