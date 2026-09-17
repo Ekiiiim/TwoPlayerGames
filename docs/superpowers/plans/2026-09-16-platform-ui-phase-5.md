@@ -131,7 +131,7 @@
 **Interfaces:**
 - Produces: 10 条 token 契约（下表），`@tpg/ui` 这个 workspace。Task 2–3 的组件只写这些名字。
 
-- [ ] **Step 1: 建包**
+- [x] **Step 1: 建包**
 
 ```bash
 mkdir -p platform/ui/src
@@ -186,7 +186,7 @@ mkdir -p platform/ui/src
 export {};
 ```
 
-- [ ] **Step 2: 四个 theme.css 加 @source**
+- [x] **Step 2: 四个 theme.css 加 @source**
 
 Tailwind 默认不扫 `node_modules`，而 `@tpg/ui` 正是通过 workspace 符号链接引进来的。漏了这行，共享组件里独有的 class 一条都不生成，**而且构建成功、没有任何警告**。
 
@@ -214,7 +214,7 @@ perl 的 pattern 会插值，`@import` / `@source` / `@tpg` 里的 `@` 必须写
 
 Expected: 四行 `1`。
 
-- [ ] **Step 3: 四个 theme.css 加契约块**
+- [x] **Step 3: 四个 theme.css 加契约块**
 
 契约是这 10 个名字，四个游戏都必须给值。**共享组件只写这些名字，不写任何具体颜色或圆角。**
 
@@ -310,7 +310,7 @@ Expected: 四行 `1`。
 
 四个块都插在现有 `@theme { ... }` 之后、`@layer base` 之前。
 
-- [ ] **Step 4: 四个 Dockerfile 各加两行**
+- [x] **Step 4: 四个 Dockerfile 各加两行**
 
 ```bash
 for g in black-and-white flip-math add-to-fifty texas-poker; do
@@ -334,7 +334,7 @@ for g in black-and-white flip-math add-to-fifty texas-poker; do
 done
 ```
 
-- [ ] **Step 5: 装进 workspace**
+- [x] **Step 5: 装进 workspace**
 
 ```bash
 npm install
@@ -343,7 +343,7 @@ ls -l node_modules/@tpg/
 
 Expected: `ui -> ../../platform/ui` 出现。
 
-- [ ] **Step 6: 暂时验不了，记下来**
+- [x] **Step 6: 暂时验不了，记下来**
 
 Tailwind v4 只给**被生成出来的工具类**引用到的 token 往 `:root` 上落变量，没有消费者就一个都不落——此刻四个游戏构建出来都是 0 个 `--color-ui-*`，这是对的，不是契约写错了。（另外 `--shadow-ui-panel` 永远不会作为 `:root` 变量出现，Tailwind 把阴影值直接内联进 `.shadow-ui-panel` 那条规则。）
 
@@ -355,13 +355,13 @@ cat <game>/packages/client/dist/assets/*.css | grep -oE '\.(bg|text|border|round
 
 Expected（Task 4 之后）：`bg-ui-surface` / `text-ui-ink` / `text-ui-accent` / `text-ui-muted` / `text-ui-danger` / `border-ui-line` / `rounded-ui-panel` / `rounded-ui-control` 都在。一条都没有就是 `@source` 没生效。
 
-- [ ] **Step 7: 镜像 deps 阶段仍然能构建**
+- [x] **Step 7: 镜像 deps 阶段仍然能构建**
 
 ```bash
 docker build --target deps -f black-and-white/Dockerfile -t tpg-deps-check . && echo "deps stage OK"
 ```
 
-- [ ] **Step 8: format + commit**
+- [x] **Step 8: format + commit**
 
 ```bash
 rm -rf */packages/client/dist
@@ -388,7 +388,7 @@ git commit -m "feat(platform): add @tpg/ui and the token contract"
   ```
   Task 3 的 `Lobby` 和 Task 4–7 的四个游戏都用它们。
 
-- [ ] **Step 1: Button.svelte**
+- [x] **Step 1: Button.svelte**
 
 四份实现的 variant 名字不一致（bw/fm 是 `primary|ghost|danger`，a2f/tp 是 `primary|secondary|danger`），统一成四个。几何取 a2f/tp 那套（有 `min-h-[44px]`，是 iOS 的最小可点尺寸），颜色全走 token。
 
@@ -422,7 +422,7 @@ git commit -m "feat(platform): add @tpg/ui and the token contract"
 </button>
 ```
 
-- [ ] **Step 2: LangToggle.svelte**
+- [x] **Step 2: LangToggle.svelte**
 
 四份只差 Button 的 variant。统一用 `secondary` 而不是 spec 说的 `ghost`：语言开关浮在**页面**背景上而不是面板上，`ghost` 是透明底，而 add-to-fifty / texas-poker 的页面底色和面板底色是两回事（深绿页面 + 奶油面板），透明底的 `text-ui-muted` 在深绿上读不出来。`secondary` 自带 `bg-ui-surface`，四个游戏都读得清。
 
@@ -443,7 +443,7 @@ git commit -m "feat(platform): add @tpg/ui and the token contract"
 </div>
 ```
 
-- [ ] **Step 3: barrel**
+- [x] **Step 3: barrel**
 
 `platform/ui/src/index.ts`：
 
@@ -453,7 +453,7 @@ export { default as Button } from "./Button.svelte";
 export { default as LangToggle } from "./LangToggle.svelte";
 ```
 
-- [ ] **Step 4: typecheck**
+- [x] **Step 4: typecheck**
 
 ```bash
 npm run typecheck --workspace @tpg/ui
@@ -465,7 +465,7 @@ Expected: `0 errors and 0 warnings`。
 `@tpg/ui/src/Button.svelte`（包里没有 `exports` 字段，任意子路径都能解析），
 barrel 保留给能用的那部分。**先试 barrel，不行再退。**
 
-- [ ] **Step 5: commit**
+- [x] **Step 5: commit**
 
 ```bash
 npx prettier --write platform/ui
@@ -490,7 +490,7 @@ git commit -m "feat(platform): add the shared Button and LangToggle"
          onCreate={() => void} onJoin={(code: string) => void} onClose={() => void} />
   ```
 
-- [ ] **Step 1: 写组件**
+- [x] **Step 1: 写组件**
 
 传的是**普通值不是 store**：组件不认识会话层，`$roomCode` / `$t` 在各游戏的调用点解。这样 `@tpg/ui` 不依赖 `@tpg/client` 的运行时，只用它的一个类型。
 
@@ -595,7 +595,7 @@ git commit -m "feat(platform): add the shared Button and LangToggle"
 </section>
 ```
 
-- [ ] **Step 2: barrel 加一行**
+- [x] **Step 2: barrel 加一行**
 
 ```ts
 // 三个共享组件的 barrel。各游戏 `import { Button, Lobby } from "@tpg/ui"`。
@@ -604,7 +604,7 @@ export { default as LangToggle } from "./LangToggle.svelte";
 export { default as Lobby } from "./Lobby.svelte";
 ```
 
-- [ ] **Step 3: typecheck + commit**
+- [x] **Step 3: typecheck + commit**
 
 ```bash
 npm run typecheck --workspace @tpg/ui
@@ -625,7 +625,7 @@ git commit -m "feat(platform): add the shared Lobby"
 - Modify: `black-and-white/packages/client/src/lib/{Table,Review}.svelte`（Button 的 import 路径）
 - Modify: `black-and-white/packages/client/package.json`
 
-- [ ] **Step 1: 加依赖**
+- [x] **Step 1: 加依赖**
 
 ```json
   "dependencies": {
@@ -636,7 +636,7 @@ git commit -m "feat(platform): add the shared Lobby"
   },
 ```
 
-- [ ] **Step 2: 删三个本地组件、改 import**
+- [x] **Step 2: 删三个本地组件、改 import**
 
 ```bash
 cd black-and-white/packages/client/src
@@ -649,7 +649,7 @@ grep -rln 'Button.svelte\|LangToggle.svelte\|Lobby.svelte' .
 `import { Button } from "@tpg/ui";`，`LangToggle` 和 `Lobby` 同理。同一个文件里
 引了多个就合成一句 `import { Button, LangToggle, Lobby } from "@tpg/ui";`。
 
-- [ ] **Step 3: App.svelte 里给 Lobby 传 props**
+- [x] **Step 3: App.svelte 里给 Lobby 传 props**
 
 原来是 `<Lobby />`（它自己去 import store 和 t）。现在值从调用点传：
 
@@ -700,7 +700,7 @@ grep -rln 'Button.svelte\|LangToggle.svelte\|Lobby.svelte' .
 
 注意 `App.svelte` 现在要多引 `roomCode` / `status` / `createRoom` / `joinRoom`（原来这些是 `Lobby.svelte` 自己引的）和 `lang` / `toggleLang`。
 
-- [ ] **Step 4: 装依赖、svelte-check、测试**
+- [x] **Step 4: 装依赖、svelte-check、测试**
 
 ```bash
 npm install
@@ -711,7 +711,7 @@ git diff --stat black-and-white/packages/server
 
 Expected: `0 errors and 0 warnings`；`Tests 1 passed`；server diff 为空。
 
-- [ ] **Step 5: 浏览器验收**
+- [x] **Step 5: 浏览器验收**
 
 ```bash
 npm run start --workspace @bw/server &
@@ -728,7 +728,7 @@ npm run start --workspace @bw/server &
 6. 牌桌界面的按钮（出牌 / 退出）样式正常——它们也换成了共享 Button
 7. 控制台没有 error
 
-- [ ] **Step 6: format + commit**
+- [x] **Step 6: format + commit**
 
 ```bash
 npx prettier --write black-and-white/packages/client
@@ -743,11 +743,11 @@ git commit -m "refactor(black-and-white): use the shared UI components"
 
 同 Task 4 的做法。flip-math 的差异：没有副标题（`subtitle` 传空字符串或不传），`Hud.svelte` / `GameOver.svelte` / `Board.svelte` 里也用 `Button`。
 
-- [ ] **Step 1: 加依赖** `"@tpg/ui": "*"` 到 `flip-math/packages/client/package.json` 的 dependencies。
+- [x] **Step 1: 加依赖** `"@tpg/ui": "*"` 到 `flip-math/packages/client/package.json` 的 dependencies。
 
-- [ ] **Step 2: 删 `lib/{Button,LangToggle,Lobby}.svelte`，把所有 import 换成 `@tpg/ui`。**
+- [x] **Step 2: 删 `lib/{Button,LangToggle,Lobby}.svelte`，把所有 import 换成 `@tpg/ui`。**
 
-- [ ] **Step 3: App.svelte 传 props。** `subtitle` 不传（组件默认空字符串，不渲染那一行）：
+- [x] **Step 3: App.svelte 传 props。** `subtitle` 不传（组件默认空字符串，不渲染那一行）：
 
 ```svelte
 <Lobby
@@ -763,7 +763,7 @@ git commit -m "refactor(black-and-white): use the shared UI components"
 
 `App.svelte` 要多引 `roomCode` / `status` / `createRoom` / `joinRoom` / `lang` / `toggleLang`。
 
-- [ ] **Step 4: 检查**
+- [x] **Step 4: 检查**
 
 ```bash
 npm install && npm run check --workspace @fm/client && npm test --workspace @fm/client && npm test --workspace @fm/server
@@ -771,11 +771,11 @@ npm install && npm run check --workspace @fm/client && npm test --workspace @fm/
 
 Expected: `0 errors`；client 1 个；server 9 个。
 
-- [ ] **Step 5: 浏览器验收**（5174）：大厅有样式、没有副标题那一行、两步解散（它本来就有，确认没退化）、6 位才能加入、准备/抢答按钮正常、控制台干净。
+- [x] **Step 5: 浏览器验收**（5174）：大厅有样式、没有副标题那一行、两步解散（它本来就有，确认没退化）、6 位才能加入、准备/抢答按钮正常、控制台干净。
 
 **不要在 dev server 跑着的时候改配置文件**——会让 vite-plugin-svelte 重启 vite，`--strictPort` 下和旧监听抢端口直接 exit 1（阶段 1 踩过）。撞上了 `lsof -ti:5174 | xargs kill` 再起。
 
-- [ ] **Step 6: commit** `refactor(flip-math): use the shared UI components`
+- [x] **Step 6: commit** `refactor(flip-math): use the shared UI components`
 
 ---
 
@@ -783,9 +783,9 @@ Expected: `0 errors`；client 1 个；server 9 个。
 
 差异：副标题是 `$t.tagline` 不是 `$t.subtitle`（它那一位写的是一句较长的玩法说明），按 props 名传过去就行，不动词典。`GameOver.svelte` 里也用 `Button`。
 
-- [ ] **Step 1: 加依赖。**
-- [ ] **Step 2: 删三个本地组件，改 import。**
-- [ ] **Step 3: App.svelte 传 props：**
+- [x] **Step 1: 加依赖。**
+- [x] **Step 2: 删三个本地组件，改 import。**
+- [x] **Step 3: App.svelte 传 props：**
 
 ```svelte
 <Lobby
@@ -800,9 +800,9 @@ Expected: `0 errors`；client 1 个；server 9 个。
 />
 ```
 
-- [ ] **Step 4: 检查** `npm install && npm run check --workspace @add-to-fifty/client && npm test --workspace @add-to-fifty/client && npm test --workspace @add-to-fifty/server`（1 / 6）
-- [ ] **Step 5: 浏览器验收**（5175）：大厅面板是奶油底深色字、玩法说明那行在、**两步解散是新增的**、6 位才能加入、右上角语言开关在深绿页面上读得清（这是 spec 那处 `ghost` → `secondary` 修正要防的）、牌桌正常、控制台干净。
-- [ ] **Step 6: commit** `refactor(add-to-fifty): use the shared UI components`
+- [x] **Step 4: 检查** `npm install && npm run check --workspace @add-to-fifty/client && npm test --workspace @add-to-fifty/client && npm test --workspace @add-to-fifty/server`（1 / 6）
+- [x] **Step 5: 浏览器验收**（5175）：大厅面板是奶油底深色字、玩法说明那行在、**两步解散是新增的**、6 位才能加入、右上角语言开关在深绿页面上读得清（这是 spec 那处 `ghost` → `secondary` 修正要防的）、牌桌正常、控制台干净。
+- [x] **Step 6: commit** `refactor(add-to-fifty): use the shared UI components`
 
 ---
 
@@ -810,9 +810,9 @@ Expected: `0 errors`；client 1 个；server 9 个。
 
 差异最大的一个：它的 `App.svelte` 有 854 行，里面用 `Button` 的地方最多；`--color-ui-ink` 指的是 `felt-text` 而不是它自己的 `--color-ink`（Task 1 已处理）。
 
-- [ ] **Step 1: 加依赖。**
-- [ ] **Step 2: 删三个本地组件，改 import。**`grep -n 'Button' texas-poker/packages/client/src/App.svelte | head -30` 先看一遍用量。
-- [ ] **Step 3: App.svelte 传 props：**
+- [x] **Step 1: 加依赖。**
+- [x] **Step 2: 删三个本地组件，改 import。**`grep -n 'Button' texas-poker/packages/client/src/App.svelte | head -30` 先看一遍用量。
+- [x] **Step 3: App.svelte 传 props：**
 
 ```svelte
 <Lobby
@@ -827,9 +827,9 @@ Expected: `0 errors`；client 1 个；server 9 个。
 />
 ```
 
-- [ ] **Step 4: 检查** `npm install && npm run check --workspace @texas-poker/client && npm test --workspace @texas-poker/client && npm test --workspace @texas-poker/server`（1 / 8）
-- [ ] **Step 5: 浏览器验收**（5176）：大厅是绿毡面板配奶油字（**不是**近黑字——那就说明 `--color-ui-ink` 指错了）、副标题在、两步解散是新增的、6 位才能加入、牌桌上的动作按钮（弃牌/跟注/加注/全下）样式正常、设置弹窗里的按钮正常、控制台干净。
-- [ ] **Step 6: commit** `refactor(texas-poker): use the shared UI components`
+- [x] **Step 4: 检查** `npm install && npm run check --workspace @texas-poker/client && npm test --workspace @texas-poker/client && npm test --workspace @texas-poker/server`（1 / 8）
+- [x] **Step 5: 浏览器验收**（5176）：大厅是绿毡面板配奶油字（**不是**近黑字——那就说明 `--color-ui-ink` 指错了）、副标题在、两步解散是新增的、6 位才能加入、牌桌上的动作按钮（弃牌/跟注/加注/全下）样式正常、设置弹窗里的按钮正常、控制台干净。
+- [x] **Step 6: commit** `refactor(texas-poker): use the shared UI components`
 
 ---
 
@@ -839,7 +839,7 @@ Expected: `0 errors`；client 1 个；server 9 个。
 - Create: `platform/build/package.json`、`platform/build/src/viteConfig.ts`、`platform/build/tsconfig.base.json`
 - Modify: 四个 `vite.config.ts`、四个 `tsconfig.json`、四个 `package.json`、四个 `Dockerfile`
 
-- [ ] **Step 1: 建包**
+- [x] **Step 1: 建包**
 
 四份 `vite.config.ts` 语义上完全一样（只有 bw 是多行写法，另三个压成一行）。四份 `tsconfig.json` 也一样，只有 tp 的 key 顺序不同。
 
@@ -861,35 +861,18 @@ Expected: `0 errors`；client 1 个；server 9 个。
 }
 ```
 
-- [ ] **Step 2: viteConfig.ts**
+- [x] **Step 2: viteConfig —— 必须是 .js，不能是 .ts**
 
-```ts
-import { svelte } from "@sveltejs/vite-plugin-svelte";
-import tailwindcss from "@tailwindcss/vite";
-import preprocess from "svelte-preprocess";
-import type { UserConfig } from "vite";
+vite 加载 `vite.config.ts` 时用 esbuild 打包它，但把 bare import（这里就是
+`@tpg/build`）留成 external，于是 node 直接 `import()` 到源文件，报
+`ERR_UNKNOWN_FILE_EXTENSION: Unknown file extension ".ts"`。所以这个工厂写成
+ESM JS，类型由手写的 `viteConfig.d.ts` 提供。（其它 platform 包是 TS 源码没问题，
+因为它们由各游戏的 vite/vitest 编译，走的不是 config 加载这条路。）
 
-export interface GameViteOptions {
-  /** dev server 端口。不给就用 vite 默认的 5173。 */
-  port?: number;
-}
+`platform/build/src/viteConfig.js` 加同目录的 `viteConfig.d.ts`（内容见仓库），
+`package.json` 的 `main` 指向 `src/viteConfig.js`。
 
-/**
- * 四个游戏的 client 共用这一份。dev 时 /socket.io 反代到本地游戏服务器,
- * 生产是同源,由 Caddy 转发,所以这条规则只影响 dev。
- */
-export function gameViteConfig(opts: GameViteOptions = {}): UserConfig {
-  return {
-    plugins: [tailwindcss(), svelte({ preprocess: preprocess() })],
-    server: {
-      ...(opts.port ? { port: opts.port, strictPort: true } : {}),
-      proxy: { "/socket.io": { target: "http://localhost:3001", ws: true } },
-    },
-  };
-}
-```
-
-- [ ] **Step 3: tsconfig.base.json**
+- [x] **Step 3: tsconfig.base.json**
 
 ```json
 {
@@ -909,7 +892,7 @@ export function gameViteConfig(opts: GameViteOptions = {}): UserConfig {
 }
 ```
 
-- [ ] **Step 4: 四个游戏改过来**
+- [x] **Step 4: 四个游戏改过来**
 
 `<game>/packages/client/vite.config.ts` 缩成：
 
@@ -937,7 +920,7 @@ export default gameViteConfig({ port: 5173 });
 `tailwindcss` 也还要作为 `@tailwindcss/vite` 的 peer 存在。**只加不删**，
 减依赖的收益不值得再触发一次阶段 1 那种 npm 解析问题。
 
-- [ ] **Step 5: Dockerfile 补 platform/build 那一行**
+- [x] **Step 5: Dockerfile 补 platform/build 那一行**
 
 ```bash
 for g in black-and-white flip-math add-to-fifty texas-poker; do
@@ -946,7 +929,7 @@ done
 grep -c "platform/build/package.json" */Dockerfile
 ```
 
-- [ ] **Step 6: 检查**
+- [x] **Step 6: 检查**
 
 ```bash
 npm install
@@ -956,31 +939,31 @@ npm test --workspaces --if-present
 
 四个 dev server 各起一次确认端口对、`/socket.io` 代理还在。
 
-- [ ] **Step 7: commit** `feat(platform): share the vite config and tsconfig base`
+- [x] **Step 7: commit** `feat(platform): share the vite config and tsconfig base`
 
 ---
 
 ### Task 9: 阶段验收与合并
 
-- [ ] **Step 1: 全量测试** —— `npm test --workspaces --if-present`，应当仍是 214（本阶段不加测试：共享组件的判据是浏览器，不是断言）。
+- [x] **Step 1: 全量测试** —— `npm test --workspaces --if-present`，应当仍是 214（本阶段不加测试：共享组件的判据是浏览器，不是断言）。
 
-- [ ] **Step 2: 四个 svelte-check + 三个 platform typecheck + `@tpg/ui` 的 svelte-check** 全绿。
+- [x] **Step 2: 四个 svelte-check + 三个 platform typecheck + `@tpg/ui` 的 svelte-check** 全绿。
 
-- [ ] **Step 3: 八个镜像构建** —— 每个游戏的 `server` 和 `web` target。`web` 跑 `vite build`，是 `@source` 之外的第二道关：它能证明共享组件的 TS 编译得过（但**证明不了**样式生成了）。
+- [x] **Step 3: 八个镜像构建** —— 每个游戏的 `server` 和 `web` target。`web` 跑 `vite build`，是 `@source` 之外的第二道关：它能证明共享组件的 TS 编译得过（但**证明不了**样式生成了）。
 
-- [ ] **Step 4: 四个 compose 栈起来，socket.io 握手拿到 sid。**
+- [x] **Step 4: 四个 compose 栈起来，socket.io 握手拿到 sid。**
 
-- [ ] **Step 5: 四个大厅截图比对。** 这一步是本阶段的验收核心。每个游戏截一张大厅图，确认：面板颜色是本游戏自己的、标题是 accent 色、两步解散生效、加入按钮 6 位才亮。
+- [x] **Step 5: 四个大厅截图比对。** 这一步是本阶段的验收核心。每个游戏截一张大厅图，确认：面板颜色是本游戏自己的、标题是 accent 色、两步解散生效、加入按钮 6 位才亮。
 
-- [ ] **Step 6: 把三处修正写回 spec**（5.2 的 token 名加前缀、5.4 的 `LangToggle` 用 `secondary`、5.6 的「像素不变」改成「几何统一、颜色按 token」）。
+- [x] **Step 6: 把三处修正写回 spec**（5.2 的 token 名加前缀、5.4 的 `LangToggle` 用 `secondary`、5.6 的「像素不变」改成「几何统一、颜色按 token」）。
 
-- [ ] **Step 7: 勾完 checkbox，commit** `docs: mark phase 5 complete, correct the spec's UI section`
+- [x] **Step 7: 勾完 checkbox，commit** `docs: mark phase 5 complete, correct the spec's UI section`
 
-- [ ] **Step 8: 合回 main**
+- [x] **Step 8: 合回 main**
 
 ```bash
 git checkout main
 git merge --no-ff platform-ui -m "Merge branch 'platform-ui': share the lobby, button and language toggle"
 ```
 
-- [ ] **Step 9: merge 后复验**（测试、svelte-check、工作区干净）。**不要 `git push`。**
+- [x] **Step 9: merge 后复验**（测试、svelte-check、工作区干净）。**不要 `git push`。**

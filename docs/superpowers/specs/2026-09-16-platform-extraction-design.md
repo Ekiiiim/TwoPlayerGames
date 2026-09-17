@@ -687,18 +687,30 @@ Tailwind v4 扫描项目源码，找出出现过的 class 名，再按 `@theme` 
 **token 契约**指一组固定的名字，四个游戏都必须在自己的 `theme.css` 的 `@theme`
 块里给这组名字赋值。共享组件只写这些名字，不写具体颜色或像素。
 
+这组名字**带 `ui-` 前缀**，不是裸名。裸名在 texas-poker 上会撞车：tp 的
+`--color-ink` 是 `#15171a`（近黑，给奶油色牌面用的），可它的大厅面板是
+`bg-felt`（深绿）配 `text-felt-text`（奶油）。契约要的「面板上的主文字」在 tp
+恰好和它已有的 `--color-ink` 相反，照裸名改，那两处 `text-ink` 会变成奶油字
+写在奶油牌面上。加前缀之后契约和各游戏自己的调色板永远互不影响——以后谁给
+自己加一条 `--color-line`，共享组件不会跟着变样。
+
 | token | 用途 |
 | --- | --- |
-| `--color-surface` | 面板底色 |
-| `--color-ink` | 面板上的主文字 |
-| `--color-muted` | 次要文字（说明、标签） |
-| `--color-accent` | 强调：标题、房间码、主按钮底 |
-| `--color-accent-ink` | 主按钮上的文字 |
-| `--color-line` | 描边与分隔线 |
-| `--color-danger` | 报错文字与危险按钮 |
-| `--radius-panel` | 面板圆角 |
-| `--radius-control` | 按钮/输入框圆角 |
-| `--shadow-panel` | 面板阴影 |
+| `--color-ui-surface` | 面板底色 |
+| `--color-ui-ink` | 面板上的主文字 |
+| `--color-ui-muted` | 次要文字（说明、标签） |
+| `--color-ui-accent` | 强调：标题、房间码、主按钮底 |
+| `--color-ui-accent-ink` | 主按钮上的文字 |
+| `--color-ui-line` | 描边与分隔线 |
+| `--color-ui-danger` | 报错文字与危险按钮 |
+| `--radius-ui-panel` | 面板圆角 |
+| `--radius-ui-control` | 按钮/输入框圆角 |
+| `--shadow-ui-panel` | 面板阴影 |
+
+`@theme` 里可以用 `var()` 指向同一份 theme 里已有的 token（实测可行），所以
+各游戏的契约块写成 `--color-ui-surface: var(--color-felt)` 这样，颜色改一次
+两边一起跟。`--shadow-ui-panel` 不会作为 `:root` 变量出现——Tailwind 把阴影值
+直接内联进 `.shadow-ui-panel` 那条规则。
 
 现状：flip-math、add-to-fifty、texas-poker 已有 `panel`/`ink`/`muted`/`line`/
 `accent` 这一套；black-and-white 一个都没有，它用的是 `felt`/`gold`/`felt-text`/
@@ -764,7 +776,13 @@ add-to-fifty 和 texas-poker 是 `primary | secondary | danger`。统一成四�
 ### LangToggle
 
 四份只差 Button 的 variant（两个用 `ghost`，两个用 `secondary`）。统一用
-`ghost`，`fixed right-3 top-3 z-50` 的定位不变。
+**`secondary`**，`fixed right-3 top-3 z-50` 的定位不变。
+
+不能用 `ghost`：这东西浮在**页面**背景上而不是面板上，`ghost` 是透明底。
+add-to-fifty 的页面底是深绿 `#143526`、面板却是奶油 `#f5f3ec`，所以
+`--color-ui-muted` 是 `#6f6758`（深褐，配奶油面板的）——透明底加深褐字写在
+深绿页面上基本看不见，texas-poker 同理。`secondary` 自带 `bg-ui-surface`，
+四个游戏都读得清。代价是 bw/fm 的语言开关从透明变成填充的一块。
 
 ### Lobby
 
@@ -809,9 +827,30 @@ export function gameViteConfig(opts?: { port?: number }): UserConfig;
 
 ## 5.6 阶段 5 验收
 
-`npm test` + `npm run check` 全绿。四个游戏各起 dev server 截图比对大厅：
-除 5.2 说明的 black-and-white status 文字颜色和 5.4 表格里的三处行为变更外，
-其余像素不变。
+`npm test` + `npm run check` 全绿。四个游戏各起 dev server 截图比对大厅。
+
+**「其余像素不变」做不到，几何要跟着统一。** 四份 `Button` 根本是两套设计而
+不是一套设计的四种配色：bw/fm 无边框、`px-8 py-3`、hover 用 `opacity-[0.88]`；
+a2f/tp 有 `border`、`min-h-[44px]`、`px-4 py-2`、hover 用 `brightness-105`。
+大厅面板同理（`max-w` 420/380/420/420，内距 52/32/24/24px）。把这些也做成
+token，契约会从 10 条涨到 20 多条，那就不是契约而是各游戏的样式表换了个地方放。
+
+按原始需求里的分法办——「各游戏的初始菜单的**结构**可以长得一样，但**颜色**
+等样式需要不一样」——内距、最小高度、字号属于结构，统一；颜色、圆角、阴影
+属于样式，留 token。统一后：面板 `w-full max-w-[420px] p-8 gap-5`，按钮
+`min-h-[44px] px-5 py-2.5 text-sm font-semibold`（44px 是 iOS 的最小可点尺寸，
+bw/fm 从没有最小高度变成有）。
+
+实际结果：214 个测试全过（本阶段不加测试，共享组件的判据是浏览器）；四个
+svelte-check 与 `@tpg/ui` 自己的 svelte-check 都是 0 ERRORS 0 WARNINGS；三个
+platform TS 包 `tsc --noEmit` 通过；八个镜像构建成功，四个 compose 栈起来后
+socket.io 握手拿到 sid，且**生产 bundle 里四个游戏各有 14 条 `ui-` 工具类**
+（这一条是 `@source` 生效的判据——漏了它构建照常成功，只是一条样式都没有）。
+
+浏览器里逐个确认：四个大厅都是同一份组件长出四种样子（bw 绿毡金字、fm 深蓝
+暖黄、a2f 奶油面板、tp 绿毡奶油字）；两步解散在四个游戏都生效；房间码输入
+5 位时「加入」是灰的、第 6 位输进去才亮；bw 打完一局 1:0、tp 跟注把底池从
+15 推到 20。
 
 ---
 
