@@ -4,22 +4,13 @@
     {
       "name": "bw-client",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "--prefix",
-        "black-and-white",
-        "run",
-        "dev",
-        "--workspace",
-        "@bw/client"
-      ],
+      "runtimeArgs": ["run", "dev", "--workspace", "@bw/client"],
       "port": 5173
     },
     {
       "name": "flip-client",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
-        "--prefix",
-        "flip-math",
         "run",
         "dev",
         "--workspace",
@@ -35,8 +26,6 @@
       "name": "a2f-client",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
-        "--prefix",
-        "add-to-fifty",
         "run",
         "dev",
         "--workspace",
@@ -52,8 +41,6 @@
       "name": "texas-client",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
-        "--prefix",
-        "texas-poker",
         "run",
         "dev",
         "--workspace",

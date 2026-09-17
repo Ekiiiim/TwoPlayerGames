@@ -1,15 +1,24 @@
 {
-  "name": "twoplayergames-tooling",
+  "name": "twoplayergames",
   "version": "0.0.0",
   "private": true,
-  "description": "Repo-wide dev tooling (Prettier formatting). Each game stays a self-contained npm monorepo; this root only holds shared formatting config.",
+  "description": "并列的双人在线小游戏。共享基础设施在 platform/*,玩法各自独立。",
+  "workspaces": [
+    "platform/*",
+    "black-and-white/packages/*",
+    "flip-math/packages/*",
+    "add-to-fifty/packages/*",
+    "texas-poker/packages/*"
+  ],
   "scripts": {
+    "test": "npm test --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
     "prettier": "^3.3.3",
     "prettier-plugin-svelte": "^3.2.6",
-    "svelte": "^4.2.0"
+    "svelte": "^5.56.8"
   }
 }
