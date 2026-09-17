@@ -22,11 +22,18 @@
    (单文件挂载绑定到旧 inode,`caddy reload`/`docker compose restart`/普通 `up -d` 都读不到新内容;
    详见 `black-and-white/DEPLOY.md`。证书在数据卷里,重建只是约 1 秒抖动、不重签。)
 3. 构建并启动本游戏:
+
    ```
    cd flip-math
    docker compose build
    docker compose up -d
    ```
+
+   > 构建上下文是 repo 根（compose 里写的是 `context: ..`），不是本游戏目录。
+   > 命令仍在本目录里敲，但 Docker 读的是 repo 根的 `.dockerignore`，并且会把
+   > 四个游戏和 `platform/*` 的 `package.json` 全部读进去 —— 根
+   > `package-lock.json` 覆盖全部 workspace，`npm ci` 要求两者一致。
+
 4. 访问 `https://flipmath.minyu.me`,Caddy 会自动签发证书。
 
 ## 说明

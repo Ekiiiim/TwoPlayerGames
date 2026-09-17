@@ -8,7 +8,8 @@ name: add-to-fifty
 services:
   add-to-fifty-server:
     build:
-      context: .
+      context: ..
+      dockerfile: add-to-fifty/Dockerfile
       target: server
     image: add-to-fifty-server
     restart: unless-stopped
@@ -19,7 +20,8 @@ services:
 
   add-to-fifty-web:
     build:
-      context: .
+      context: ..
+      dockerfile: add-to-fifty/Dockerfile
       target: web
     image: add-to-fifty-web
     restart: unless-stopped

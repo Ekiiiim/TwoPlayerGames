@@ -12,7 +12,8 @@ name: black-and-white
 services:
   bw-server:
     build:
-      context: .
+      context: ..
+      dockerfile: black-and-white/Dockerfile
       target: server
     image: bw-server
     restart: unless-stopped
@@ -23,7 +24,8 @@ services:
 
   bw-web:
     build:
-      context: .
+      context: ..
+      dockerfile: black-and-white/Dockerfile
       target: web
     image: bw-web
     restart: unless-stopped
