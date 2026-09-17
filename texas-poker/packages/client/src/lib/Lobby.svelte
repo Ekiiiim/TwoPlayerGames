@@ -17,7 +17,7 @@
 >
   <div class="space-y-2 text-center">
     <h1 class="text-2xl font-black text-felt-text">{$t.title}</h1>
-    <p class="text-sm leading-6 text-gold-muted">{copy.subtitle}</p>
+    <p class="text-sm leading-6 text-gold-muted">{$t.subtitle}</p>
   </div>
 
   {#if $roomCode}
@@ -26,17 +26,17 @@
       <p class="mt-1 text-4xl font-black tracking-[0.12em] text-felt-text">
         {$roomCode}
       </p>
-      <p class="mt-2 text-sm text-gold-muted">{copy.waiting}</p>
+      <p class="mt-2 text-sm text-gold-muted">{copy.waitingOpponent}</p>
     </div>
-    <Button variant="danger" on:click={leaveRoom}>{copy.dissolve}</Button>
+    <Button variant="danger" on:click={leaveRoom}>{copy.closeRoom}</Button>
   {:else}
-    <Button on:click={createRoom}>{copy.create}</Button>
+    <Button on:click={createRoom}>{copy.createRoom}</Button>
     <form class="flex gap-2" on:submit|preventDefault={submitJoin}>
       <input
         class="min-h-[44px] min-w-0 flex-1 rounded-[8px] border border-line bg-panel px-3 text-center text-base font-semibold uppercase tracking-[0.08em] text-ink outline-none focus:border-gold"
         bind:value={code}
         maxlength="6"
-        placeholder={copy.roomCode}
+        placeholder={copy.codePlaceholder}
       />
       <Button variant="secondary" disabled={!code.trim()}>{copy.join}</Button>
     </form>
