@@ -2,7 +2,7 @@
   import type { ClientView } from "@fm/shared";
   import { rematch, leaveRoom, status } from "../socket";
   import { t } from "../i18n";
-  import Button from "./Button.svelte";
+  import { Button } from "@tpg/ui";
   export let view: ClientView;
 </script>
 
