@@ -1,33 +1,29 @@
-# Add to Fifty Deploy
+# 部署 add-to-fifty
 
-Public hostname: `add2fifty.minyu.me`
+|               |                                          |
+| ------------- | ---------------------------------------- |
+| 公开域名      | `add2fifty.minyu.me`                     |
+| compose 服务  | `add-to-fifty-web / add-to-fifty-server` |
+| `GAME_DIR`    | `add-to-fifty`                           |
+| `SCOPE`       | `@add-to-fifty`                          |
+| `GAME_SERVER` | `add-to-fifty-server:3001`               |
 
-1. Build and run this game:
+```bash
+cd add-to-fifty
+docker compose build
+docker compose up -d
+```
 
-   ```bash
-   cd add-to-fifty
-   docker compose build
-   docker compose up -d
-   ```
+`proxy/Caddyfile` 里要有这个域名的块：
 
-> 构建上下文是 repo 根（compose 里写的是 `context: ..`），不是本游戏目录。
-> 命令仍在本目录里敲，但 Docker 读的是 repo 根的 `.dockerignore`，并且会把
-> 四个游戏和 `platform/*` 的 `package.json` 全部读进去 —— 根
-> `package-lock.json` 覆盖全部 workspace，`npm ci` 要求两者一致。
+```caddy
+add2fifty.minyu.me {
+    reverse_proxy add-to-fifty-web:80
+}
+```
 
-2. Ensure the shared Docker network exists:
+改过 `proxy/Caddyfile` 之后**必须** `cd proxy && docker compose up -d --force-recreate caddy`——
+单文件挂载绑在旧 inode 上，`reload` / `restart` / 普通 `up -d` 都读不到新内容。
 
-   ```bash
-   docker network create web
-   ```
-
-   It is fine if Docker reports that the network already exists.
-
-3. Recreate the shared proxy after editing `../proxy/Caddyfile`:
-
-   ```bash
-   cd ../proxy
-   docker compose up -d --force-recreate caddy
-   ```
-
-The game server is internal only on port `3001`. The game web container serves the static client and proxies `/socket.io/` to the server.
+droplet 一次性设置、构建上下文为什么是 repo 根、`/socket.io/` 不通时怎么查，
+见 [`platform/deploy/README.md`](../platform/deploy/README.md)。
