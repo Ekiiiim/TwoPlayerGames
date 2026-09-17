@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@fm/shared": "*",
+    "@tpg/server": "*",
     "socket.io": "^4.7.0",
     "tsx": "^4.7.0"
   },

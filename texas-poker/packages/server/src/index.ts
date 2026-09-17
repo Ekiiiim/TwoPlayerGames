@@ -1,24 +1,17 @@
-import { createServer } from "node:http";
-import { Server } from "socket.io";
 import {
   DEFAULT_CONFIG,
-  PLAYER_IDS,
   type Card,
   type GameConfig,
   type PlayerAction,
-  type PlayerId,
 } from "@texas-poker/shared";
-import type { GameSession } from "./gameSession";
-import { makeToken, RoomRegistry } from "./rooms";
+import { createGameServer, isRecord } from "@tpg/server";
+import { GameSession } from "./gameSession";
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function corsOrigin(): string | string[] | boolean {
-  const env = process.env.CORS_ORIGIN?.trim();
-  if (env) return env.split(",").map((item) => item.trim());
-  return process.env.NODE_ENV === "production" ? false : "*";
+export interface ServerOptions {
+  deck?: Card[];
+  config?: GameConfig;
+  roomTtlMs?: number;
+  sweepIntervalMs?: number;
 }
 
 function parseAction(data: unknown): PlayerAction | null {
@@ -63,223 +56,76 @@ function parseSettings(
   return settings;
 }
 
-function broadcastViews(io: Server, session: GameSession): void {
-  for (const id of PLAYER_IDS) {
-    const player = session.players[id];
-    if (player?.socketId) {
-      const view = session.viewFor(id);
-      if (view) io.to(player.socketId).emit("view_update", view);
-    }
-  }
-}
-
-export interface ServerOptions {
-  deck?: Card[];
-  config?: GameConfig;
-  roomTtlMs?: number;
-  sweepIntervalMs?: number;
-}
+const makeServer = (options: ServerOptions = {}) => {
+  const deckFactory = options.deck ? () => [...options.deck!] : undefined;
+  const config = options.config ?? DEFAULT_CONFIG;
+  return createGameServer<GameSession>({
+    createSession: () => new GameSession(deckFactory, config),
+    onStart: (ctx) => {
+      ctx.session.start();
+      ctx.broadcastViews();
+    },
+    isInProgress: (s) => s.state !== null && s.state.phase !== "finished",
+    actions: {
+      poker_action: (ctx, data) => {
+        const action = parseAction(data);
+        if (!action) {
+          ctx.fail("INVALID_REQUEST");
+          return;
+        }
+        try {
+          ctx.session.dispatch(ctx.playerId, action);
+        } catch {
+          ctx.fail("INVALID_MOVE");
+          return;
+        }
+        ctx.broadcastViews();
+      },
+      next_hand: {
+        requireBothConnected: true,
+        handler: (ctx) => {
+          try {
+            ctx.session.nextHand();
+          } catch {
+            ctx.fail("INVALID_MOVE");
+            return;
+          }
+          ctx.broadcastViews();
+        },
+      },
+      restart_match: {
+        requireBothConnected: true,
+        handler: (ctx) => {
+          try {
+            ctx.session.restartMatch();
+          } catch {
+            ctx.fail("INVALID_MOVE");
+            return;
+          }
+          ctx.broadcastViews();
+        },
+      },
+      // 原实现没给 update_settings 加双方在线的 guard,这里保持一致。
+      update_settings: (ctx, data) => {
+        const settings = parseSettings(data);
+        if (!settings) {
+          ctx.fail("INVALID_REQUEST");
+          return;
+        }
+        ctx.session.updateSettings(settings);
+        ctx.broadcastViews();
+      },
+    },
+    roomTtlMs: options.roomTtlMs,
+    sweepIntervalMs: options.sweepIntervalMs,
+  });
+};
 
 export async function startServer(
   port: number,
   options: ServerOptions = {},
 ): Promise<{ port: number; close: () => Promise<void> }> {
-  const roomTtlMs = options.roomTtlMs ?? 10 * 60 * 1000;
-  const sweepIntervalMs = options.sweepIntervalMs ?? 60 * 1000;
-  const deckFactory = options.deck ? () => [...options.deck!] : undefined;
-  const rooms = new RoomRegistry(deckFactory, options.config ?? DEFAULT_CONFIG);
-
-  const http = createServer();
-  const io = new Server(http, { cors: { origin: corsOrigin() } });
-  const sweeper = setInterval(() => rooms.sweep(roomTtlMs), sweepIntervalMs);
-  sweeper.unref?.();
-
-  io.on("connection", (socket) => {
-    let myRoom: string | null = null;
-    let myId: PlayerId | null = null;
-
-    socket.on("create_room", () => {
-      if (myRoom !== null && rooms.get(myRoom)) {
-        socket.emit("error_msg", { code: "ALREADY_IN_ROOM" });
-        return;
-      }
-      const { roomCode, session } = rooms.create();
-      const token = makeToken();
-      session.addPlayer("p1", socket.id, token);
-      myRoom = roomCode;
-      myId = "p1";
-      socket.join(roomCode);
-      socket.emit("room_created", { roomCode, sessionToken: token });
-    });
-
-    socket.on("join_room", (data: unknown) => {
-      if (myRoom !== null && rooms.get(myRoom)) {
-        socket.emit("error_msg", { code: "ALREADY_IN_ROOM" });
-        return;
-      }
-      if (!isRecord(data) || typeof data.roomCode !== "string") {
-        socket.emit("error_msg", { code: "INVALID_REQUEST" });
-        return;
-      }
-      const session = rooms.get(data.roomCode);
-      if (!session) {
-        socket.emit("error_msg", { code: "ROOM_NOT_FOUND" });
-        return;
-      }
-      if (session.isFull()) {
-        socket.emit("error_msg", { code: "ROOM_FULL" });
-        return;
-      }
-      const token = makeToken();
-      session.addPlayer("p2", socket.id, token);
-      myRoom = data.roomCode;
-      myId = "p2";
-      socket.join(data.roomCode);
-      socket.emit("room_joined", {
-        roomCode: data.roomCode,
-        sessionToken: token,
-      });
-      session.start();
-      broadcastViews(io, session);
-    });
-
-    socket.on("poker_action", (data: unknown) => {
-      if (!myRoom || !myId) return;
-      const action = parseAction(data);
-      if (!action) {
-        socket.emit("error_msg", { code: "INVALID_REQUEST" });
-        return;
-      }
-      const session = rooms.get(myRoom);
-      if (!session) return;
-      try {
-        session.dispatch(myId, action);
-        broadcastViews(io, session);
-      } catch (error) {
-        socket.emit("error_msg", { code: "INVALID_MOVE" });
-      }
-    });
-
-    socket.on("next_hand", () => {
-      if (!myRoom || !myId) return;
-      const session = rooms.get(myRoom);
-      if (!session) return;
-      const bothConnected =
-        session.isFull() &&
-        !!session.players.p1?.socketId &&
-        !!session.players.p2?.socketId;
-      if (!bothConnected) {
-        socket.emit("error_msg", { code: "OPPONENT_GONE" });
-        return;
-      }
-      try {
-        session.nextHand();
-        broadcastViews(io, session);
-      } catch (error) {
-        socket.emit("error_msg", { code: "INVALID_MOVE" });
-      }
-    });
-
-    socket.on("restart_match", () => {
-      if (!myRoom || !myId) return;
-      const session = rooms.get(myRoom);
-      if (!session) return;
-      const bothConnected =
-        session.isFull() &&
-        !!session.players.p1?.socketId &&
-        !!session.players.p2?.socketId;
-      if (!bothConnected) {
-        socket.emit("error_msg", { code: "OPPONENT_GONE" });
-        return;
-      }
-      try {
-        session.restartMatch();
-        broadcastViews(io, session);
-      } catch (error) {
-        socket.emit("error_msg", { code: "INVALID_MOVE" });
-      }
-    });
-
-    socket.on("update_settings", (data: unknown) => {
-      if (!myRoom || !myId) return;
-      const settings = parseSettings(data);
-      if (!settings) {
-        socket.emit("error_msg", { code: "INVALID_REQUEST" });
-        return;
-      }
-      const session = rooms.get(myRoom);
-      if (!session) return;
-      session.updateSettings(settings);
-      broadcastViews(io, session);
-    });
-
-    socket.on("rejoin", (data: unknown) => {
-      if (
-        !isRecord(data) ||
-        typeof data.roomCode !== "string" ||
-        typeof data.sessionToken !== "string"
-      ) {
-        socket.emit("error_msg", { code: "INVALID_REQUEST" });
-        return;
-      }
-      const session = rooms.get(data.roomCode);
-      if (!session) {
-        socket.emit("error_msg", { code: "ROOM_NOT_FOUND" });
-        return;
-      }
-      const entry = PLAYER_IDS.map((id) => session.players[id]).find(
-        (player) => player?.sessionToken === data.sessionToken,
-      );
-      if (!entry) {
-        socket.emit("error_msg", { code: "INVALID_SESSION" });
-        return;
-      }
-      session.markConnected(entry.id, socket.id);
-      myRoom = data.roomCode;
-      myId = entry.id;
-      socket.join(data.roomCode);
-      if (!session.state) {
-        socket.emit("room_created", {
-          roomCode: data.roomCode,
-          sessionToken: data.sessionToken,
-        });
-        return;
-      }
-      const view = session.viewFor(entry.id);
-      if (view) socket.emit("view_update", view);
-      socket.to(data.roomCode).emit("opponent_reconnected");
-    });
-
-    socket.on("leave_room", () => {
-      if (!myRoom || !myId) return;
-      const session = rooms.get(myRoom);
-      if (session?.state && session.state.phase !== "finished") {
-        socket.to(myRoom).emit("opponent_left");
-      }
-      rooms.delete(myRoom);
-      socket.leave(myRoom);
-      myRoom = null;
-      myId = null;
-    });
-
-    socket.on("disconnect", () => {
-      if (!myRoom || !myId) return;
-      const session = rooms.get(myRoom);
-      if (session) session.markDisconnected(myId);
-      socket.to(myRoom).emit("opponent_disconnected");
-    });
-  });
-
-  await new Promise<void>((resolve) => http.listen(port, resolve));
-  const actualPort = (http.address() as { port: number }).port;
-
-  return {
-    port: actualPort,
-    close: async () => {
-      clearInterval(sweeper);
-      await io.close();
-    },
-  };
+  return makeServer(options)(port);
 }
 
 if (process.argv[1]?.endsWith("index.ts")) {

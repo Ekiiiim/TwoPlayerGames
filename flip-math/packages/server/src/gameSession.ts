@@ -1,11 +1,13 @@
 import { createGame, reduce, toClientView, DURATIONS } from "@fm/shared";
-import type { Action, Durations, GameState, Phase, PlayerId } from "@fm/shared";
-
-export interface Player {
-  id: PlayerId;
-  socketId: string | null; // null = 掉线
-  sessionToken: string;
-}
+import type {
+  Action,
+  ClientView,
+  Durations,
+  GameState,
+  Phase,
+  PlayerId,
+} from "@fm/shared";
+import { PresenceSession } from "@tpg/server";
 
 // 每个计时阶段到点后要注入的 action。buzzing/finished/waiting 无 deadline,不在此表。
 const TIMEOUT_ACTION: Partial<Record<Phase, Action>> = {
@@ -16,39 +18,11 @@ const TIMEOUT_ACTION: Partial<Record<Phase, Action>> = {
   reveal: { type: "REVEAL_DONE" },
 };
 
-export class GameSession {
-  state: GameState | null = null;
-  players: Partial<Record<PlayerId, Player>> = {};
-  emptySince: number | null = null;
-  // 注入的广播回调(由 index.ts 设置),计时器到点也用它推送视图。
-  broadcast: (() => void) | null = null;
+export class GameSession extends PresenceSession<GameState, ClientView> {
   private timer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private durations: Durations = DURATIONS) {}
-
-  addPlayer(id: PlayerId, socketId: string, sessionToken: string) {
-    this.players[id] = { id, socketId, sessionToken };
-    this.emptySince = null;
-  }
-
-  isFull() {
-    return !!this.players.p1 && !!this.players.p2;
-  }
-  anyConnected(): boolean {
-    return !!this.players.p1?.socketId || !!this.players.p2?.socketId;
-  }
-  markConnected(id: PlayerId, socketId: string) {
-    const p = this.players[id];
-    if (p) p.socketId = socketId;
-    this.emptySince = null;
-  }
-  markDisconnected(id: PlayerId, now = Date.now()) {
-    const p = this.players[id];
-    if (p) p.socketId = null;
-    if (!this.anyConnected() && this.emptySince === null) this.emptySince = now;
-  }
-  isSweepable(ttlMs: number, now = Date.now()): boolean {
-    return this.emptySince !== null && now - this.emptySince >= ttlMs;
+  constructor(private durations: Durations = DURATIONS) {
+    super();
   }
 
   // 开局 / 再来一局:重建状态并启动 preview 计时。
@@ -65,11 +39,16 @@ export class GameSession {
     this.afterTransition();
   }
 
-  viewFor(id: PlayerId) {
+  viewFor(id: PlayerId): ClientView | null {
     return this.state ? toClientView(this.state, id) : null;
   }
 
-  clearTimer() {
+  /** 房间销毁前清掉计时器,否则被回收的房间还会继续推进状态。 */
+  onDispose(): void {
+    this.clearTimer();
+  }
+
+  private clearTimer(): void {
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
