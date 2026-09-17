@@ -26,14 +26,18 @@
   on:click
   aria-pressed={selected}
 >
-  <span class="flex flex-col items-start text-[1rem] font-black leading-none sm:text-[1.2rem]">
+  <span
+    class="flex flex-col items-start text-[1rem] font-black leading-none sm:text-[1.2rem]"
+  >
     {card.rank}
     <span class="text-[0.95rem] leading-none sm:text-[1.1rem]">
       {suitSymbol[card.suit]}
     </span>
   </span>
 
-  <span class="self-center text-[2rem] font-black leading-none sm:text-[2.8rem]">
+  <span
+    class="self-center text-[2rem] font-black leading-none sm:text-[2.8rem]"
+  >
     {suitSymbol[card.suit]}
   </span>
 

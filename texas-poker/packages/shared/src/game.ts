@@ -447,7 +447,7 @@ export function toClientView(game: GameState, me: PlayerId): ClientView {
     game.phase === "finished" &&
     PLAYER_IDS.some((id) => game.players[id].chips <= 0);
   const matchWinnerId = matchOver
-    ? PLAYER_IDS.find((id) => game.players[id].chips > 0) ?? null
+    ? (PLAYER_IDS.find((id) => game.players[id].chips > 0) ?? null)
     : null;
   const winner =
     game.winner === null || game.winner === "split"

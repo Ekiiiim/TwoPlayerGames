@@ -97,7 +97,8 @@ function evaluateFive(cards: Card[]): HandValue {
     };
   }
 
-  if (straight !== null) return { category: "straight", ranks: [straight], cardIds };
+  if (straight !== null)
+    return { category: "straight", ranks: [straight], cardIds };
 
   if (trips.length > 0) {
     const trip = trips[0][0];

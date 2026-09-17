@@ -68,13 +68,7 @@ describe("texas poker hand evaluator", () => {
     expect(value.category).toBe("full-house");
     expect(value.ranks).toEqual([14, 13]);
     expect(new Set(value.cardIds)).toEqual(
-      new Set([
-        "A-spades",
-        "A-clubs",
-        "A-diamonds",
-        "K-hearts",
-        "K-spades",
-      ]),
+      new Set(["A-spades", "A-clubs", "A-diamonds", "K-hearts", "K-spades"]),
     );
   });
 
