@@ -9,8 +9,11 @@ services:
   add-to-fifty-server:
     build:
       context: ..
-      dockerfile: add-to-fifty/Dockerfile
+      dockerfile: platform/deploy/Dockerfile
       target: server
+      args:
+        GAME_DIR: add-to-fifty
+        SCOPE: "@add-to-fifty"
     image: add-to-fifty-server
     restart: unless-stopped
     expose:
@@ -21,8 +24,11 @@ services:
   add-to-fifty-web:
     build:
       context: ..
-      dockerfile: add-to-fifty/Dockerfile
+      dockerfile: platform/deploy/Dockerfile
       target: web
+      args:
+        GAME_DIR: add-to-fifty
+        SCOPE: "@add-to-fifty"
     image: add-to-fifty-web
     restart: unless-stopped
     depends_on:

@@ -13,8 +13,11 @@ services:
   bw-server:
     build:
       context: ..
-      dockerfile: black-and-white/Dockerfile
+      dockerfile: platform/deploy/Dockerfile
       target: server
+      args:
+        GAME_DIR: black-and-white
+        SCOPE: "@bw"
     image: bw-server
     restart: unless-stopped
     expose:
@@ -25,8 +28,11 @@ services:
   bw-web:
     build:
       context: ..
-      dockerfile: black-and-white/Dockerfile
+      dockerfile: platform/deploy/Dockerfile
       target: web
+      args:
+        GAME_DIR: black-and-white
+        SCOPE: "@bw"
     image: bw-web
     restart: unless-stopped
     depends_on:
