@@ -129,8 +129,9 @@ describe("view_update", () => {
   });
 
   it("保留 OPPONENT_DISCONNECTED", () => {
-    // 这一条说的是对手,不是我的操作报错。flip-math 的状态由计时器推进,
-    // 每次转移都发视图 —— 一起清掉的话对手一掉线横幅立刻就没了。
+    // 这一条说的是对手,不是我的操作报错。对手不在时视图照样会来
+    // (我还能继续出牌,flip-math 的计时器也会自己推进),一起清掉
+    // 就等于横幅只活一帧。
     const s = make();
     socket.fire("opponent_disconnected");
     socket.fire("view_update", { phase: "playing", n: 1 });

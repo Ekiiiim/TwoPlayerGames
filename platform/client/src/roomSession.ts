@@ -79,8 +79,9 @@ export function createRoomSession<V extends { phase: string }>(
   socket.on("view_update", (next: V) => {
     rejoining = false;
     // 新视图说明我这边一切正常,清掉上一条操作报错。OPPONENT_DISCONNECTED
-    // 例外 —— 它说的是对手,要留到 opponent_reconnected;flip-math 的计时器
-    // 每次推进都发视图,一起清掉的话对手一掉线横幅立刻消失。
+    // 例外 —— 它说的是对手,要留到 opponent_reconnected。对手不在时视图照样
+    // 会来(我还能继续出牌,flip-math 的计时器也会自己推进),一起清掉就等于
+    // 横幅只活一帧。
     status.update((s) => (s === "OPPONENT_DISCONNECTED" ? s : null));
     view.set(next);
     if (next.phase !== "finished") ended.set(null);

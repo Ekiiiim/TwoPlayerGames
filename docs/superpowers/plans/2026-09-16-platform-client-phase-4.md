@@ -46,13 +46,15 @@ tp 那份是**语义上**不同，不是笔误：德州扑克里对手中途退�
 
 **3. `sharedDict.lobby` 降级成「形状契约 + 7 条共享文案」。** spec 想让大厅整组文案共享，但四个游戏的大厅文案有真实分歧：`waitingOpponent` 一位上 bw 写的是「发给朋友，等待对手加入…」（让玩家去分享房间码），fm 写「等待对手加入…」，a2f/tp 写「等待第二位玩家加入」。这三种说的不是一件事，给默认值再让三个游戏覆盖，等于共享了一个没人用的值。所以：`LobbyDict` 是**形状契约**（8 个 key，各游戏的 `lobby` 必须满足），`sharedLobby` 只给其中 7 条真正该统一的文案，`waitingOpponent` 由契约要求、各游戏自己提供。
 
-**4. texas-poker 的 `status.set(null)` 不能照搬进框架 —— 它是个 bug。** spec 4.1「顺带统一的一处行为」说 tp 在 `view_update` 里多的那句 `status.set(null)` 是对的，四个都该采用。不对：`status` 同时装两种东西 —— 我这边的操作报错（`INVALID_MOVE` 之类，下一条视图到了就该清）和**对手**的掉线通知（`OPPONENT_DISCONNECTED`，要留到 `opponent_reconnected` 才清）。无条件清掉，对手一掉线横幅就活不过下一条视图；flip-math 的状态由计时器推进，每次转移都发视图，横幅会在几百毫秒内消失。框架改成只清前一种：
+**4. texas-poker 的 `status.set(null)` 不能照搬进框架 —— 它是个 bug。** spec 4.1「顺带统一的一处行为」说 tp 在 `view_update` 里多的那句 `status.set(null)` 是对的，四个都该采用。不对：`status` 同时装两种东西 —— 我这边的操作报错（`INVALID_MOVE` 之类，下一条视图到了就该清）和**对手**的掉线通知（`OPPONENT_DISCONNECTED`，要留到 `opponent_reconnected` 才清）。无条件清掉，掉线横幅就活不过下一条视图。
+
+对手不在时视图照样会来，两个来源：我还能继续动（bw 出牌、a2f 出牌、tp 跟注都不要求双方在线），以及服务器自己推（flip-math 的计时器每次状态转移都广播）。谁看得见这个 bug 取决于各游戏在哪儿渲染 `status`：bw 在 `Table.svelte`、a2f 和 tp 在 `App.svelte` 里就渲染，牌局界面上横幅会当场消失；fm 只在 `Lobby.svelte` 和 `GameOver.svelte` 渲染它，所以在 fm 里影响只落在 store 上，界面看不出来。框架改成只清前一种：
 
 ```ts
 status.update((s) => (s === "OPPONENT_DISCONNECTED" ? s : null));
 ```
 
-这对 bw/fm/a2f 是新增行为（它们原来在 `view_update` 里完全不动 `status`，陈旧的报错横幅会一直挂着），对 tp 是收窄。Task 4 有两条测试钉住这条规则。
+这对 bw/fm/a2f 是新增行为（它们原来在 `view_update` 里完全不动 `status`，陈旧的报错横幅会一直挂着），对 tp 是收窄。Task 4 有两条测试钉住这条规则，Task 8 在 tp 的浏览器验收里看一次实际效果 —— 四个游戏里只有它原来带着这个 bug。
 
 **5. spec 4.1 里 bw 的示例漏了 `ended.set(null)`。** 四个游戏的 `view_update` 都会清 `ended`，只是 guard 不同：bw 用 `phase === "playing"`，另三个用 `phase !== "finished"`。框架采用 `!== "finished"`（三比一），bw 的 `onView` 只留 `review.set(null)`。
 
