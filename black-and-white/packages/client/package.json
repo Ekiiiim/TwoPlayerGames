@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@bw/shared": "*",
+    "@tpg/client": "*",
     "socket.io-client": "^4.7.0"
   },
   "devDependencies": {
