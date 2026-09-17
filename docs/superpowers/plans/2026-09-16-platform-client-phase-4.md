@@ -78,7 +78,7 @@ status.update((s) => (s === "OPPONENT_DISCONNECTED" ? s : null));
 | `platform/client/test/testing.test.ts` | 9 个 | 110 行 |
 | `platform/client/test/i18n.test.ts` | 6 个 | 55 行 |
 | `platform/client/test/dict.test.ts` | 3 个 | 40 行 |
-| `platform/client/test/roomSession.test.ts` | 17 个 | 230 行 |
+| `platform/client/test/roomSession.test.ts` | 20 个 | 230 行 |
 
 依赖方向：`roomSession.ts → dict.ts → i18n.ts`（只要 `Lang`），`testing.ts` 谁都不依赖。所以 task 顺序是 testing → i18n → dict → roomSession，每个 task 落地时它依赖的东西都已经在了。
 
@@ -783,7 +783,7 @@ git commit -m "feat(platform): add the shared status and lobby copy"
 
 - [ ] **Step 1: 写失败的测试**
 
-`platform/client/test/roomSession.test.ts`。17 条，覆盖 rejoin 静默失败的丢弃、storage key 的拼法、以及第 4 处 spec 修正定下的 `status` 规则：
+`platform/client/test/roomSession.test.ts`。20 条，覆盖 rejoin 静默失败的丢弃、storage key 的拼法、以及第 4 处 spec 修正定下的 `status` 规则：
 
 ```ts
 import { beforeEach, describe, expect, it } from "vitest";
@@ -1220,7 +1220,7 @@ export type { RoomSession, RoomSessionOptions, StorageLike } from "./roomSession
 - [ ] **Step 5: 跑测试确认通过**
 
 Run: `npm test --workspace @tpg/client`
-Expected: PASS，`Tests 35 passed (35)`（9 + 6 + 3 + 17）。
+Expected: PASS，`Tests 38 passed (38)`（9 + 6 + 3 + 20）。
 
 - [ ] **Step 6: typecheck + commit**
 
@@ -2082,19 +2082,19 @@ git commit -m "refactor(texas-poker): run the client on @tpg/client"
 - [ ] **Step 1: 全量测试**
 
 Run: `npm test --workspaces --if-present`
-Expected: 211 个全过。分布：
+Expected: 214 个全过。分布：
 
 | 包 | 个数 |
 | --- | --- |
 | `@tpg/protocol` | 5 |
-| `@tpg/client` | 35 |
+| `@tpg/client` | 38 |
 | `@tpg/server` | 40 |
 | `@bw/client` / `server` / `shared` | 1 / 19 / 20 |
 | `@fm/client` / `server` / `shared` | 1 / 9 / 37 |
 | `@add-to-fifty/client` / `server` / `shared` | 1 / 6 / 11 |
 | `@texas-poker/client` / `server` / `shared` | 1 / 8 / 17 |
 
-对照阶段 3 收尾的 196：client 的 i18n 测试从 6×4=24 降到 1×4=4（−20），`@tpg/client` 新增 35。196 − 20 + 35 = 211。
+对照阶段 3 收尾的 196：client 的 i18n 测试从 6×4=24 降到 1×4=4（−20），`@tpg/client` 新增 38。196 − 20 + 38 = 214。
 
 数不对就先定位是哪个包，别急着改数字 —— 这张表是算出来的，对不上说明有测试没跑或者被漏掉了。
 
