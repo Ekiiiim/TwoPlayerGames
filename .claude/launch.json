@@ -4,7 +4,12 @@
     {
       "name": "bw-client",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--workspace", "@bw/client"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--workspace",
+        "@bw/client"
+      ],
       "port": 5173
     },
     {
@@ -14,11 +19,7 @@
         "run",
         "dev",
         "--workspace",
-        "@fm/client",
-        "--",
-        "--port",
-        "5174",
-        "--strictPort"
+        "@fm/client"
       ],
       "port": 5174
     },
@@ -29,11 +30,7 @@
         "run",
         "dev",
         "--workspace",
-        "@add-to-fifty/client",
-        "--",
-        "--port",
-        "5175",
-        "--strictPort"
+        "@add-to-fifty/client"
       ],
       "port": 5175
     },
@@ -44,11 +41,7 @@
         "run",
         "dev",
         "--workspace",
-        "@texas-poker/client",
-        "--",
-        "--port",
-        "5176",
-        "--strictPort"
+        "@texas-poker/client"
       ],
       "port": 5176
     }
