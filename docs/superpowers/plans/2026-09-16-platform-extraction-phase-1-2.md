@@ -313,12 +313,12 @@ git commit -m "chore(black-and-white): upgrade to Svelte 5 / Vite 8 / Vitest 4"
 
 flip-math 没有 `createEventDispatcher`，所以只有入口一处要改。
 
-- [ ] **Step 1: 记下 baseline**
+- [x] **Step 1: 记下 baseline**
 
 Run: `npm --prefix flip-math test 2>&1 | grep -E "Tests "`
 Expected：6 passed、9 passed、37 passed（合计 52）。
 
-- [ ] **Step 2: 升级 client 的 package.json**
+- [x] **Step 2: 升级 client 的 package.json**
 
 `flip-math/packages/client/package.json` 的 `devDependencies` 整块替换为：
 
@@ -336,11 +336,11 @@ Expected：6 passed、9 passed、37 passed（合计 52）。
   }
 ```
 
-- [ ] **Step 3: 升级 server 与 shared 的 package.json**
+- [x] **Step 3: 升级 server 与 shared 的 package.json**
 
 两个文件里的 `"vitest": "^1.6.0"` 改成 `"vitest": "^4.1.10"`。
 
-- [ ] **Step 3b: 建 svelte.config.js**
+- [x] **Step 3b: 建 svelte.config.js**
 
 Create `flip-math/packages/client/svelte.config.js`（和 black-and-white 那份
 逐字相同）：
@@ -358,19 +358,19 @@ export default {
 };
 ```
 
-- [ ] **Step 3c: tsconfig 加 verbatimModuleSyntax**
+- [x] **Step 3c: tsconfig 加 verbatimModuleSyntax**
 
 `flip-math/packages/client/tsconfig.json` 的 `compilerOptions` 加一项
 `"verbatimModuleSyntax": true`。svelte-check 4.7.6 对带 `lang="ts"` 的
 `.svelte` 文件强制要求它。
 
-- [ ] **Step 4: 安装**
+- [x] **Step 4: 安装**
 
 Run: `cd flip-math && npm install && cd ..`
 
 需要 npm >= 11，见 Global Constraints。
 
-- [ ] **Step 5: svelte-check，收集要修的问题**
+- [x] **Step 5: svelte-check，收集要修的问题**
 
 Run: `npm --prefix flip-math run check --workspace @fm/client 2>&1 | grep -E "ERROR|WARNING|COMPLETED"`
 
@@ -382,7 +382,7 @@ baseline 是 0 errors 0 warnings，所以警告也要修掉，否则就失去了
 注意：**`new App(...)` 不会出现在这里**，svelte-check 抓不到它。它只在浏览器
 运行时炸。
 
-- [ ] **Step 6: 跑测试**
+- [x] **Step 6: 跑测试**
 
 Run: `npm --prefix flip-math test 2>&1 | grep -E "Tests |FAIL"`
 Expected：仍是 52 passed。
@@ -390,7 +390,7 @@ Expected：仍是 52 passed。
 flip-math 的服务器有真实计时器（`Durations`），它的集成测试等真实时钟而不是
 fake timers，所以 Vitest 4 的 fake timer 默认值变化不影响它。这一步确认这点。
 
-- [ ] **Step 7: 迁移入口到 mount()**
+- [x] **Step 7: 迁移入口到 mount()**
 
 `flip-math/packages/client/src/main.ts` 整个替换为：
 
@@ -404,19 +404,19 @@ const app = mount(App, { target: document.getElementById("app")! });
 export default app;
 ```
 
-- [ ] **Step 8: svelte-check 回到全绿**
+- [x] **Step 8: svelte-check 回到全绿**
 
 Run: `npm --prefix flip-math run check --workspace @fm/client`
 Expected：`0 errors and 0 warnings`
 
-- [ ] **Step 9: 浏览器验证**
+- [x] **Step 9: 浏览器验证**
 
 preview_start 起 `flip-client`（launch.json 里已配好，端口 5174）。
 `read_page` 确认大厅在：标题「翻牌数式」/「Flip Math」、「创建房间」按钮、
 房间码输入框。`read_console_messages` 带 `onlyErrors: true`，
 确认没有 Svelte 报错（socket.io 连接失败无关，忽略）。
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add flip-math/packages/client/package.json \
@@ -441,12 +441,12 @@ git commit -m "chore(flip-math): upgrade to Svelte 5 / Vite 8 / Vitest 4"
 - Consumes: 无
 - Produces: 无新接口
 
-- [ ] **Step 1: 记下 baseline**
+- [x] **Step 1: 记下 baseline**
 
 Run: `npm --prefix add-to-fifty test 2>&1 | grep -E "Tests "`
 Expected：6 passed、6 passed、11 passed（合计 23）。
 
-- [ ] **Step 2: 升级 client 的 package.json**
+- [x] **Step 2: 升级 client 的 package.json**
 
 `add-to-fifty/packages/client/package.json` 的 `devDependencies` 整块替换为：
 
@@ -464,11 +464,11 @@ Expected：6 passed、6 passed、11 passed（合计 23）。
   }
 ```
 
-- [ ] **Step 3: 升级 server 与 shared 的 package.json**
+- [x] **Step 3: 升级 server 与 shared 的 package.json**
 
 两个文件里的 `"vitest": "^1.6.0"` 改成 `"vitest": "^4.1.10"`。
 
-- [ ] **Step 3b: 建 svelte.config.js**
+- [x] **Step 3b: 建 svelte.config.js**
 
 Create `add-to-fifty/packages/client/svelte.config.js`（和前两个游戏逐字相同）：
 
@@ -485,28 +485,28 @@ export default {
 };
 ```
 
-- [ ] **Step 3c: tsconfig 加 verbatimModuleSyntax**
+- [x] **Step 3c: tsconfig 加 verbatimModuleSyntax**
 
 `add-to-fifty/packages/client/tsconfig.json` 的 `compilerOptions` 加一项
 `"verbatimModuleSyntax": true`。
 
-- [ ] **Step 4: 安装**
+- [x] **Step 4: 安装**
 
 Run: `cd add-to-fifty && npm install && cd ..`
 
-- [ ] **Step 5: svelte-check，收集要修的问题**
+- [x] **Step 5: svelte-check，收集要修的问题**
 
 Run: `npm --prefix add-to-fifty run check --workspace @add-to-fifty/client 2>&1 | grep -E "ERROR|WARNING|COMPLETED"`
 
 预期会有新版本带来的 a11y 警告要修（baseline 是 0 errors 0 warnings）。
 `new App(...)` 不会出现在这里。
 
-- [ ] **Step 6: 跑测试**
+- [x] **Step 6: 跑测试**
 
 Run: `npm --prefix add-to-fifty test 2>&1 | grep -E "Tests |FAIL"`
 Expected：仍是 23 passed。
 
-- [ ] **Step 7: 迁移入口到 mount()**
+- [x] **Step 7: 迁移入口到 mount()**
 
 `add-to-fifty/packages/client/src/main.ts` 整个替换为：
 
@@ -520,19 +520,19 @@ const app = mount(App, { target: document.getElementById("app")! });
 export default app;
 ```
 
-- [ ] **Step 8: svelte-check 回到全绿**
+- [x] **Step 8: svelte-check 回到全绿**
 
 Run: `npm --prefix add-to-fifty run check --workspace @add-to-fifty/client`
 Expected：`0 errors and 0 warnings`
 
-- [ ] **Step 9: 浏览器验证**
+- [x] **Step 9: 浏览器验证**
 
 preview_start 起 `a2f-client`（launch.json 里已配好，端口 5175）。
 `read_page` 确认大厅在：标题「凑五十」/「Add to Fifty」、「创建房间」按钮、
 房间码输入框。`read_console_messages` 带 `onlyErrors: true`，
 确认没有 Svelte 报错。
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add add-to-fifty/packages/client/package.json \
@@ -561,12 +561,12 @@ texas-poker 版本已经是目标版本，不用升级。但它三个 package.js
 server 和 shared 有 `svelte` 和 `vite`（后端和纯 TS 包都用不到）。root 上移后
 这些错位会进同一棵依赖树，先清掉。
 
-- [ ] **Step 1: 记下 baseline**
+- [x] **Step 1: 记下 baseline**
 
 Run: `npm --prefix texas-poker test 2>&1 | grep -E "Tests "`
 Expected：6 passed、8 passed、17 passed（合计 31）。
 
-- [ ] **Step 2: 修 client 的 package.json**
+- [x] **Step 2: 修 client 的 package.json**
 
 把 `"vitest": "4.1.10"` 从 `dependencies` 删掉，在 `devDependencies` 里加
 `"vitest": "^4.1.10"`。改完 `dependencies` 只剩两条：
@@ -595,7 +595,7 @@ Expected：6 passed、8 passed、17 passed（合计 31）。
   }
 ```
 
-- [ ] **Step 3: 修 server 的 package.json**
+- [x] **Step 3: 修 server 的 package.json**
 
 删掉 `dependencies` 里的 `"svelte": "5.56.8"` 和 `"vite": "8.2.0"`。
 改完 `dependencies` 只剩三条：
@@ -608,12 +608,12 @@ Expected：6 passed、8 passed、17 passed（合计 31）。
   },
 ```
 
-- [ ] **Step 4: 修 shared 的 package.json**
+- [x] **Step 4: 修 shared 的 package.json**
 
 整块删掉 `dependencies`（里面只有 `svelte` 和 `vite`）。`@texas-poker/shared`
 是纯 TS 规则引擎，没有运行时依赖。
 
-- [ ] **Step 4b: 建 svelte.config.js**
+- [x] **Step 4b: 建 svelte.config.js**
 
 texas-poker 现在锁在 svelte 5.56.8，还没有 runes 默认值的问题。但 Task 5 的根
 安装会把它解析到 5.57.0，那时它和另外三个一样会全线报
@@ -634,17 +634,17 @@ export default {
 };
 ```
 
-- [ ] **Step 4c: tsconfig 加 verbatimModuleSyntax**
+- [x] **Step 4c: tsconfig 加 verbatimModuleSyntax**
 
 `texas-poker/packages/client/tsconfig.json` 的 `compilerOptions` 加一项
 `"verbatimModuleSyntax": true`。
 
-- [ ] **Step 5: 重装并跑测试**
+- [x] **Step 5: 重装并跑测试**
 
 Run: `cd texas-poker && npm install && cd .. && npm --prefix texas-poker test 2>&1 | grep -E "Tests |FAIL"`
 Expected：仍是 31 passed。
 
-- [ ] **Step 6: svelte-check 与构建都要绿**
+- [x] **Step 6: svelte-check 与构建都要绿**
 
 Run: `npm --prefix texas-poker run check --workspace @texas-poker/client`
 Expected：`0 ERRORS 0 WARNINGS`
@@ -655,13 +655,13 @@ Expected：构建成功。
 删 server/shared 的 `svelte` 和 `vite` 之后要跑一次构建，因为如果客户端构建
 其实是在靠那两条错位依赖解析某个包，这里会暴露出来。
 
-- [ ] **Step 7: 浏览器验证**
+- [x] **Step 7: 浏览器验证**
 
 preview_start 起 `texas-client`（launch.json 里已配好，端口 5176）。
 `read_page` 确认大厅在：标题「Texas Poker」、「创建房间」按钮、房间码输入框。
 `read_console_messages` 带 `onlyErrors: true`。
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add texas-poker/packages/client/package.json \
@@ -690,7 +690,7 @@ git commit -m "chore(texas-poker): move vitest to devDeps, drop unused svelte/vi
 - Produces: 根脚本 `npm test` 与 `npm run check` 跑全部四个游戏的全部 workspace。
   后续所有 task 的验证命令都用这两个，不再用 `npm --prefix <game>`。
 
-- [ ] **Step 1: 确认四个游戏版本已对齐**
+- [x] **Step 1: 确认四个游戏版本已对齐**
 
 ```bash
 cd /Users/chengminyu/Desktop/TwoPlayerGames
@@ -702,7 +702,7 @@ done
 Expected：四行都是 `5.56.8`。不是的话回到 Task 1–3 补完，别往下走——root 上移的
 前提就是 npm 没有版本要协调。
 
-- [ ] **Step 2: 改根 package.json**
+- [x] **Step 2: 改根 package.json**
 
 `package.json` 整个替换为：
 
@@ -736,7 +736,7 @@ Expected：四行都是 `5.56.8`。不是的话回到 Task 1–3 补完，别往
 `prettier-plugin-svelte` 要的 peer 是 `svelte`，所以根的 `svelte` 从 `^4.2.0`
 提到 `^5.56.8`，和各 client 一致。
 
-- [ ] **Step 3: 删掉四个游戏的 package.json 和 lockfile**
+- [x] **Step 3: 删掉四个游戏的 package.json 和 lockfile**
 
 ```bash
 cd /Users/chengminyu/Desktop/TwoPlayerGames
@@ -750,7 +750,7 @@ rm -rf black-and-white/node_modules flip-math/node_modules \
 
 这四个 package.json 只有 `workspaces` 和一个 `test` 脚本，两者都由根接管了。
 
-- [ ] **Step 4: 装成一棵树**
+- [x] **Step 4: 装成一棵树**
 
 Run: `npm install`
 Expected：成功，根生成一份 `package-lock.json`。
@@ -764,46 +764,46 @@ find . -path ./node_modules -prune -o -name node_modules -print
 Expected：只有 `./node_modules` 一行。如果 `<game>/packages/*/node_modules`
 还在，说明某个 package.json 的版本范围没对齐，回 Step 1。
 
-- [ ] **Step 5: 跑全量测试**
+- [x] **Step 5: 跑全量测试**
 
 Run: `npm test 2>&1 | grep -E "Tests |FAIL"`
 Expected：12 个 workspace 的测试，合计 151 passed
 （45 + 52 + 23 + 31）。
 
-- [ ] **Step 6: 跑全量 svelte-check**
+- [x] **Step 6: 跑全量 svelte-check**
 
 Run: `npm run check 2>&1 | grep -iE "errors|warnings|ERRORS"`
 Expected：四个 client 各报 0 errors 0 warnings。
 
-- [ ] **Step 7: 改四个 .gitignore**
+- [x] **Step 7: 把 node_modules 规则提到根，各游戏只留 dist**
 
-`black-and-white/.gitignore` 和 `flip-math/.gitignore` 现在是：
+根 `.gitignore` 现在写的是 `/node_modules/`，前导斜杠让它只匹配根那一个目录。
+但 vite 和 vitest 会在每个 workspace 下建 `packages/*/node_modules/.vite` 缓存，
+所以规则要改成不带斜杠的 `node_modules/`，匹配任意层级：
 
 ```
+# Claude Code local/personal files (keep shared config like launch.json tracked)
+.claude/settings.local.json
+.claude/worktrees/
+
+# 依赖与工具缓存。不带前导斜杠,所以任意层级都匹配 —— vite/vitest 会在
+# 每个 workspace 下建 packages/*/node_modules/.vite 缓存。
 node_modules/
-dist/
+
+# OS/editor junk
+.DS_Store
+.clone/
 ```
 
-改成（`node_modules/` 由根的 `/node_modules/` 管，这里留着是误导）：
+然后四个 `<game>/.gitignore` 只留自己的 dist 规则：
+black-and-white 与 flip-math 留 `dist/`，add-to-fifty 与 texas-poker 留
+`packages/*/dist/`。
 
-```
-dist/
-```
+（原计划写的是「各游戏删掉 `node_modules/`、由根的 `/node_modules/` 管」，
+那是错的——带斜杠的规则管不到嵌套层级，照此改完那些 `.vite` 缓存会全部冒到
+`git status` 里。）
 
-`add-to-fifty/.gitignore` 和 `texas-poker/.gitignore` 现在是：
-
-```
-node_modules/
-packages/*/dist/
-```
-
-改成：
-
-```
-packages/*/dist/
-```
-
-- [ ] **Step 8: 改 launch.json**
+- [x] **Step 8: 改 launch.json**
 
 `.claude/launch.json` 里四个配置的 `runtimeArgs` 都带
 `"--prefix", "<game>"`，root 上移后这个前缀指向的目录已经没有 package.json 了。
@@ -818,7 +818,7 @@ packages/*/dist/
 
 `name` 和 `port` 不动。
 
-- [ ] **Step 9: 四个 dev server 都要能起**
+- [x] **Step 9: 四个 dev server 都要能起**
 
 逐个 preview_start：`bw-client`、`flip-client`、`a2f-client`、`texas-client`。
 每个都 `read_page` 确认大厅渲染、`read_console_messages` 带 `onlyErrors: true`
@@ -827,12 +827,25 @@ packages/*/dist/
 这一步验的是 launch.json 改对了、并且单一 node_modules 下四个 client 的
 Vite 都能解析到自己的依赖。
 
-- [ ] **Step 10: 确认 prettier 还认得这个 repo**
+- [x] **Step 10: 确认 prettier 还认得这个 repo**
 
 Run: `npm run format:check`
-Expected：通过，或只报出你这几步改动的文件。报出来就 `npm run format` 修掉再看。
 
-- [ ] **Step 11: Commit**
+**注意：这个闸门在 main 上本来就是红的。** 五个文件在本分支之前就不通过
+prettier：`add-to-fifty/.../PlayingCard.svelte`、
+`texas-poker/.../App.svelte`、`texas-poker/packages/shared/src/{game,hand}.ts`、
+`texas-poker/packages/shared/test/hand.test.ts`。判断方法是把 main 上的内容
+喂给 prettier：
+
+```bash
+git show "main:<file>" | npx prettier --check --stdin-filepath "<file>"
+```
+
+跑 `npm run format` 把这五个修掉，单独一个 `style: prettier` commit，
+不要混进 root 上移那个。修完之后 `format:check` 才能当闸门用——红了就说明是
+真的格式疏漏，而不是既有噪音。
+
+- [x] **Step 11: Commit**
 
 ```bash
 git add -A package.json package-lock.json .claude/launch.json \
