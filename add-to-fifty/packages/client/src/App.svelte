@@ -1,8 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { Card } from "@add-to-fifty/shared";
+  import { Button, LangToggle, Lobby } from "@tpg/ui";
   import {
+    createRoom,
     ended,
+    joinRoom,
     leaveRoom,
     playCard,
     roomCode,
@@ -10,11 +13,8 @@
     tryRejoin,
     view,
   } from "./socket";
-  import { t } from "./i18n";
-  import Button from "./lib/Button.svelte";
-  import LangToggle from "./lib/LangToggle.svelte";
+  import { lang, t, toggleLang } from "./i18n";
   import GameOver from "./lib/GameOver.svelte";
-  import Lobby from "./lib/Lobby.svelte";
   import PlayingCard from "./lib/PlayingCard.svelte";
 
   onMount(tryRejoin);
@@ -58,7 +58,7 @@
   }
 </script>
 
-<LangToggle />
+<LangToggle lang={$lang} onToggle={toggleLang} />
 
 <main class="min-h-screen w-full bg-felt-dark px-4 py-6 text-felt-text">
   <div
@@ -288,7 +288,16 @@
         </div>
       </section>
     {:else}
-      <Lobby />
+      <Lobby
+        title={$t.title}
+        subtitle={$t.tagline}
+        copy={$t.lobby}
+        statusText={$status ? $t.status[$status] : null}
+        roomCode={$roomCode}
+        onCreate={createRoom}
+        onJoin={joinRoom}
+        onClose={leaveRoom}
+      />
     {/if}
   </div>
 </main>
