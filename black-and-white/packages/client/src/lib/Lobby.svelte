@@ -32,7 +32,7 @@
           >{$roomCode}</strong
         >
         <span class="mt-[2px] text-[0.78rem] text-gold-muted"
-          >{$t.lobby.sharePrompt}</span
+          >{$t.lobby.waitingOpponent}</span
         >
       </div>
     {:else}

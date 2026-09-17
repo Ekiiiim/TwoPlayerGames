@@ -1,13 +1,5 @@
-import { derived, writable } from "svelte/store";
-import type { ErrorCode } from "@bw/shared";
-
-export type Lang = "en" | "zh";
-
-/** Anything that can land in the `status` store: a wire error, or a local notice. */
-export type StatusCode = ErrorCode | "OPPONENT_DISCONNECTED";
-export type EndedCode = "OPPONENT_LEFT";
-
-const STORAGE_KEY = "bw_lang";
+import { createI18n, sharedLobby, sharedStatus } from "@tpg/client";
+import type { EndedCode, Lang, LobbyDict } from "@tpg/client";
 
 // English is the source of truth for the dictionary's shape; `zh` is checked
 // against it below, so a missing translation is a type error, not a runtime hole.
@@ -15,13 +7,9 @@ const en = {
   title: "Black & White",
   subtitle: "The Genius Season 4 Ep.01",
   lobby: {
-    createRoom: "Create Room",
-    closeRoom: "Close Room",
-    roomCode: "Room Code",
-    sharePrompt: "Send it to a friend and wait for them to join…",
-    codePlaceholder: "Enter room code",
-    join: "Join",
-  },
+    ...sharedLobby.en,
+    waitingOpponent: "Send it to a friend and wait for them to join…",
+  } satisfies LobbyDict,
   table: {
     opponent: "Opponent",
     me: "Me",
@@ -58,16 +46,7 @@ const en = {
   },
   chip: { win: "W", lose: "L", draw: "D" },
   backToLobby: "Back to Lobby",
-  status: {
-    OPPONENT_DISCONNECTED: "Opponent disconnected, waiting to reconnect…",
-    ALREADY_IN_ROOM: "You are already in a room",
-    INVALID_REQUEST: "Invalid request",
-    ROOM_NOT_FOUND: "Room not found",
-    ROOM_FULL: "Room is full",
-    INVALID_SESSION: "Invalid session",
-    INVALID_MOVE: "That move is not allowed",
-    OPPONENT_GONE: "Your opponent left, so a rematch is not possible",
-  } satisfies Record<StatusCode, string>,
+  status: sharedStatus.en,
   ended: {
     OPPONENT_LEFT: "Your opponent left the game. You win 🎉",
   } satisfies Record<EndedCode, string>,
@@ -79,12 +58,8 @@ const zh: Dict = {
   title: "黑与白",
   subtitle: "《游戏的法则IV》Ep.01",
   lobby: {
-    createRoom: "创建房间",
-    closeRoom: "解散房间",
-    roomCode: "房间码",
-    sharePrompt: "发给朋友，等待对手加入…",
-    codePlaceholder: "输入房间码",
-    join: "加入",
+    ...sharedLobby.zh,
+    waitingOpponent: "发给朋友，等待对手加入…",
   },
   table: {
     opponent: "对手",
@@ -122,16 +97,7 @@ const zh: Dict = {
   },
   chip: { win: "胜", lose: "负", draw: "平" },
   backToLobby: "返回大厅",
-  status: {
-    OPPONENT_DISCONNECTED: "对手掉线，等待重连…",
-    ALREADY_IN_ROOM: "已在房间中",
-    INVALID_REQUEST: "请求无效",
-    ROOM_NOT_FOUND: "房间不存在",
-    ROOM_FULL: "房间已满",
-    INVALID_SESSION: "会话无效",
-    INVALID_MOVE: "该操作不合法",
-    OPPONENT_GONE: "对手已离开，无法再来一局",
-  },
+  status: sharedStatus.zh,
   ended: {
     OPPONENT_LEFT: "对手已退出本局，你获胜 🎉",
   },
@@ -139,40 +105,7 @@ const zh: Dict = {
 
 export const dict: Record<Lang, Dict> = { en, zh };
 
-/**
- * Pure so it is testable without a DOM. English is the fallback: only a browser
- * that actually asks for Chinese gets Chinese.
- */
-export function resolveLang(saved: string | null, navigatorLang: string): Lang {
-  if (saved === "en" || saved === "zh") return saved;
-  return navigatorLang.toLowerCase().startsWith("zh") ? "zh" : "en";
-}
-
-const inBrowser = typeof window !== "undefined";
-
-export const lang = writable<Lang>(
-  inBrowser
-    ? resolveLang(localStorage.getItem(STORAGE_KEY), navigator.language)
-    : "en",
-);
-
-if (inBrowser) {
-  lang.subscribe((l) => {
-    document.documentElement.lang = l === "zh" ? "zh-CN" : "en";
-    document.title = dict[l].title;
-  });
-}
-
-/**
- * Persist only on an explicit choice, so browser detection stays in effect
- * until the player actually states a preference.
- */
-export function toggleLang(): void {
-  lang.update((l) => {
-    const next: Lang = l === "zh" ? "en" : "zh";
-    localStorage.setItem(STORAGE_KEY, next);
-    return next;
-  });
-}
-
-export const t = derived(lang, ($lang) => dict[$lang]);
+export const { lang, t, toggleLang } = createI18n({
+  storageKey: "bw_lang",
+  dict,
+});

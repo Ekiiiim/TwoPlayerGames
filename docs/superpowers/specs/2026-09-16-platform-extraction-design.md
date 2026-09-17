@@ -418,6 +418,8 @@ add-to-fifty → texas-poker → flip-math（有计时器，用 `onDispose`）�
 
 ```ts
 // platform/client/src/roomSession.ts
+export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
 export interface RoomSessionOptions<V> {
   /** localStorage key 前缀。必须沿用各游戏现有值。 */
   storagePrefix: string;
@@ -425,6 +427,10 @@ export interface RoomSessionOptions<V> {
   onView?: (view: V) => void;
   /** leaveRoom 时的额外清理。 */
   onLeave?: () => void;
+  /** 测试注入假 socket。生产不传,走同源 io()。 */
+  socket?: Socket;
+  /** 测试注入假 storage。生产不传,走 localStorage。 */
+  storage?: StorageLike;
 }
 
 export function createRoomSession<V extends { phase: string }>(
@@ -445,6 +451,12 @@ export function createRoomSession<V extends { phase: string }>(
 
 `StatusCode` 与 `EndedCode` 定义在同包的 `dict.ts`（见 4.3）。
 
+`socket` 和 `storage` 两个可选项只为可测：这个包跑在 node 里的 vitest 下，
+`localStorage` 不是全局，`io()` 也没有同源可连。给它们开两个口子，比给
+`platform/client` 引一个 jsdom 便宜——jsdom 是本 repo 最大的一个新依赖，
+而阶段 1 那场 npm 崩溃正是依赖规模撑出来的。`storage` 用 `??` 短路，
+`opts.storage` 给了值时右边根本不求值，所以 node 里不会 ReferenceError。
+
 各游戏用法：
 
 ```ts
@@ -454,7 +466,8 @@ export const review = writable<GameReview | null>(null);
 const session = createRoomSession<ClientView>({
   storagePrefix: "bw",
   onView: (v) => {
-    // 新的 playing 视图说明开了新局（rematch），清掉终局界面
+    // 新的 playing 视图说明开了新局（rematch），清掉终局复盘。
+    // ended 不用在这儿清，框架按 phase !== "finished" 统一清。
     if (v.phase === "playing") { review.set(null); }
   },
   onLeave: () => review.set(null),
@@ -481,10 +494,30 @@ session.socket.on("game_over", (r: GameReview) => review.set(r));
 被踢回大厅。`storagePrefix` 传 `"bw"` / `"fm"` / `"add2fifty"` / `"texas_poker"`，
 拼接规则保持 `` `${prefix}_token` `` 和 `` `${prefix}_room` ``。
 
-### 顺带统一的一处行为
+### 顺带统一的一处行为（以及 texas-poker 那句是 bug）
 
 texas-poker 的 `view_update` handler 里多一句 `status.set(null)`，另外三个没有。
-这行是对的——收到新视图说明连接正常，该清掉旧报错——四个都采用。
+起初以为它是对的——收到新视图说明连接正常，该清掉旧报错——但读完四个游戏才
+看清：`status` 装的是两种东西。一种是我这边的操作报错（`INVALID_MOVE` 之类），
+下一条视图到了就该清；另一种是**对手**的掉线通知 `OPPONENT_DISCONNECTED`，
+它要一直挂到 `opponent_reconnected`。无条件清掉，掉线横幅活不过下一条视图。
+
+对手不在的时候视图照样会来，两个来源：我还能继续动（bw 出牌、a2f 出牌、
+tp 跟注都不要求双方在线），以及服务器自己推（flip-math 的计时器每次状态转移
+都广播）。看不看得见取决于各游戏在哪儿渲染 `status`——bw 在 `Table.svelte`、
+a2f 和 tp 在 `App.svelte` 里就渲染，牌局界面上横幅会当场消失；fm 只在
+`Lobby.svelte` 和 `GameOver.svelte` 渲染，所以在 fm 里影响只落在 store 上。
+
+框架只清前一种：
+
+```ts
+status.update((s) => (s === "OPPONENT_DISCONNECTED" ? s : null));
+```
+
+对 bw/fm/a2f 是新增行为（它们原来在 `view_update` 里完全不动 `status`，
+陈旧的报错横幅会一直挂着），对 tp 是收窄。浏览器里在 add-to-fifty 验过一次：
+对手掉线后我出一张牌，累积分从 17 走到 26、手牌补齐（都由新视图渲染），
+横幅还在。
 
 ## 4.2 createI18n
 
@@ -509,36 +542,74 @@ export function createI18n<D extends { title: string }>(opts: {
 
 ## 4.3 共享词条
 
-`status` 下的 8 条报错文案四份一致，因为它们对应的正是阶段 2 那个逐字相同的
-`ErrorCode`（7 个）加上本地通知 `OPPONENT_DISCONNECTED`。`ended.OPPONENT_LEFT`
-同样。大厅那一组 key 因为阶段 5 要共享 `Lobby` 组件，也必须固定下来。
+真正四份一致的只有 `status` 那 8 条。逐字比对（两块都做过 sha256 分组）之后，
+共享的边界是这样：
+
+**`status`：8 条共享。** 英文四份完全相同；中文只有一处分歧——`OPPONENT_DISCONNECTED`
+末尾 bw/fm 用 `…`（U+2026），a2f/tp 用三个 ASCII 点，另外 7 条逐字相同。共享版本
+取 `…`。这 8 条对应的正是阶段 2 那个逐字相同的 `ErrorCode`（7 个）加上本地通知
+`OPPONENT_DISCONNECTED`。
+
+**`ended.OPPONENT_LEFT`：不共享，三个版本。**
+
+| 游戏 | en | zh |
+| --- | --- | --- |
+| bw, fm | `Your opponent left the game. You win 🎉` | `对手已退出本局，你获胜 🎉` |
+| a2f | `Your opponent left the game. You win` | `对手已退出本局，你获胜` |
+| tp | `Your opponent left the match` | `对手已退出牌局` |
+
+tp 那份是语义上不同，不是笔误：德州扑克里对手中途退出不等于你赢，筹码才算。
+a2f 整份词典都不用 emoji（`gameOver.win` 是「你赢了」），给它塞一个反而和自己
+不一致。所以文案留在各游戏，共享的只有 `EndedCode` 类型和那道
+`satisfies Record<EndedCode, string>` 检查。
+
+**大厅：形状契约 + 7 条文案。** `LobbyDict` 是各游戏 `lobby` 必须满足的形状——
+阶段 5 的共享 `Lobby` 组件靠它读词条，所以组件落地之前就把 key 钉住，阶段 5 的
+diff 才能只有组件本身。里面 7 条的分歧是随手打出来的（tp 写 `Create room`、
+fm 的中文写「房间号」），归到多数那份共享；只有 `waitingOpponent` 是真分歧——
+bw 写的是「发给朋友，等待对手加入…」（让玩家去分享房间码），a2f/tp 写「等待第二位
+玩家加入」，说的不是一件事——所以它由契约要求、各游戏自己提供，不给默认值。
 
 ```ts
 // platform/client/src/dict.ts
 export type StatusCode = ErrorCode | "OPPONENT_DISCONNECTED";
 export type EndedCode = "OPPONENT_LEFT";
 
-/** 共享 Lobby 组件要求的词条形状。各游戏 dict 必须满足。 */
+/** 阶段 5 的共享 Lobby 组件要读的词条形状。各游戏 dict 的 lobby 必须满足。 */
 export interface LobbyDict {
   createRoom: string;
   closeRoom: string;
   confirmClose: string;
   cancel: string;
   roomCode: string;
-  waitingOpponent: string;
   codePlaceholder: string;
   join: string;
+  /** 四个游戏措辞本就不同，各自提供。 */
+  waitingOpponent: string;
 }
 
-export const sharedDict: Record<Lang, {
-  status: Record<StatusCode, string>;
-  ended: Record<EndedCode, string>;
-  lobby: LobbyDict;
-}>;
+export const sharedStatus: Record<Lang, Record<StatusCode, string>>;
+export const sharedLobby: Record<Lang, Omit<LobbyDict, "waitingOpponent">>;
 ```
 
-各游戏的 dict 合并共享词条，并按需覆盖单条（black-and-white 的
-`waitingOpponent` 现在写的是「发给朋友，等待对手加入…」，保留这句）。
+各游戏这样接：
+
+```ts
+const en = {
+  lobby: {
+    ...sharedLobby.en,
+    waitingOpponent: "Send it to a friend and wait for them to join…",
+  } satisfies LobbyDict,
+  status: sharedStatus.en,
+  ended: {
+    OPPONENT_LEFT: "Your opponent left the game. You win 🎉",
+  } satisfies Record<EndedCode, string>,
+};
+```
+
+`satisfies LobbyDict` 会对字面量里显式写出的额外 key 报 `TS2353`，展开也挡不住
+（用 tsc 验过）。texas-poker 原来把副标题放在 `lobby.subtitle`，因此要挪到顶层
+`subtitle`——bw 本来就是这么放的。
 
 ## 4.4 assertDictParity
 
@@ -549,19 +620,40 @@ export const sharedDict: Record<Lang, {
 
 ```ts
 // platform/client/src/testing.ts
-export function assertDictParity<D>(
-  en: D,
-  zh: D,
-  opts?: { sharedByDesign?: string[] },
-): void;
+export interface ParityOptions {
+  sharedByDesign?: string[];
+}
+
+/** 问题清单，空数组表示通过。 */
+export function dictParityIssues<D>(en: D, zh: D, opts?: ParityOptions): string[];
+export function assertDictParity<D>(en: D, zh: D, opts?: ParityOptions): void;
 ```
 
 各游戏的 `i18n.test.ts` 缩成一次调用加自己的 `SHARED_BY_DESIGN`。
+
+这个模块从 `src/index.ts` 导出，而 index 会被 vite 打进生产 bundle，所以它
+**不能 import vitest**——`assertDictParity` 抛的是普通 `Error`，不是 `expect`。
+顺带比原来那个「排序后的 key 数组做 toEqual」好读：报出来的是
+`zh 缺 key: lobby.cancel`，不是「两个数组不一样」。
+
+之所以不给包根之外再开一个 `@tpg/client/testing` 子路径：那需要 package.json 的
+`exports` 字段，而 `exports` 一出现 `main` 就失效，`@tpg/protocol` 和 `@tpg/server`
+现在靠的正是 `main`。
 
 ## 4.5 阶段 4 验收
 
 `npm test` + `npm run check` 全绿。手工确认一次：在四个游戏各建一个房间，
 刷新页面，局应当恢复（验证 key 前缀没变）。
+
+实际结果：214 个测试全过（阶段 3 收尾 196，四个 client 的 i18n 测试从 6×4 降到
+1×4，`@tpg/client` 新增 38）；四个 svelte-check 0 ERRORS 0 WARNINGS；三个
+platform 包 `tsc --noEmit` 通过；八个镜像（每个游戏 server + web）构建成功，
+四个 compose 栈起来后 socket.io 握手都拿到 sid。浏览器里四个游戏各打了一局：
+bw 结算出 1:0、fm 答对 9 × 6 = 54 弹出提示、a2f 累积分 17 走到 26、tp 跟注把
+底池从 15 推到 20；四个都验了刷新恢复和语言开关持久化，localStorage 里的 key
+分别是 `bw_*` / `fm_*` / `add2fifty_*` / `texas_poker_*`，一个没变。
+
+四份 `socket.ts` 从 397 行降到 132 行，四份 `i18n.test.ts` 从 237 行降到 44 行。
 
 ---
 

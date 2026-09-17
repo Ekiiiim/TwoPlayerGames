@@ -11,6 +11,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY platform/protocol/package.json ./platform/protocol/
 COPY platform/server/package.json ./platform/server/
+COPY platform/client/package.json ./platform/client/
 COPY black-and-white/packages/client/package.json ./black-and-white/packages/client/
 COPY black-and-white/packages/server/package.json ./black-and-white/packages/server/
 COPY black-and-white/packages/shared/package.json ./black-and-white/packages/shared/

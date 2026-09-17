@@ -1,29 +1,19 @@
-import { derived, writable } from "svelte/store";
-import type { ErrorCode, HandCategory } from "@texas-poker/shared";
-
-export type Lang = "en" | "zh";
-
-/** Anything that can land in the `status` store: a wire error, or a local notice. */
-export type StatusCode = ErrorCode | "OPPONENT_DISCONNECTED";
-export type EndedCode = "OPPONENT_LEFT";
+import { createI18n, sharedLobby, sharedStatus } from "@tpg/client";
+import type { EndedCode, Lang, LobbyDict } from "@tpg/client";
+import type { HandCategory } from "@texas-poker/shared";
 
 /** Hand-guide rows: every scoring category, plus the ace-high straight flush. */
 export type GuideKey = HandCategory | "royal-flush";
-
-const STORAGE_KEY = "texas_poker_lang";
 
 // English is the source of truth for the dictionary's shape; `zh` is checked
 // against it below, so a missing translation is a type error, not a runtime hole.
 const en = {
   title: "Texas Poker",
+  subtitle: "Two-player heads-up poker",
   lobby: {
-    subtitle: "Two-player heads-up poker",
-    roomCode: "Room code",
-    waiting: "Waiting for player two",
-    dissolve: "Dissolve room",
-    create: "Create room",
-    join: "Join",
-  },
+    ...sharedLobby.en,
+    waitingOpponent: "Waiting for player two",
+  } satisfies LobbyDict,
   handGuideBtn: "Hands",
   settings: "Settings",
   settingsTitle: "Game Settings",
@@ -109,16 +99,7 @@ const en = {
     pair: { name: "One Pair", note: "One pair" },
     "high-card": { name: "High Card", note: "Highest cards decide" },
   } satisfies Record<GuideKey, { name: string; note: string }>,
-  status: {
-    OPPONENT_DISCONNECTED: "Opponent disconnected, waiting to reconnect…",
-    ALREADY_IN_ROOM: "You are already in a room",
-    INVALID_REQUEST: "Invalid request",
-    ROOM_NOT_FOUND: "Room not found",
-    ROOM_FULL: "Room is full",
-    INVALID_SESSION: "Invalid session",
-    INVALID_MOVE: "That move is not allowed",
-    OPPONENT_GONE: "Your opponent left, so a rematch is not possible",
-  } satisfies Record<StatusCode, string>,
+  status: sharedStatus.en,
   ended: {
     OPPONENT_LEFT: "Your opponent left the match",
   } satisfies Record<EndedCode, string>,
@@ -129,13 +110,10 @@ export type Dict = typeof en;
 const zh: Dict = {
   // Shipped product name; it was already English-only in the Chinese UI.
   title: "Texas Poker",
+  subtitle: "双人 heads-up 德州扑克",
   lobby: {
-    subtitle: "双人 heads-up 德州扑克",
-    roomCode: "房间码",
-    waiting: "等待第二位玩家加入",
-    dissolve: "解散房间",
-    create: "创建房间",
-    join: "加入",
+    ...sharedLobby.zh,
+    waitingOpponent: "等待第二位玩家加入",
   },
   handGuideBtn: "牌型",
   settings: "设置",
@@ -218,16 +196,7 @@ const zh: Dict = {
     pair: { name: "一对", note: "一组对子" },
     "high-card": { name: "高牌", note: "没有成牌时比最大牌" },
   },
-  status: {
-    OPPONENT_DISCONNECTED: "对手掉线，等待重连...",
-    ALREADY_IN_ROOM: "已在房间中",
-    INVALID_REQUEST: "请求无效",
-    ROOM_NOT_FOUND: "房间不存在",
-    ROOM_FULL: "房间已满",
-    INVALID_SESSION: "会话无效",
-    INVALID_MOVE: "该操作不合法",
-    OPPONENT_GONE: "对手已离开，无法再来一局",
-  },
+  status: sharedStatus.zh,
   ended: {
     OPPONENT_LEFT: "对手已退出牌局",
   },
@@ -235,40 +204,7 @@ const zh: Dict = {
 
 export const dict: Record<Lang, Dict> = { en, zh };
 
-/**
- * Pure so it is testable without a DOM. English is the fallback: only a browser
- * that actually asks for Chinese gets Chinese.
- */
-export function resolveLang(saved: string | null, navigatorLang: string): Lang {
-  if (saved === "en" || saved === "zh") return saved;
-  return navigatorLang.toLowerCase().startsWith("zh") ? "zh" : "en";
-}
-
-const inBrowser = typeof window !== "undefined";
-
-export const lang = writable<Lang>(
-  inBrowser
-    ? resolveLang(localStorage.getItem(STORAGE_KEY), navigator.language)
-    : "en",
-);
-
-if (inBrowser) {
-  lang.subscribe((l) => {
-    document.documentElement.lang = l === "zh" ? "zh-CN" : "en";
-    document.title = dict[l].title;
-  });
-}
-
-/**
- * Persist only on an explicit choice, so browser detection stays in effect
- * until the player actually states a preference.
- */
-export function toggleLang(): void {
-  lang.update((l) => {
-    const next: Lang = l === "zh" ? "en" : "zh";
-    localStorage.setItem(STORAGE_KEY, next);
-    return next;
-  });
-}
-
-export const t = derived(lang, ($lang) => dict[$lang]);
+export const { lang, t, toggleLang } = createI18n({
+  storageKey: "texas_poker_lang",
+  dict,
+});

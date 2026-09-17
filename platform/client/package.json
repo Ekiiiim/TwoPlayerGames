@@ -1,0 +1,21 @@
+{
+  "name": "@tpg/client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@tpg/protocol": "*",
+    "socket.io-client": "^4.7.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "svelte": "^5.56.8",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.10"
+  }
+}
