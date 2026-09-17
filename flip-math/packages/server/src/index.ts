@@ -1,29 +1,6 @@
-import { createServer } from "node:http";
-import { Server } from "socket.io";
-import { PLAYER_IDS } from "@fm/shared";
-import type { Durations, PlayerId } from "@fm/shared";
-import { RoomRegistry, makeToken } from "./rooms";
-import type { GameSession } from "./gameSession";
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
-}
-
-function broadcastViews(io: Server, session: GameSession) {
-  for (const id of PLAYER_IDS) {
-    const player = session.players[id];
-    if (player?.socketId) {
-      const view = session.viewFor(id);
-      if (view !== null) io.to(player.socketId).emit("view_update", view);
-    }
-  }
-}
-
-function corsOrigin(): string | string[] | boolean {
-  const env = process.env.CORS_ORIGIN?.trim();
-  if (env) return env.split(",").map((s) => s.trim());
-  return process.env.NODE_ENV === "production" ? false : "*";
-}
+import type { Durations } from "@fm/shared";
+import { createGameServer, isRecord } from "@tpg/server";
+import { GameSession } from "./gameSession";
 
 export interface ServerOptions {
   roomTtlMs?: number;
@@ -31,196 +8,63 @@ export interface ServerOptions {
   durations?: Durations; // 测试可注入极短时长
 }
 
+const makeServer = (options: ServerOptions = {}) =>
+  createGameServer<GameSession>({
+    createSession: () => new GameSession(options.durations),
+    // start() 内部就会广播:状态由计时器推进,每次转移都要推送。
+    // 所以这里不调 ctx.broadcastViews(),否则首个视图会发两遍。
+    onStart: (ctx) => ctx.session.start(),
+    isInProgress: (s) => s.state !== null && s.state.phase !== "finished",
+    actions: {
+      // 抢答竞态:输的一方在 answering 阶段再 buzz 会被 reduce 拒绝。
+      // 静默忽略而不回 error_msg —— 那是正常竞态,不是玩家做错了什么。
+      buzz: (ctx) => {
+        try {
+          ctx.session.dispatch({ type: "BUZZ", player: ctx.playerId });
+        } catch {
+          /* ignore lost buzz */
+        }
+      },
+      // 非 ready 阶段或重复点击:reduce 幂等或抛错,同样静默忽略。
+      ready: (ctx) => {
+        try {
+          ctx.session.dispatch({ type: "READY", player: ctx.playerId });
+        } catch {
+          /* ignore stray ready */
+        }
+      },
+      select_cell: (ctx, data) => {
+        if (!isRecord(data) || typeof data.index !== "number") {
+          ctx.fail("INVALID_REQUEST");
+          return;
+        }
+        try {
+          ctx.session.dispatch({
+            type: "SELECT",
+            player: ctx.playerId,
+            cell: data.index,
+          });
+        } catch {
+          ctx.fail("INVALID_MOVE");
+        }
+      },
+      rematch: {
+        requireBothConnected: true,
+        handler: (ctx) => {
+          if (ctx.session.state?.phase !== "finished") return;
+          ctx.session.start();
+        },
+      },
+    },
+    roomTtlMs: options.roomTtlMs,
+    sweepIntervalMs: options.sweepIntervalMs,
+  });
+
 export async function startServer(
   port: number,
   options: ServerOptions = {},
 ): Promise<{ port: number; close: () => Promise<void> }> {
-  const roomTtlMs = options.roomTtlMs ?? 10 * 60 * 1000;
-  const sweepIntervalMs = options.sweepIntervalMs ?? 60 * 1000;
-
-  const http = createServer();
-  const io = new Server(http, { cors: { origin: corsOrigin() } });
-  const rooms = new RoomRegistry(options.durations);
-
-  const sweeper = setInterval(() => rooms.sweep(roomTtlMs), sweepIntervalMs);
-  sweeper.unref?.();
-
-  io.on("connection", (socket) => {
-    let myRoom: string | null = null;
-    let myId: PlayerId | null = null;
-
-    socket.on("create_room", () => {
-      if (myRoom !== null && rooms.get(myRoom)) {
-        socket.emit("error_msg", { code: "ALREADY_IN_ROOM" });
-        return;
-      }
-      const { roomCode, session } = rooms.create();
-      const token = makeToken();
-      session.addPlayer("p1", socket.id, token);
-      session.broadcast = () => broadcastViews(io, session);
-      myRoom = roomCode;
-      myId = "p1";
-      socket.join(roomCode);
-      socket.emit("room_created", { roomCode, sessionToken: token });
-    });
-
-    socket.on("join_room", (data: unknown) => {
-      if (myRoom !== null && rooms.get(myRoom)) {
-        socket.emit("error_msg", { code: "ALREADY_IN_ROOM" });
-        return;
-      }
-      if (!isRecord(data) || typeof data.roomCode !== "string") {
-        socket.emit("error_msg", { code: "INVALID_REQUEST" });
-        return;
-      }
-      const session = rooms.get(data.roomCode);
-      if (!session) {
-        socket.emit("error_msg", { code: "ROOM_NOT_FOUND" });
-        return;
-      }
-      if (session.isFull()) {
-        socket.emit("error_msg", { code: "ROOM_FULL" });
-        return;
-      }
-      const token = makeToken();
-      session.addPlayer("p2", socket.id, token);
-      session.broadcast = () => broadcastViews(io, session);
-      myRoom = data.roomCode;
-      myId = "p2";
-      socket.join(data.roomCode);
-      socket.emit("room_joined", {
-        roomCode: data.roomCode,
-        sessionToken: token,
-      });
-      // 双方到齐 → 开局(preview)。start() 内部会广播首个视图。
-      session.start();
-    });
-
-    socket.on("buzz", () => {
-      if (!myRoom || !myId) return;
-      const session = rooms.get(myRoom);
-      if (!session) return;
-      // 抢答竞态:输的一方在 answering 阶段再 buzz 会被 reduce 拒绝;静默忽略,避免噪声。
-      try {
-        session.dispatch({ type: "BUZZ", player: myId });
-      } catch {
-        /* ignore lost buzz */
-      }
-    });
-
-    socket.on("ready", () => {
-      if (!myRoom || !myId) return;
-      const session = rooms.get(myRoom);
-      if (!session) return;
-      // 非 ready 阶段或重复点击:reduce 幂等/抛错,这里静默忽略避免噪声。
-      try {
-        session.dispatch({ type: "READY", player: myId });
-      } catch {
-        /* ignore stray ready */
-      }
-    });
-
-    socket.on("select_cell", (data: unknown) => {
-      if (!myRoom || !myId) return;
-      if (!isRecord(data) || typeof data.index !== "number") {
-        socket.emit("error_msg", { code: "INVALID_REQUEST" });
-        return;
-      }
-      const session = rooms.get(myRoom);
-      if (!session) return;
-      try {
-        session.dispatch({ type: "SELECT", player: myId, cell: data.index });
-      } catch (e) {
-        socket.emit("error_msg", { code: "INVALID_MOVE" });
-      }
-    });
-
-    socket.on("rejoin", (data: unknown) => {
-      if (
-        !isRecord(data) ||
-        typeof data.roomCode !== "string" ||
-        typeof data.sessionToken !== "string"
-      ) {
-        socket.emit("error_msg", { code: "INVALID_REQUEST" });
-        return;
-      }
-      const session = rooms.get(data.roomCode);
-      if (!session) {
-        socket.emit("error_msg", { code: "ROOM_NOT_FOUND" });
-        return;
-      }
-      const entry = PLAYER_IDS.map((id) => session.players[id]).find(
-        (p) => p && p.sessionToken === data.sessionToken,
-      );
-      if (!entry) {
-        socket.emit("error_msg", { code: "INVALID_SESSION" });
-        return;
-      }
-      session.markConnected(entry.id, socket.id);
-      session.broadcast = () => broadcastViews(io, session);
-      myRoom = data.roomCode;
-      myId = entry.id;
-      socket.join(data.roomCode);
-
-      if (!session.state) {
-        socket.emit("room_created", {
-          roomCode: data.roomCode,
-          sessionToken: data.sessionToken,
-        });
-        return;
-      }
-      const view = session.viewFor(entry.id);
-      if (view !== null) socket.emit("view_update", view);
-      socket.to(data.roomCode).emit("opponent_reconnected");
-    });
-
-    socket.on("rematch", () => {
-      if (!myRoom || !myId) return;
-      const session = rooms.get(myRoom);
-      const bothConnected =
-        !!session?.isFull() &&
-        !!session.players.p1?.socketId &&
-        !!session.players.p2?.socketId;
-      if (!session || !bothConnected) {
-        socket.emit("error_msg", { code: "OPPONENT_GONE" });
-        return;
-      }
-      if (session.state?.phase !== "finished") return;
-      session.start();
-    });
-
-    socket.on("leave_room", () => {
-      if (!myRoom || !myId) return;
-      const session = rooms.get(myRoom);
-      // 游戏进行中(非 finished/waiting)离开 → 通知对手获胜。
-      if (session?.state && session.state.phase !== "finished") {
-        socket.to(myRoom).emit("opponent_left");
-      }
-      rooms.delete(myRoom);
-      socket.leave(myRoom);
-      myRoom = null;
-      myId = null;
-    });
-
-    socket.on("disconnect", () => {
-      if (!myRoom || !myId) return;
-      const session = rooms.get(myRoom);
-      if (session) session.markDisconnected(myId);
-      socket.to(myRoom).emit("opponent_disconnected");
-      // 计时不停:断线者的窗口会自然超时并交替给对手,对手可继续答题直至获胜。
-    });
-  });
-
-  await new Promise<void>((resolve) => http.listen(port, resolve));
-  const actualPort = (http.address() as { port: number }).port;
-
-  return {
-    port: actualPort,
-    close: async () => {
-      clearInterval(sweeper);
-      await io.close();
-    },
-  };
+  return makeServer(options)(port);
 }
 
 if (process.argv[1]?.endsWith("index.ts")) {
