@@ -118,7 +118,7 @@ status.update((s) => (s === "OPPONENT_DISCONNECTED" ? s : null));
 - Consumes: 无（这是本阶段第一块砖）
 - Produces: `dictParityIssues<D>(en: D, zh: D, opts?: ParityOptions): string[]`、`assertDictParity<D>(en: D, zh: D, opts?: ParityOptions): void`、`interface ParityOptions { sharedByDesign?: string[] }`。Task 3 的 `dict.test.ts` 和 Task 5–8 的四个 `i18n.test.ts` 都用它。
 
-- [ ] **Step 1: 建包目录与 package.json**
+- [x] **Step 1: 建包目录与 package.json**
 
 ```bash
 mkdir -p platform/client/src platform/client/test
@@ -152,7 +152,7 @@ mkdir -p platform/client/src platform/client/test
 
 `svelte` 放 devDependencies 而不是 peerDependencies：消费者（四个 client）自己都有 svelte，bundle 时从它们的树里解析；而 peer 声明会把 npm 的 peer set 加载路径拖进来，阶段 1 崩的就是那条路径（`#loadPeerSet`）。
 
-- [ ] **Step 2: tsconfig.json**
+- [x] **Step 2: tsconfig.json**
 
 抄 `platform/server/tsconfig.json`，两处不同：`lib` 要 `DOM`（用到 `localStorage` / `document` / `navigator` / `Storage`），`types` 空着（不是 node 代码）。
 
@@ -173,7 +173,7 @@ mkdir -p platform/client/src platform/client/test
 }
 ```
 
-- [ ] **Step 3: 写失败的测试**
+- [x] **Step 3: 写失败的测试**
 
 `platform/client/test/testing.test.ts`：
 
@@ -254,14 +254,14 @@ describe("assertDictParity", () => {
 });
 ```
 
-- [ ] **Step 4: 跑测试确认失败**
+- [x] **Step 4: 跑测试确认失败**
 
 Run: `npm test --workspace @tpg/client`
 Expected: FAIL —— `Failed to resolve import "../src/testing"`（文件还没建）。
 
 若报的是 `npm error Workspace not found`，说明 Step 6 的 `npm install` 还没跑；先跳到 Step 6 再回来。
 
-- [ ] **Step 5: 写实现**
+- [x] **Step 5: 写实现**
 
 `platform/client/src/testing.ts`：
 
@@ -342,7 +342,7 @@ export { assertDictParity, dictParityIssues } from "./testing";
 export type { ParityOptions } from "./testing";
 ```
 
-- [ ] **Step 6: 装进 workspace**
+- [x] **Step 6: 装进 workspace**
 
 Run: `npm install`
 Expected: 输出里有 `added ... packages`，且 `ls -la node_modules/@tpg/` 里出现 `client -> ../../platform/client` 的符号链接。
@@ -353,17 +353,17 @@ npm install && ls -l node_modules/@tpg/
 
 不要用 `--silent`：阶段 1 踩过一次，`--silent` 会把 npm 自己的报错吞掉，让基于 grep 的成功判断给出假的绿灯。
 
-- [ ] **Step 7: 跑测试确认通过**
+- [x] **Step 7: 跑测试确认通过**
 
 Run: `npm test --workspace @tpg/client`
 Expected: PASS，`Tests 9 passed (9)`。
 
-- [ ] **Step 8: typecheck**
+- [x] **Step 8: typecheck**
 
 Run: `npm run typecheck --workspace @tpg/client`
 Expected: 无输出，exit 0。
 
-- [ ] **Step 9: 四个 Dockerfile 的 deps 阶段各加一行**
+- [x] **Step 9: 四个 Dockerfile 的 deps 阶段各加一行**
 
 在 `COPY platform/server/package.json ./platform/server/` 后面插入一行。四个文件同样处理：
 
@@ -386,7 +386,7 @@ done
 
 Expected: 四行同一个哈希。
 
-- [ ] **Step 10: 验证镜像仍然能构建**
+- [x] **Step 10: 验证镜像仍然能构建**
 
 只构建 deps 阶段，几秒钟，用来证明 `npm ci` 没被新 workspace 弄坏：
 
@@ -396,7 +396,7 @@ docker build --target deps -f black-and-white/Dockerfile -t tpg-deps-check . && 
 
 Expected: 结尾打出 `deps stage OK`。
 
-- [ ] **Step 11: format + commit**
+- [x] **Step 11: format + commit**
 
 ```bash
 npx prettier --write platform/client
@@ -418,7 +418,7 @@ git commit -m "feat(platform): add @tpg/client with the dictionary parity check"
 - Consumes: 无
 - Produces: `type Lang = "en" | "zh"`、`resolveLang(saved: string | null, navigatorLang: string): Lang`、`createI18n<D extends { title: string }>(opts: { storageKey: string; dict: Record<Lang, D> }): { lang: Writable<Lang>; t: Readable<D>; toggleLang(): void }`。Task 3 的 `dict.ts` 要 `Lang`，Task 5–8 四个游戏的 `i18n.ts` 要 `createI18n`。
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 `platform/client/test/i18n.test.ts`。前四条是从四份 `i18n.test.ts` 里搬过来的（原来一模一样抄了四遍），后两条是新的：
 
@@ -475,12 +475,12 @@ describe("createI18n", () => {
 
 `toggleLang` 不测：它要写 `localStorage`，而这个包的测试跑在 node 里、没有 DOM。为它引一个 jsdom 不值得 —— 四个游戏今天也没测它，而它的逻辑就是 `lang.update` 加一次 `setItem`。浏览器验收（Task 5–8 每个游戏点一次语言开关并刷新）覆盖它。
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npm test --workspace @tpg/client`
 Expected: FAIL —— `Failed to resolve import "../src/i18n"`。
 
-- [ ] **Step 3: 写实现**
+- [x] **Step 3: 写实现**
 
 `platform/client/src/i18n.ts`。这是四份 `i18n.ts` 尾部那 40 行引擎的逐字搬迁，唯一的改动是把两个写死的常量（`STORAGE_KEY`、`dict`）变成参数：
 
@@ -545,7 +545,7 @@ export function createI18n<D extends { title: string }>(
 }
 ```
 
-- [ ] **Step 4: 加进 index.ts**
+- [x] **Step 4: 加进 index.ts**
 
 ```ts
 export { assertDictParity, dictParityIssues } from "./testing";
@@ -554,12 +554,12 @@ export { createI18n, resolveLang } from "./i18n";
 export type { I18n, I18nOptions, Lang } from "./i18n";
 ```
 
-- [ ] **Step 5: 跑测试确认通过**
+- [x] **Step 5: 跑测试确认通过**
 
 Run: `npm test --workspace @tpg/client`
 Expected: PASS，`Tests 15 passed (15)`（9 + 6）。
 
-- [ ] **Step 6: typecheck + commit**
+- [x] **Step 6: typecheck + commit**
 
 ```bash
 npm run typecheck --workspace @tpg/client
@@ -581,7 +581,7 @@ git commit -m "feat(platform): add the shared i18n engine"
 - Consumes: `Lang`（Task 2）、`dictParityIssues`（Task 1）
 - Produces: `type StatusCode = ErrorCode | "OPPONENT_DISCONNECTED"`、`type EndedCode = "OPPONENT_LEFT"`、`interface LobbyDict`（8 个 string 字段）、`const sharedStatus: Record<Lang, Record<StatusCode, string>>`、`const sharedLobby: Record<Lang, Omit<LobbyDict, "waitingOpponent">>`。Task 4 的 `roomSession.ts` 要两个 code 类型，Task 5–8 四个游戏的 `i18n.ts` 要两个 shared 常量加 `LobbyDict`。
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 `platform/client/test/dict.test.ts`：
 
@@ -624,12 +624,12 @@ describe("sharedLobby", () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npm test --workspace @tpg/client`
 Expected: FAIL —— `Failed to resolve import "../src/dict"`。
 
-- [ ] **Step 3: 写实现**
+- [x] **Step 3: 写实现**
 
 `platform/client/src/dict.ts`。`status` 的 8 条中英文案从四个游戏里逐字搬过来（en 四份 sha256 相同；zh 取 bw/fm 那份，即 `OPPONENT_DISCONNECTED` 用 `…`）；`sharedLobby` 的 7 条取各游戏现有值里该统一的那个（见文件末尾的注释）：
 
@@ -719,7 +719,7 @@ export const sharedLobby: Record<Lang, Omit<LobbyDict, "waitingOpponent">> = {
 };
 ```
 
-- [ ] **Step 4: 加进 index.ts**
+- [x] **Step 4: 加进 index.ts**
 
 ```ts
 export { assertDictParity, dictParityIssues } from "./testing";
@@ -730,12 +730,12 @@ export { sharedLobby, sharedStatus } from "./dict";
 export type { EndedCode, LobbyDict, StatusCode } from "./dict";
 ```
 
-- [ ] **Step 5: 跑测试确认通过**
+- [x] **Step 5: 跑测试确认通过**
 
 Run: `npm test --workspace @tpg/client`
 Expected: PASS，`Tests 18 passed (18)`（9 + 6 + 3）。
 
-- [ ] **Step 6: typecheck + commit**
+- [x] **Step 6: typecheck + commit**
 
 ```bash
 npm run typecheck --workspace @tpg/client
@@ -783,7 +783,7 @@ git commit -m "feat(platform): add the shared status and lobby copy"
   ```
   Task 5–8 四个游戏的 `socket.ts` 全靠它。
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 `platform/client/test/roomSession.test.ts`。20 条，覆盖 rejoin 静默失败的丢弃、storage key 的拼法、以及第 4 处 spec 修正定下的 `status` 规则：
 
@@ -1045,12 +1045,12 @@ describe("emit", () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npm test --workspace @tpg/client`
 Expected: FAIL —— `Failed to resolve import "../src/roomSession"`。
 
-- [ ] **Step 3: 写实现**
+- [x] **Step 3: 写实现**
 
 `platform/client/src/roomSession.ts`：
 
@@ -1206,7 +1206,7 @@ export function createRoomSession<V extends { phase: string }>(
 }
 ```
 
-- [ ] **Step 4: 加进 index.ts**
+- [x] **Step 4: 加进 index.ts**
 
 ```ts
 export { assertDictParity, dictParityIssues } from "./testing";
@@ -1219,12 +1219,12 @@ export { createRoomSession } from "./roomSession";
 export type { RoomSession, RoomSessionOptions, StorageLike } from "./roomSession";
 ```
 
-- [ ] **Step 5: 跑测试确认通过**
+- [x] **Step 5: 跑测试确认通过**
 
 Run: `npm test --workspace @tpg/client`
 Expected: PASS，`Tests 38 passed (38)`（9 + 6 + 3 + 20）。
 
-- [ ] **Step 6: typecheck + commit**
+- [x] **Step 6: typecheck + commit**
 
 ```bash
 npm run typecheck --workspace @tpg/client
@@ -1250,7 +1250,7 @@ git commit -m "feat(platform): add createRoomSession"
 - Consumes: `createRoomSession`、`createI18n`、`sharedLobby`、`sharedStatus`、`LobbyDict`、`EndedCode`、`Lang`、`assertDictParity`（Task 1–4）
 - Produces: `src/socket.ts` 继续导出 `view` / `review` / `roomCode` / `status` / `ended` / `createRoom` / `joinRoom` / `playCard` / `rematch` / `tryRejoin` / `leaveRoom`；`src/i18n.ts` 继续导出 `dict` / `lang` / `t` / `toggleLang` / `Dict`。名字一个都不变,所以 6 个组件不用动。
 
-- [ ] **Step 1: 加依赖**
+- [x] **Step 1: 加依赖**
 
 在 `black-and-white/packages/client/package.json` 的 `dependencies` 里,`@bw/shared` 后面加一行：
 
@@ -1262,7 +1262,7 @@ git commit -m "feat(platform): add createRoomSession"
   },
 ```
 
-- [ ] **Step 2: 重写 socket.ts**
+- [x] **Step 2: 重写 socket.ts**
 
 整份替换 `black-and-white/packages/client/src/socket.ts`：
 
@@ -1300,7 +1300,7 @@ export const rematch = () => session.emit("rematch");
 session.socket.on("game_over", (r: GameReview) => review.set(r));
 ```
 
-- [ ] **Step 3: 重写 i18n.ts 的头尾**
+- [x] **Step 3: 重写 i18n.ts 的头尾**
 
 三处改动，中间的 `table` / `review` / `chip` / `backToLobby` 词条原封不动。
 
@@ -1368,7 +1368,7 @@ export const { lang, t, toggleLang } = createI18n({
 
 原来导出的 `StatusCode` / `EndedCode` / `resolveLang` 不用再导 —— grep 过,唯一的消费者是 `socket.ts`(现在不 import 了)和 `test/i18n.test.ts`(下一步重写)。
 
-- [ ] **Step 4: 改 Lobby.svelte 里那一处 key**
+- [x] **Step 4: 改 Lobby.svelte 里那一处 key**
 
 ```bash
 perl -pi -e 's/\$t\.lobby\.sharePrompt/\$t.lobby.waitingOpponent/' black-and-white/packages/client/src/lib/Lobby.svelte
@@ -1377,7 +1377,7 @@ grep -n "waitingOpponent\|sharePrompt" black-and-white/packages/client/src/lib/L
 
 Expected: 一行 `waitingOpponent`，没有 `sharePrompt`。
 
-- [ ] **Step 5: 重写 i18n.test.ts**
+- [x] **Step 5: 重写 i18n.test.ts**
 
 整份替换 `black-and-white/packages/client/test/i18n.test.ts`：
 
@@ -1395,7 +1395,7 @@ describe("dictionary", () => {
 
 `resolveLang` 那 4 条不在这里了 —— 它现在只有一份实现,在 `platform/client/test/i18n.test.ts` 里测一次。
 
-- [ ] **Step 6: 装依赖并跑测试**
+- [x] **Step 6: 装依赖并跑测试**
 
 ```bash
 npm install
@@ -1406,12 +1406,12 @@ Expected: `Tests 1 passed (1)`。
 
 若 parity 报错，按它给出的路径改（最可能是 `lobby.*` 某个 key 中英都还留着英文）。
 
-- [ ] **Step 7: svelte-check**
+- [x] **Step 7: svelte-check**
 
 Run: `npm run check --workspace @bw/client`
 Expected: `svelte-check found 0 errors and 0 warnings`。
 
-- [ ] **Step 8: 服务器集成测试没被碰**
+- [x] **Step 8: 服务器集成测试没被碰**
 
 抽取只动 client，server 那 19 条必须原样通过：
 
@@ -1422,7 +1422,7 @@ git diff --stat black-and-white/packages/server
 
 Expected: `Tests 19 passed (19)`；diff 为空。
 
-- [ ] **Step 9: 浏览器里真打一局**
+- [x] **Step 9: 浏览器里真打一局**
 
 svelte-check 抓不到运行时的接线错误，这一步是唯一的判据。
 
@@ -1458,7 +1458,7 @@ s.on("error_msg", (e) => console.log("p2 error:", e.code));
 5. 点语言开关切到英文，刷新后还是英文（证明 `bw_lang` 没变）
 6. 控制台没有 error
 
-- [ ] **Step 10: format + commit**
+- [x] **Step 10: format + commit**
 
 ```bash
 npx prettier --write black-and-white/packages/client
@@ -1483,7 +1483,7 @@ fm 的特别之处：状态由计时器推进，`view_update` 里有个回合结
 - Consumes: 同 Task 5
 - Produces: `src/socket.ts` 继续导出 `view` / `roomCode` / `status` / `ended` / `roundResult` / `createRoom` / `joinRoom` / `buzz` / `ready` / `selectCell` / `rematch` / `tryRejoin` / `leaveRoom`
 
-- [ ] **Step 1: 加依赖**
+- [x] **Step 1: 加依赖**
 
 ```json
   "dependencies": {
@@ -1493,7 +1493,7 @@ fm 的特别之处：状态由计时器推进，`view_update` 里有个回合结
   },
 ```
 
-- [ ] **Step 2: 重写 socket.ts**
+- [x] **Step 2: 重写 socket.ts**
 
 整份替换 `flip-math/packages/client/src/socket.ts`：
 
@@ -1559,7 +1559,7 @@ export const selectCell = (index: number) =>
 export const rematch = () => session.emit("rematch");
 ```
 
-- [ ] **Step 3: 重写 i18n.ts 的头尾**
+- [x] **Step 3: 重写 i18n.ts 的头尾**
 
 **头部**（替换第 1–13 行）：
 
@@ -1621,7 +1621,7 @@ export const { lang, t, toggleLang } = createI18n({
 });
 ```
 
-- [ ] **Step 4: 重写 i18n.test.ts**
+- [x] **Step 4: 重写 i18n.test.ts**
 
 ```ts
 import { describe, it } from "vitest";
@@ -1635,7 +1635,7 @@ describe("dictionary", () => {
 });
 ```
 
-- [ ] **Step 5: 装依赖并跑测试**
+- [x] **Step 5: 装依赖并跑测试**
 
 ```bash
 npm install
@@ -1647,12 +1647,12 @@ Expected: client `Tests 1 passed (1)`；server `Tests 9 passed (9)`。
 
 fm 那 9 条 server 测试是计时驱动的，它们能证明服务器那半没被动过。
 
-- [ ] **Step 6: svelte-check**
+- [x] **Step 6: svelte-check**
 
 Run: `npm run check --workspace @fm/client`
 Expected: `0 errors and 0 warnings`。
 
-- [ ] **Step 7: 浏览器验收 —— 顺带验 status 规则**
+- [x] **Step 7: 浏览器验收 —— 顺带验 status 规则**
 
 fm 是四个游戏里唯一能在浏览器里看出 Task 4 那条 `status` 规则的：它的状态由计时器推进，每次转移都发视图。
 
@@ -1669,7 +1669,7 @@ npx vite --port 5174 --strictPort --host 127.0.0.1
 4. 刷新页面能回到局里（`fm_token` / `fm_room` 没变）
 5. 控制台没有 error
 
-- [ ] **Step 8: format + commit**
+- [x] **Step 8: format + commit**
 
 ```bash
 npx prettier --write flip-math/packages/client
@@ -1694,7 +1694,7 @@ git commit -m "refactor(flip-math): run the client on @tpg/client"
 - Consumes: 同 Task 5
 - Produces: `src/socket.ts` 继续导出 `view` / `roomCode` / `status` / `ended` / `createRoom` / `joinRoom` / `playCard` / `rematch` / `tryRejoin` / `leaveRoom`
 
-- [ ] **Step 1: 加依赖**
+- [x] **Step 1: 加依赖**
 
 ```json
   "dependencies": {
@@ -1704,7 +1704,7 @@ git commit -m "refactor(flip-math): run the client on @tpg/client"
   },
 ```
 
-- [ ] **Step 2: 重写 socket.ts**
+- [x] **Step 2: 重写 socket.ts**
 
 整份替换 `add-to-fifty/packages/client/src/socket.ts`：
 
@@ -1732,7 +1732,7 @@ export const rematch = () => session.emit("rematch");
 
 原来的 `ended` 清理（`if (next.phase !== "finished") ended.set(null)`）现在由框架做，逐字相同的条件。
 
-- [ ] **Step 3: 重写 i18n.ts 的头尾**
+- [x] **Step 3: 重写 i18n.ts 的头尾**
 
 **头部**（替换第 1–13 行）：
 
@@ -1796,7 +1796,7 @@ export const { lang, t, toggleLang } = createI18n({
 });
 ```
 
-- [ ] **Step 4: 重写 i18n.test.ts**
+- [x] **Step 4: 重写 i18n.test.ts**
 
 a2f 的 `SHARED_BY_DESIGN` 有两条，要带上：
 
@@ -1817,7 +1817,7 @@ describe("dictionary", () => {
 });
 ```
 
-- [ ] **Step 5: 装依赖并跑测试**
+- [x] **Step 5: 装依赖并跑测试**
 
 ```bash
 npm install
@@ -1827,12 +1827,12 @@ npm test --workspace @add-to-fifty/server
 
 Expected: client `Tests 1 passed (1)`；server `Tests 6 passed (6)`。
 
-- [ ] **Step 6: svelte-check**
+- [x] **Step 6: svelte-check**
 
 Run: `npm run check --workspace @add-to-fifty/client`
 Expected: `0 errors and 0 warnings`。
 
-- [ ] **Step 7: 浏览器验收**
+- [x] **Step 7: 浏览器验收**
 
 ```bash
 npx vite --port 5175 --strictPort --host 127.0.0.1
@@ -1846,7 +1846,7 @@ npx vite --port 5175 --strictPort --host 127.0.0.1
 
 顺带看一眼房间码输入框的 placeholder ——`sharedLobby` 的 `codePlaceholder` 和 a2f 原值相同（"Room code" / "房间码"），这一栏应当看不出变化。
 
-- [ ] **Step 8: format + commit**
+- [x] **Step 8: format + commit**
 
 ```bash
 npx prettier --write add-to-fifty/packages/client
@@ -1872,7 +1872,7 @@ tp 的大厅词条用的是另一套名字（`create` / `dissolve` / `waiting`�
 - Consumes: 同 Task 5
 - Produces: `src/socket.ts` 继续导出 `view` / `roomCode` / `status` / `ended` / `createRoom` / `joinRoom` / `act` / `nextHand` / `restartMatch` / `updateSettings` / `tryRejoin` / `leaveRoom`
 
-- [ ] **Step 1: 加依赖**
+- [x] **Step 1: 加依赖**
 
 ```json
   "dependencies": {
@@ -1882,7 +1882,7 @@ tp 的大厅词条用的是另一套名字（`create` / `dissolve` / `waiting`�
   },
 ```
 
-- [ ] **Step 2: 重写 socket.ts**
+- [x] **Step 2: 重写 socket.ts**
 
 整份替换 `texas-poker/packages/client/src/socket.ts`：
 
@@ -1918,7 +1918,7 @@ export const updateSettings = (
 
 tp 原来在 `view_update` 里那句无条件的 `status.set(null)` 没了 —— 框架换成了只清操作报错、留住 `OPPONENT_DISCONNECTED` 的版本（本计划开头第 4 处修正）。
 
-- [ ] **Step 3: 重写 i18n.ts 的头尾**
+- [x] **Step 3: 重写 i18n.ts 的头尾**
 
 **头部**（替换第 1–13 行,注意 tp 多一个 `GuideKey`，还要留着 `HandCategory` 的 import）：
 
@@ -1992,7 +1992,7 @@ export const { lang, t, toggleLang } = createI18n({
 });
 ```
 
-- [ ] **Step 4: 改 Lobby.svelte 的 5 处引用**
+- [x] **Step 4: 改 Lobby.svelte 的 5 处引用**
 
 `texas-poker/packages/client/src/lib/Lobby.svelte` 里 `$: copy = $t.lobby` 这个别名留着，改的是键名：
 
@@ -2016,7 +2016,7 @@ Expected: `$t.title`、`$t.subtitle`、`copy.roomCode`、`copy.waitingOpponent`�
 
 perl 的正则里 `|` 别当分隔符 —— 阶段 1 踩过一次，`s|...|...|` 碰上内容里的 `on:click|self` 会截断，把改动落到别的地方。上面用的是默认的 `/`。
 
-- [ ] **Step 5: 重写 i18n.test.ts**
+- [x] **Step 5: 重写 i18n.test.ts**
 
 ```ts
 import { describe, it } from "vitest";
@@ -2033,7 +2033,7 @@ describe("dictionary", () => {
 });
 ```
 
-- [ ] **Step 6: 装依赖并跑测试**
+- [x] **Step 6: 装依赖并跑测试**
 
 ```bash
 npm install
@@ -2043,14 +2043,14 @@ npm test --workspace @texas-poker/server
 
 Expected: client `Tests 1 passed (1)`；server `Tests 8 passed (8)`。
 
-- [ ] **Step 7: svelte-check**
+- [x] **Step 7: svelte-check**
 
 Run: `npm run check --workspace @texas-poker/client`
 Expected: `0 errors and 0 warnings`。
 
 这一步是 Step 4 那 5 处改名的判据：漏改一处，`copy.waiting` 之类就是 `Property 'waiting' does not exist`。
 
-- [ ] **Step 8: 浏览器验收**
+- [x] **Step 8: 浏览器验收**
 
 ```bash
 npx vite --port 5176 --strictPort --host 127.0.0.1
@@ -2064,7 +2064,7 @@ npx vite --port 5176 --strictPort --host 127.0.0.1
 5. 刷新页面能回到牌局（`texas_poker_token` / `texas_poker_room` 没变）
 6. 控制台没有 error
 
-- [ ] **Step 9: format + commit**
+- [x] **Step 9: format + commit**
 
 ```bash
 npx prettier --write texas-poker/packages/client
@@ -2081,7 +2081,7 @@ git commit -m "refactor(texas-poker): run the client on @tpg/client"
 - Modify: `docs/superpowers/plans/2026-09-16-platform-client-phase-4.md`（勾完 checkbox）
 - Modify: `docs/superpowers/specs/2026-09-16-platform-extraction-design.md`（把开头那五处修正写回 spec 的 4.1–4.4）
 
-- [ ] **Step 1: 全量测试**
+- [x] **Step 1: 全量测试**
 
 Run: `npm test --workspaces --if-present`
 Expected: 214 个全过。分布：
@@ -2100,7 +2100,7 @@ Expected: 214 个全过。分布：
 
 数不对就先定位是哪个包，别急着改数字 —— 这张表是算出来的，对不上说明有测试没跑或者被漏掉了。
 
-- [ ] **Step 2: 四个 svelte-check**
+- [x] **Step 2: 四个 svelte-check**
 
 ```bash
 for w in @bw/client @fm/client @add-to-fifty/client @texas-poker/client; do
@@ -2110,7 +2110,7 @@ done
 
 Expected: 四个都 `0 errors and 0 warnings`。
 
-- [ ] **Step 3: 三个 platform 包 typecheck**
+- [x] **Step 3: 三个 platform 包 typecheck**
 
 ```bash
 for w in @tpg/protocol @tpg/client @tpg/server; do
@@ -2120,7 +2120,7 @@ done
 
 Expected: 三个都 `OK`。
 
-- [ ] **Step 4: 四个镜像完整构建**
+- [x] **Step 4: 四个镜像完整构建**
 
 ```bash
 for g in black-and-white:bw flip-math:flip add-to-fifty:a2f texas-poker:tp; do
@@ -2132,7 +2132,7 @@ done
 
 Expected: 八行 `OK`。web 阶段会跑 `vite build`，所以它同时在验 `@tpg/client` 的 TS 能被生产构建编译 —— 这是 svelte-check 之外的第二道类型关。
 
-- [ ] **Step 5: 容器里起一遍并握手**
+- [x] **Step 5: 容器里起一遍并握手**
 
 ```bash
 for g in black-and-white flip-math add-to-fifty texas-poker; do
@@ -2157,7 +2157,7 @@ Expected: 返回体里有 `"sid"`。
 for g in black-and-white flip-math add-to-fifty texas-poker; do ( cd "$g" && docker compose down ); done
 ```
 
-- [ ] **Step 6: 把五处修正写回 spec**
+- [x] **Step 6: 把五处修正写回 spec**
 
 Task 1–8 是按本计划开头那五处修正做的，spec 的 4.1–4.4 还是旧说法。改 spec：
 
@@ -2167,21 +2167,21 @@ Task 1–8 是按本计划开头那五处修正做的，spec 的 4.1–4.4 还�
 4. 4.1 的 bw 示例补上 `ended` 由框架清（`phase !== "finished"`），并写上为什么这不改 bw 的行为。
 5. 4.1 的 `RoomSessionOptions` 补上 `socket` / `storage` 两个测试注入口，注明为什么不引 jsdom。
 
-- [ ] **Step 7: 勾完 checkbox 并提交**
+- [x] **Step 7: 勾完 checkbox 并提交**
 
 ```bash
 git add docs/superpowers
 git commit -m "docs: mark phase 4 complete, correct the spec's client section"
 ```
 
-- [ ] **Step 8: 合回 main**
+- [x] **Step 8: 合回 main**
 
 ```bash
 git checkout main
 git merge --no-ff platform-client -m "Merge branch 'platform-client': extract the client session layer into @tpg/client"
 ```
 
-- [ ] **Step 9: merge 后在 main 上复验**
+- [x] **Step 9: merge 后在 main 上复验**
 
 ```bash
 npm test --workspaces --if-present 2>&1 | grep -c "passed"
