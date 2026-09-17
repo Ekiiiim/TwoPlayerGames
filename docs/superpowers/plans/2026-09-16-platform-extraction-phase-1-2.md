@@ -28,6 +28,28 @@ Tailwind CSS v4 ｜ Socket.IO 4 ｜ Node 22 + tsx
   `tsx` `^4.7.0`。
 - **Node 下限 `>=22.12`**（Vite 8 的 engines 是 `^20.19.0 || >=22.12.0`）。
   本机 v22.14.0，Docker 基镜像 `node:22-alpine`，都满足。
+- **npm 下限 `>=11`（本机）。** npm 10.9.2 在这个依赖图上必崩，报
+  `Cannot read properties of null (reading 'edgesOut')`，位置是 arborist 的
+  `#loadPeerSet`。触发条件是规模：单个游戏三个包能装，12 个包必崩，和版本是否
+  对齐无关。已于 2026-09-16 全局升到 npm 11.19.1。
+  **Docker 不受影响**——`npm ci` 只做 lockfile reification，不走崩溃那条
+  ideal-tree 代码路径；实测 npm 10.9.2 对 npm 11 生成的 lockfile 跑 `npm ci`
+  正常，lockfileVersion 仍是 3。所以 `node:22-alpine` 自带的 npm 10 不用动。
+- **实际解析到的版本**（npm 11 装出来，都在上面的 caret 范围内）：
+  svelte 5.57.0、vite 8.3.0、vitest 4.1.11、svelte-check 4.7.6、
+  `@sveltejs/vite-plugin-svelte` 7.3.0、svelte-preprocess 6.0.5。
+  texas-poker 原本锁在 svelte 5.56.8 / vite 8.2.0，Task 5 之后会跟着升到这一组。
+- **每个 client 都要一份 `svelte.config.js`，内容四份相同。** svelte 5.57 起
+  编译器默认走 runes 模式，而 runes 模式禁止 `$` 前缀变量名，于是所有
+  `$t` / `$lang` / `$ended` 这类 store 自动订阅全部报
+  `illegal variable name`。写死 `compilerOptions: { runes: false }`，不要依赖
+  默认值。（这四份相同的配置在阶段 5 由 `platform/build` 收走。）
+- **每个 client 的 tsconfig 都要 `"verbatimModuleSyntax": true`。**
+  svelte-check 4.7.6 对带 `lang="ts"` 的 `.svelte` 文件强制要求这一项，
+  否则每次运行都打印一条提示。
+- **svelte-check 抓不到 `new App(...)`。** 实测 black-and-white 迁移前
+  svelte-check 是 0 errors，但运行时 Svelte 5 会抛
+  `component_api_invalid_new`。所以浏览器验证不是锦上添花，是唯一的判据。
 - **Baseline**：151 个测试全过（black-and-white 45、flip-math 52、
   add-to-fifty 23、texas-poker 31），四个 `svelte-check` 各 0 errors 0 warnings。
   任何 task 结束时必须仍是这个数字或更多。
@@ -99,14 +121,14 @@ Tailwind CSS v4 ｜ Socket.IO 4 ｜ Node 22 + tsx
 - Produces: `Hand.svelte` 的 prop 从 `on:select` 事件变成
   `onSelect: (card: number) => void`。后续任何改 `Hand` 的 task 用这个签名。
 
-- [ ] **Step 1: 记下 baseline 数字**
+- [x] **Step 1: 记下 baseline 数字**
 
 Run: `npm --prefix black-and-white test 2>&1 | grep -E "Tests "`
 
 Expected：三行，分别是 6 passed、19 passed、20 passed（合计 45）。
 记下来，Step 6 要对比。
 
-- [ ] **Step 2: 升级 client 的 package.json**
+- [x] **Step 2: 升级 client 的 package.json**
 
 把 `black-and-white/packages/client/package.json` 的 `devDependencies` 整块替换为：
 
@@ -126,11 +148,11 @@ Expected：三行，分别是 6 passed、19 passed、20 passed（合计 45）。
 
 `dependencies`（`@bw/shared`、`socket.io-client`）不动。
 
-- [ ] **Step 3: 升级 server 与 shared 的 package.json**
+- [x] **Step 3: 升级 server 与 shared 的 package.json**
 
 两个文件里的 `"vitest": "^1.6.0"` 都改成 `"vitest": "^4.1.10"`。其余不动。
 
-- [ ] **Step 4: 安装**
+- [x] **Step 4: 安装**
 
 Run: `npm --prefix black-and-white install`
 Expected：安装成功。装完确认版本：
@@ -141,16 +163,19 @@ node -p "require('/Users/chengminyu/Desktop/TwoPlayerGames/black-and-white/node_
 
 Expected：`5.56.8`（或更高的 5.x）。
 
-- [ ] **Step 5: 跑 svelte-check，看它报出 Svelte 5 的 API 破坏**
+- [x] **Step 5: 跑 svelte-check，看它报出什么**
 
 Run: `npm --prefix black-and-white run check --workspace @bw/client`
-Expected：**FAIL**。`src/main.ts` 会因为 `new App(...)` 报错——Svelte 5 的组件类型
-是函数而不是 class，`new` 不再合法。这一步的目的就是让它先失败，确认破坏点确实
-被静态检查捕获，而不是留到运行时。
 
-把报错原文记下来。
+**实际结果（2026-09-16）**：FAIL，但不是 `new App(...)`——是 6 处
+`$t` / `$lang` / `$ended` 报 `illegal variable name`，因为 svelte 5.57 默认走
+runes 模式。修法见 Global Constraints 里的 `svelte.config.js`。修完这 6 条之后
+还剩一条新增的 a11y 警告（`Table.svelte` 的 `role="dialog"` 元素缺 `tabindex`），
+补 `tabindex="-1"`。
 
-- [ ] **Step 6: 跑测试，确认 Vitest 4 没有破坏现有测试**
+`new App(...)` 全程没有被 svelte-check 报出来——它只在浏览器运行时炸。
+
+- [x] **Step 6: 跑测试，确认 Vitest 4 没有破坏现有测试**
 
 Run: `npm --prefix black-and-white test 2>&1 | grep -E "Tests |FAIL"`
 Expected：仍是 6 + 19 + 20 = 45 passed。
@@ -158,7 +183,7 @@ Expected：仍是 6 + 19 + 20 = 45 passed。
 这些测试只用 `describe`/`it`/`expect`/`afterEach`，没有 `vi.*`、没有 fake timers、
 没有 `vitest.config.*`，所以 Vitest 1 → 4 对它们是零影响。真跑一遍确认这个判断。
 
-- [ ] **Step 7: 迁移入口到 mount()**
+- [x] **Step 7: 迁移入口到 mount()**
 
 `black-and-white/packages/client/src/main.ts` 整个替换为：
 
@@ -172,7 +197,7 @@ const app = mount(App, { target: document.getElementById("app")! });
 export default app;
 ```
 
-- [ ] **Step 8: 把 Hand 的组件事件改成回调 prop**
+- [x] **Step 8: 把 Hand 的组件事件改成回调 prop**
 
 `black-and-white/packages/client/src/lib/Hand.svelte` 的 `<script>` 开头四行
 （`import { createEventDispatcher }`、`const dispatch = ...`、`handleClick` 的
@@ -196,7 +221,7 @@ export default app;
 
 `base`、`cls()` 和下面的 markup 一行不动。
 
-- [ ] **Step 9: 让 Table 接住回调**
+- [x] **Step 9: 让 Table 接住回调**
 
 `black-and-white/packages/client/src/lib/Table.svelte:91-93`，把
 
@@ -233,7 +258,7 @@ export default app;
       <Hand cards={view.myHand} {myTurn} selected={selectedCard} {onSelect} />
 ```
 
-- [ ] **Step 10: svelte-check 必须回到全绿**
+- [x] **Step 10: svelte-check 必须回到全绿**
 
 Run: `npm --prefix black-and-white run check --workspace @bw/client`
 Expected：`svelte-check found 0 errors and 0 warnings`
@@ -241,7 +266,7 @@ Expected：`svelte-check found 0 errors and 0 warnings`
 如果还有 error，逐条修；不要放过 warning——baseline 是 0 warnings，
 放过一条就失去了「有没有引入新问题」的判据。
 
-- [ ] **Step 11: 浏览器验证大厅真的渲染**
+- [x] **Step 11: 浏览器验证大厅真的渲染**
 
 测试不 mount 任何组件，所以这一步是 Svelte 5 升级唯一的真实证据。
 
@@ -259,7 +284,7 @@ Expected：`svelte-check found 0 errors and 0 warnings`
 3. 点「创建房间」不需要做——没有服务器它不会有反应，而大厅渲染出来已经证明
    `mount()` 和整条组件树编译通过。
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add black-and-white/packages/client/package.json \
@@ -315,14 +340,47 @@ Expected：6 passed、9 passed、37 passed（合计 52）。
 
 两个文件里的 `"vitest": "^1.6.0"` 改成 `"vitest": "^4.1.10"`。
 
+- [ ] **Step 3b: 建 svelte.config.js**
+
+Create `flip-math/packages/client/svelte.config.js`（和 black-and-white 那份
+逐字相同）：
+
+```js
+import preprocess from "svelte-preprocess";
+
+export default {
+  preprocess: preprocess(),
+  // 这些组件是 Svelte 4 时代的写法:export let + $store 自动订阅。
+  // Svelte 5.57 起编译器默认走 runes 模式,而 runes 模式禁止 $ 前缀变量名,
+  // 于是 $t / $lang 全部报 illegal variable name。写死 runes: false 而不是
+  // 依赖默认值,免得下一个小版本再翻一次。
+  compilerOptions: { runes: false },
+};
+```
+
+- [ ] **Step 3c: tsconfig 加 verbatimModuleSyntax**
+
+`flip-math/packages/client/tsconfig.json` 的 `compilerOptions` 加一项
+`"verbatimModuleSyntax": true`。svelte-check 4.7.6 对带 `lang="ts"` 的
+`.svelte` 文件强制要求它。
+
 - [ ] **Step 4: 安装**
 
-Run: `npm --prefix flip-math install`
+Run: `cd flip-math && npm install && cd ..`
 
-- [ ] **Step 5: svelte-check 应当报出 new App 的错**
+需要 npm >= 11，见 Global Constraints。
 
-Run: `npm --prefix flip-math run check --workspace @fm/client`
-Expected：FAIL，`src/main.ts` 的 `new App(...)`。
+- [ ] **Step 5: svelte-check，收集要修的问题**
+
+Run: `npm --prefix flip-math run check --workspace @fm/client 2>&1 | grep -E "ERROR|WARNING|COMPLETED"`
+
+预期会看到新版本带来的 a11y 警告（black-and-white 那边是一条
+`a11y_interactive_supports_focus`——`role="dialog"` 的元素要有 `tabindex`）。
+baseline 是 0 errors 0 warnings，所以警告也要修掉，否则就失去了「有没有引入新
+问题」的判据。
+
+注意：**`new App(...)` 不会出现在这里**，svelte-check 抓不到它。它只在浏览器
+运行时炸。
 
 - [ ] **Step 6: 跑测试**
 
@@ -410,14 +468,38 @@ Expected：6 passed、6 passed、11 passed（合计 23）。
 
 两个文件里的 `"vitest": "^1.6.0"` 改成 `"vitest": "^4.1.10"`。
 
+- [ ] **Step 3b: 建 svelte.config.js**
+
+Create `add-to-fifty/packages/client/svelte.config.js`（和前两个游戏逐字相同）：
+
+```js
+import preprocess from "svelte-preprocess";
+
+export default {
+  preprocess: preprocess(),
+  // 这些组件是 Svelte 4 时代的写法:export let + $store 自动订阅。
+  // Svelte 5.57 起编译器默认走 runes 模式,而 runes 模式禁止 $ 前缀变量名,
+  // 于是 $t / $lang 全部报 illegal variable name。写死 runes: false 而不是
+  // 依赖默认值,免得下一个小版本再翻一次。
+  compilerOptions: { runes: false },
+};
+```
+
+- [ ] **Step 3c: tsconfig 加 verbatimModuleSyntax**
+
+`add-to-fifty/packages/client/tsconfig.json` 的 `compilerOptions` 加一项
+`"verbatimModuleSyntax": true`。
+
 - [ ] **Step 4: 安装**
 
-Run: `npm --prefix add-to-fifty install`
+Run: `cd add-to-fifty && npm install && cd ..`
 
-- [ ] **Step 5: svelte-check 应当报出 new App 的错**
+- [ ] **Step 5: svelte-check，收集要修的问题**
 
-Run: `npm --prefix add-to-fifty run check --workspace @add-to-fifty/client`
-Expected：FAIL，`src/main.ts` 的 `new App(...)`。
+Run: `npm --prefix add-to-fifty run check --workspace @add-to-fifty/client 2>&1 | grep -E "ERROR|WARNING|COMPLETED"`
+
+预期会有新版本带来的 a11y 警告要修（baseline 是 0 errors 0 warnings）。
+`new App(...)` 不会出现在这里。
 
 - [ ] **Step 6: 跑测试**
 
@@ -531,9 +613,35 @@ Expected：6 passed、8 passed、17 passed（合计 31）。
 整块删掉 `dependencies`（里面只有 `svelte` 和 `vite`）。`@texas-poker/shared`
 是纯 TS 规则引擎，没有运行时依赖。
 
+- [ ] **Step 4b: 建 svelte.config.js**
+
+texas-poker 现在锁在 svelte 5.56.8，还没有 runes 默认值的问题。但 Task 5 的根
+安装会把它解析到 5.57.0，那时它和另外三个一样会全线报
+`illegal variable name`。所以现在就补上，别等 Task 5 再回头查。
+
+Create `texas-poker/packages/client/svelte.config.js`（和另外三个逐字相同）：
+
+```js
+import preprocess from "svelte-preprocess";
+
+export default {
+  preprocess: preprocess(),
+  // 这些组件是 Svelte 4 时代的写法:export let + $store 自动订阅。
+  // Svelte 5.57 起编译器默认走 runes 模式,而 runes 模式禁止 $ 前缀变量名,
+  // 于是 $t / $lang 全部报 illegal variable name。写死 runes: false 而不是
+  // 依赖默认值,免得下一个小版本再翻一次。
+  compilerOptions: { runes: false },
+};
+```
+
+- [ ] **Step 4c: tsconfig 加 verbatimModuleSyntax**
+
+`texas-poker/packages/client/tsconfig.json` 的 `compilerOptions` 加一项
+`"verbatimModuleSyntax": true`。
+
 - [ ] **Step 5: 重装并跑测试**
 
-Run: `npm --prefix texas-poker install && npm --prefix texas-poker test 2>&1 | grep -E "Tests |FAIL"`
+Run: `cd texas-poker && npm install && cd .. && npm --prefix texas-poker test 2>&1 | grep -E "Tests |FAIL"`
 Expected：仍是 31 passed。
 
 - [ ] **Step 6: svelte-check 与构建都要绿**
