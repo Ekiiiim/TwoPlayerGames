@@ -1,16 +1,15 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { colorOf } from "@bw/shared";
 
   export let cards: number[];
   export let myTurn: boolean;
   export let selected: number | null = null;
-
-  const dispatch = createEventDispatcher<{ select: number }>();
+  // Svelte 5 弃用了组件事件派发,回调 prop 是等价且受类型检查的写法。
+  export let onSelect: (card: number) => void;
 
   function handleClick(c: number): void {
     if (!myTurn) return;
-    dispatch("select", c);
+    onSelect(c);
   }
 
   const base =
