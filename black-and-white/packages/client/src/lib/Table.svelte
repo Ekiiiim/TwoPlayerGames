@@ -3,7 +3,7 @@
   import type { ClientView } from "@bw/shared";
   import Hand from "./Hand.svelte";
   import Chip from "./Chip.svelte";
-  import Button from "./Button.svelte";
+  import { Button } from "@tpg/ui";
   import { status, playCard, leaveRoom } from "../socket";
   import { t } from "../i18n";
 

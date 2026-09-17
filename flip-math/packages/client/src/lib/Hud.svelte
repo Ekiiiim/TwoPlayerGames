@@ -3,7 +3,7 @@
   import { onDestroy } from "svelte";
   import { buzz, ready, leaveRoom } from "../socket";
   import { t } from "../i18n";
-  import Button from "./Button.svelte";
+  import { Button } from "@tpg/ui";
   export let view: ClientView;
 
   let remaining = 0;

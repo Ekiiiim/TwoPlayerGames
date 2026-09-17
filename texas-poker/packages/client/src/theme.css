@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Tailwind 默认跳过 node_modules,而 @tpg/ui 是符号链接进来的。
+   漏了这行,共享组件的 class 一条都不生成 —— 而且构建不报错。 */
+@source "../../../../platform/ui/src";
+
 @theme {
   --color-bg: #10171f;
   --color-felt: #1d4d36;
@@ -47,6 +51,22 @@
       transform: translateY(0) scale(1);
     }
   }
+}
+
+/* 共享组件(@tpg/ui)的 token 契约。注意 --color-ui-ink 不是 --color-ink:
+   大厅面板是绿毡(felt),上面的字是奶油色;--color-ink 那个近黑色是给
+   奶油色牌面用的,写到大厅上会看不见。 */
+@theme {
+  --color-ui-surface: var(--color-felt);
+  --color-ui-ink: var(--color-felt-text);
+  --color-ui-muted: var(--color-gold-muted);
+  --color-ui-accent: var(--color-gold);
+  --color-ui-accent-ink: var(--color-ink);
+  --color-ui-line: rgba(217, 178, 91, 0.25);
+  --color-ui-danger: var(--color-danger);
+  --radius-ui-panel: 12px;
+  --radius-ui-control: 8px;
+  --shadow-ui-panel: 0 18px 50px rgba(0, 0, 0, 0.35);
 }
 
 @layer base {

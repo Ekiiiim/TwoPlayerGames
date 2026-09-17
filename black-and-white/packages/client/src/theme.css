@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Tailwind 默认跳过 node_modules,而 @tpg/ui 是符号链接进来的。
+   漏了这行,共享组件的 class 一条都不生成 —— 而且构建不报错。 */
+@source "../../../../platform/ui/src";
+
 /* ── 黑与白 · Classic Felt Table 设计 token ──
    在 @theme 里声明的 --color-* / --font-* 会自动生成对应工具类，
    例如 --color-felt → bg-felt / text-felt / border-felt。 */
@@ -55,6 +59,22 @@
 }
 
 /* Tailwind 的 preflight 已处理 box-sizing / margin 重置；这里只补页面级背景。 */
+/* 共享组件(@tpg/ui)的 token 契约。值指向本游戏已有的颜色,所以改
+   --color-gold 之类,共享组件跟着一起变。 */
+@theme {
+  --color-ui-surface: var(--color-felt);
+  --color-ui-ink: var(--color-felt-text);
+  --color-ui-muted: var(--color-gold-muted);
+  --color-ui-accent: var(--color-gold);
+  --color-ui-accent-ink: var(--color-btn-primary-text);
+  --color-ui-line: rgba(217, 178, 91, 0.2);
+  /* 大厅报错行用的一直是 text-lose 而不是 danger,保持原样。 */
+  --color-ui-danger: var(--color-lose);
+  --radius-ui-panel: 20px;
+  --radius-ui-control: 8px;
+  --shadow-ui-panel: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
 @layer base {
   html,
   body {

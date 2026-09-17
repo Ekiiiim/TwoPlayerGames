@@ -2,7 +2,7 @@
   import type { ClientView } from "@add-to-fifty/shared";
   import { leaveRoom, rematch } from "../socket";
   import { t } from "../i18n";
-  import Button from "./Button.svelte";
+  import { Button } from "@tpg/ui";
 
   export let view: ClientView;
 </script>

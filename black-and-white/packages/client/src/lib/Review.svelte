@@ -3,7 +3,7 @@
   import { rematch, leaveRoom, status } from "../socket";
   import { t } from "../i18n";
   import Chip from "./Chip.svelte";
-  import Button from "./Button.svelte";
+  import { Button } from "@tpg/ui";
 
   export let review: GameReview;
 

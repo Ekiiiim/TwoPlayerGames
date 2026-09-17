@@ -1,15 +1,23 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
-  import { view, ended, roundResult, tryRejoin, leaveRoom } from "./socket";
-  import { t } from "./i18n";
-  import Lobby from "./lib/Lobby.svelte";
+  import { Button, LangToggle, Lobby } from "@tpg/ui";
+  import {
+    view,
+    ended,
+    roomCode,
+    status,
+    roundResult,
+    createRoom,
+    joinRoom,
+    tryRejoin,
+    leaveRoom,
+  } from "./socket";
+  import { lang, t, toggleLang } from "./i18n";
   import Board from "./lib/Board.svelte";
   import Hud from "./lib/Hud.svelte";
   import Selection from "./lib/Selection.svelte";
   import GameOver from "./lib/GameOver.svelte";
-  import Button from "./lib/Button.svelte";
-  import LangToggle from "./lib/LangToggle.svelte";
 
   onMount(tryRejoin);
 </script>
@@ -27,7 +35,7 @@
   </div>
 {/if}
 
-<LangToggle />
+<LangToggle lang={$lang} onToggle={toggleLang} />
 
 <div
   class="flex min-h-screen w-full flex-col items-center justify-center gap-6"
@@ -63,6 +71,15 @@
       {/if}
     </div>
   {:else}
-    <Lobby />
+    <!-- flip-math 没有副标题,subtitle 不传,组件就不渲染那一行 -->
+    <Lobby
+      title={$t.title}
+      copy={$t.lobby}
+      statusText={$status ? $t.status[$status] : null}
+      roomCode={$roomCode}
+      onCreate={createRoom}
+      onJoin={joinRoom}
+      onClose={leaveRoom}
+    />
   {/if}
 </div>
