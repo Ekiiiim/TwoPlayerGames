@@ -62,7 +62,7 @@ reverse_proxy {$GAME_SERVER:GAME_SERVER-IS-UNSET:3001}
 - Delete: `black-and-white/Dockerfile`、`flip-math/Dockerfile`、`add-to-fifty/Dockerfile`、`texas-poker/Dockerfile`
 - Modify: 四个 `docker-compose.yml`、`.dockerignore`
 
-- [ ] **Step 1: 写合并版**
+- [x] **Step 1: 写合并版**
 
 `platform/deploy/Dockerfile`。web stage 这一步仍然 COPY 各游戏自己的 `web/Caddyfile`——Caddyfile 的合并是 Task 2，这样两个 task 各自能独立验证。
 
@@ -131,7 +131,7 @@ EXPOSE 3001
 CMD npm run start --workspace ${SCOPE}/server
 ```
 
-- [ ] **Step 2: 四个 compose 改 build 段**
+- [x] **Step 2: 四个 compose 改 build 段**
 
 每个游戏的两个服务都要改。`SCOPE` 的值必须加引号——`@` 是 YAML 保留指示符。
 
@@ -154,17 +154,17 @@ CMD npm run start --workspace ${SCOPE}/server
         SCOPE: "@bw"
 ```
 
-- [ ] **Step 3: 删四份 Dockerfile**
+- [x] **Step 3: 删四份 Dockerfile**
 
 ```bash
 rm black-and-white/Dockerfile flip-math/Dockerfile add-to-fifty/Dockerfile texas-poker/Dockerfile
 ```
 
-- [ ] **Step 4: 改 .dockerignore 那条注释**
+- [x] **Step 4: 改 .dockerignore 那条注释**
 
 现在那条写的是「四个游戏的 package.json 都得进镜像」，已经不成立了。改成说明为什么仍然不能按游戏名排除源码（构建上下文是共享的，一份 `.dockerignore` 服务四个游戏的构建）。
 
-- [ ] **Step 5: 八个镜像构建**
+- [x] **Step 5: 八个镜像构建**
 
 ```bash
 for g in black-and-white:bw flip-math:flip add-to-fifty:a2f texas-poker:tp; do
@@ -177,7 +177,7 @@ Expected: 四行 `OK`（`docker compose build` 一次建该游戏的两个 targe
 
 用 `docker compose build` 而不是 `docker build`：它会把 compose 里的 `args` 真的传进去，`docker build` 不带 `--build-arg` 的话 `GAME_DIR` 是空的，`COPY /packages/shared` 会在一个谁都想不到的地方失败。
 
-- [ ] **Step 6: 四个栈起来确认**
+- [x] **Step 6: 四个栈起来确认**
 
 ```bash
 for d in black-and-white flip-math add-to-fifty texas-poker; do ( cd "$d" && docker compose up -d --build >/dev/null 2>&1 ); done
@@ -195,7 +195,7 @@ Expected: 四行 `server on :3001 | "sid"`。
 
 `--build` 不能省——本地已有同名镜像时 `docker compose up -d` 不重建，会拿旧镜像糊弄过去（阶段 5 踩过一次，差点把「样式没生成」误判成 `@source` 失效）。
 
-- [ ] **Step 7: commit**
+- [x] **Step 7: commit**
 
 ```bash
 for d in black-and-white flip-math add-to-fifty texas-poker; do ( cd "$d" && docker compose down >/dev/null 2>&1 ); done
@@ -214,7 +214,7 @@ git commit -m "build: merge the four Dockerfiles into platform/deploy"
 - Delete: 四个 `<game>/web/Caddyfile`（连带空掉的 `web/` 目录）
 - Modify: `platform/deploy/Dockerfile`（web stage 改 COPY 来源）、四个 `docker-compose.yml`（给 `*-web` 加 `environment`）
 
-- [ ] **Step 1: 写合并版**
+- [x] **Step 1: 写合并版**
 
 四份只差反代目标主机名（`bw-server` / `fm-server` / `add-to-fifty-server` / `texas-poker-server`）。
 
@@ -243,7 +243,7 @@ git commit -m "build: merge the four Dockerfiles into platform/deploy"
 }
 ```
 
-- [ ] **Step 2: Dockerfile 的 web stage 改来源**
+- [x] **Step 2: Dockerfile 的 web stage 改来源**
 
 ```dockerfile
 FROM caddy:2-alpine AS web
@@ -254,7 +254,7 @@ COPY platform/deploy/Caddyfile /etc/caddy/Caddyfile
 
 `ARG GAME_DIR` 仍然要留——上面那行 `COPY --from=client-build` 用得到。
 
-- [ ] **Step 3: 四个 compose 的 `*-web` 加环境变量**
+- [x] **Step 3: 四个 compose 的 `*-web` 加环境变量**
 
 ```yaml
   bw-web:
@@ -269,13 +269,13 @@ COPY platform/deploy/Caddyfile /etc/caddy/Caddyfile
 
 四个游戏的取值就是各自的 server 服务名加 `:3001`。
 
-- [ ] **Step 4: 删四份 Caddyfile**
+- [x] **Step 4: 删四份 Caddyfile**
 
 ```bash
 rm -r black-and-white/web flip-math/web add-to-fifty/web texas-poker/web
 ```
 
-- [ ] **Step 5: 重建并验证反代真的通**
+- [x] **Step 5: 重建并验证反代真的通**
 
 ```bash
 for d in black-and-white flip-math add-to-fifty texas-poker; do ( cd "$d" && docker compose up -d --build >/dev/null 2>&1 ); done
@@ -299,7 +299,7 @@ cd black-and-white && docker compose exec -T bw-web caddy adapt --config /etc/ca
 
 Expected: `"dial":"bw-server:3001"`，不是 `GAME_SERVER-IS-UNSET:3001`。
 
-- [ ] **Step 6: commit**
+- [x] **Step 6: commit**
 
 ```bash
 for d in black-and-white flip-math add-to-fifty texas-poker; do ( cd "$d" && docker compose down >/dev/null 2>&1 ); done
@@ -319,11 +319,11 @@ git commit -m "build: merge the four web Caddyfiles into platform/deploy"
 
 现状不是 spec 说的「四份 239 行讲同一套」：black-and-white 那份 167 行是完整版（droplet 一次性设置、共享 proxy、架构图、为什么两层 Caddy、证书卷、单实例限制），另外三份 18–43 行只是各自的域名加几条命令。四份里重复的是那段关于构建上下文的引用块，而且它现在**说错了**——它写「会把四个游戏的 package.json 全部读进去」，Task 1 之后只读一个游戏的。
 
-- [ ] **Step 1: `platform/deploy/README.md`**
+- [x] **Step 1: `platform/deploy/README.md`**
 
 把 black-and-white 那份里与游戏无关的部分整体搬过来：架构图（主机名和服务名改成占位）、droplet 一次性设置、共享 proxy 的配置与**必须 `--force-recreate`** 那段（单文件挂载绑 inode 的坑）、构建/更新/看日志的命令、单实例与证书卷的注意事项。再加一节讲这一阶段新的东西：`GAME_DIR` / `SCOPE` 两个 ARG 和 `GAME_SERVER` 环境变量分别是什么、在哪儿改。
 
-- [ ] **Step 2: 四份 DEPLOY.md 缩成一页**
+- [x] **Step 2: 四份 DEPLOY.md 缩成一页**
 
 每份只留这个游戏独有的东西，其余链到共享文档：
 
@@ -350,7 +350,7 @@ repo 根——见 [`platform/deploy/README.md`](../platform/deploy/README.md)。
 
 各游戏的实际域名从现有 DEPLOY.md 里取：bw 用的是示例域名 `bw.example.com`（保持），flip-math `flipmath.minyu.me`，add-to-fifty `add2fifty.minyu.me`，texas-poker `poker.minyu.me`。
 
-- [ ] **Step 3: commit**
+- [x] **Step 3: commit**
 
 ```bash
 npx prettier --write platform/deploy '*/DEPLOY.md'
@@ -363,9 +363,9 @@ git commit -m "docs: hoist the shared deploy steps into platform/deploy/README.m
 
 ### Task 4: 阶段验收与合并
 
-- [ ] **Step 1: 全量测试 + svelte-check** —— 本阶段不碰应用代码，214 个测试和四个 svelte-check 应当原样全绿。
+- [x] **Step 1: 全量测试 + svelte-check** —— 本阶段不碰应用代码，214 个测试和四个 svelte-check 应当原样全绿。
 
-- [ ] **Step 2: 四个栈从零构建并跑通**
+- [x] **Step 2: 四个栈从零构建并跑通**
 
 ```bash
 for d in black-and-white flip-math add-to-fifty texas-poker; do ( cd "$d" && docker compose build --no-cache >/dev/null 2>&1 && docker compose up -d >/dev/null 2>&1 ); done
@@ -373,12 +373,12 @@ for d in black-and-white flip-math add-to-fifty texas-poker; do ( cd "$d" && doc
 
 `--no-cache` 一次，确认合并后的 Dockerfile 从零开始也能走通（缓存会掩盖 ARG 传递的问题）。
 
-- [ ] **Step 3: 四个栈各自握手 + 静态包可达**（同 Task 2 Step 5）。
+- [x] **Step 3: 四个栈各自握手 + 静态包可达**（同 Task 2 Step 5）。
 
-- [ ] **Step 4: 浏览器里真打一局。** 把其中一个游戏的 web 容器临时发布到宿主端口，在浏览器里建房、用 node 端的 p2 加入、走一个动作。这是阶段 6 唯一能证明「合并后的镜像里跑的还是同一个游戏」的步骤。
+- [x] **Step 4: 浏览器里真打一局。** 把其中一个游戏的 web 容器临时发布到宿主端口，在浏览器里建房、用 node 端的 p2 加入、走一个动作。这是阶段 6 唯一能证明「合并后的镜像里跑的还是同一个游戏」的步骤。
 
-- [ ] **Step 5: 行数对照**，写进 spec 的 6.6。
+- [x] **Step 5: 行数对照**，写进 spec 的 6.6。
 
-- [ ] **Step 6: 把三处发现写回 spec**（`npm ci` 只需一个游戏、Caddy 占位未设时静默失效、DEPLOY.md 的现状不是四份等长）。
+- [x] **Step 6: 把三处发现写回 spec**（`npm ci` 只需一个游戏、Caddy 占位未设时静默失效、DEPLOY.md 的现状不是四份等长）。
 
-- [ ] **Step 7: 勾完 checkbox，commit，合回 main。不要 `git push`。**
+- [x] **Step 7: 勾完 checkbox，commit，合回 main。不要 `git push`。**

@@ -936,19 +936,31 @@ CMD npm run start --workspace ${SCOPE}/server
 两个 `ARG` 在每个 stage 里都要重新声明——`ARG` 的作用域止于所在 stage，
 这是 Dockerfile 的规则，漏一个会展开成空字符串。
 
-代价：根 `package-lock.json` 里任何一个游戏改依赖，四个镜像的 deps 层都失效。
-接受——部署手动触发，不是 CI 每次跑。
+**这一点是实测过的，而且比原来好。** 合并前四份 Dockerfile 把四个游戏 12 份
+`package.json` 全 COPY 进去，注释说「`npm ci` 要求 lockfile 与 workspace 树一致」。
+不需要：只带 `platform/*` 五份加本游戏三份，`npm ci` 正常，装出来的树里
+`@tpg/{protocol,server,client,ui,build}` 和本游戏的 `@scope/*` 链接齐全，
+其它游戏的目录不出现，`socket.io` / `tsx` / `vite` 都在。原来那条注释是没验证过
+的防御性写法。
+
+所以「一个游戏改依赖会让四个镜像的 deps 层一起失效」这个代价不必付——每个镜像
+的 deps 层只依赖它自己那三份 `package.json` 加 `platform/*`。
 
 ## 6.3 web/Caddyfile 合并成一份
 
 四份只差反代目标主机名（`bw-server:3001` 等）。Caddy 支持 `{$ENV_VAR}` 占位，
-所以合并成 `platform/deploy/Caddyfile`，compose 里传环境变量：
+所以合并成 `platform/deploy/Caddyfile`，compose 里传环境变量。
+
+**占位要带一个明显写坏的默认值。** 实测：环境变量没传时 `caddy adapt` 照常成功、
+容器照常起来，只是 `reverse_proxy` 一个 upstream 都没有——`/socket.io/` 通向空气，
+而日志里什么都不说。带上默认值之后，没传时 upstream 变成
+`GAME_SERVER-IS-UNSET:3001`，直接把变量名喊出来：
 
 ```
 :80 {
 	encode gzip
 	handle /socket.io/* {
-		reverse_proxy {$GAME_SERVER}
+		reverse_proxy {$GAME_SERVER:GAME_SERVER-IS-UNSET:3001}
 	}
 	handle {
 		root * /srv
@@ -967,14 +979,36 @@ CMD npm run start --workspace ${SCOPE}/server
 
 ## 6.5 DEPLOY.md
 
-四份 `DEPLOY.md` 共 239 行讲同一套步骤。通用步骤搬到
-`platform/deploy/README.md`，各游戏 `DEPLOY.md` 缩成自己的域名、服务名、
-`ARG` 取值，并链到通用文档。
+四份 `DEPLOY.md` 共 261 行，但不是「四份等长地讲同一套」：black-and-white 那份
+167 行是完整版（droplet 一次性设置、共享 proxy、架构图、为什么两层 Caddy、证书卷、
+单实例限制），另外三份 18–43 行只是各自的域名加几条命令。四份里真正重复的是那段
+讲构建上下文的引用块——而且它现在**说错了**，写的是「会把四个游戏的 package.json
+全部读进去」，合并后只读一个游戏的。
+
+所以做法是：把 black-and-white 那份里与游戏无关的部分整体搬进
+`platform/deploy/README.md`（另加一节讲 `GAME_DIR` / `SCOPE` / `GAME_SERVER`
+三个取值分别在哪儿改、`/socket.io/` 不通时怎么查），四份 `DEPLOY.md` 各缩成
+29 行的一张表加三条命令，链到共享文档。
 
 ## 6.6 阶段 6 验收
 
 四个游戏各跑一次 `docker compose build`，构建成功。`docker compose up -d` 后
 访问各自域名，能建房、能双人对局。
+
+实际结果：四个栈 `docker compose build --no-cache` 从零构建全部成功（`--no-cache`
+是必要的——缓存会掩盖 `ARG` 传递的问题）；起来之后四个 server 都打印
+`server on :3001`，四个 web 的 socket.io 握手都拿到 sid，各自 `/` 返回本游戏的
+`<title>`；`caddy adapt` 查出来的 upstream 分别是 `bw-server:3001` /
+`fm-server:3001` / `add-to-fifty-server:3001` / `texas-poker-server:3001`，没有
+一个落到那个写坏的默认值上。
+
+把 black-and-white 的 web 容器临时发布到宿主端口，在浏览器里建房、用 node 端的
+socket.io-client 当第二个玩家（也走容器里的 Caddy），打完一个回合结算出 1:0——
+这是唯一能证明「合并后的镜像里跑的还是同一个游戏」的步骤。
+
+行数：四份 `Dockerfile` 224 → 0（共享版 62 行），四份 `web/Caddyfile` 68 → 0
+（共享版 22 行），四份 `DEPLOY.md` 261 → 116（共享版 164 行）。四份
+`docker-compose.yml` 保留，各加 8 行 `args` 与 `environment`。
 
 ---
 
