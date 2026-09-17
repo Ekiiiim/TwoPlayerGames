@@ -343,19 +343,17 @@ ls -l node_modules/@tpg/
 
 Expected: `ui -> ../../platform/ui` 出现。
 
-- [ ] **Step 6: 验证 token 生成了工具类**
+- [ ] **Step 6: 暂时验不了，记下来**
 
-契约块现在还没有消费者，Tailwind 不会凭空生成工具类（它只生成源码里出现过的 class）。所以这一步先确认 `:root` 上落了 10 个变量：
+Tailwind v4 只给**被生成出来的工具类**引用到的 token 往 `:root` 上落变量，没有消费者就一个都不落——此刻四个游戏构建出来都是 0 个 `--color-ui-*`，这是对的，不是契约写错了。（另外 `--shadow-ui-panel` 永远不会作为 `:root` 变量出现，Tailwind 把阴影值直接内联进 `.shadow-ui-panel` 那条规则。）
+
+真正的验证放在 Task 4 之后，那时候共享组件已经在用这些类了：
 
 ```bash
-for g in black-and-white:@bw flip-math:@fm add-to-fifty:@add-to-fifty texas-poker:@texas-poker; do
-  d=${g%%:*}; s=${g##*:}
-  npm run build --workspace $s/client >/dev/null 2>&1
-  printf "%-18s %s 个 ui token\n" "$d" "$(cat $d/packages/client/dist/assets/*.css | grep -oE '\-\-(color|radius|shadow)-ui-[a-z-]+:' | sort -u | wc -l | tr -d ' ')"
-done
+cat <game>/packages/client/dist/assets/*.css | grep -oE '\.(bg|text|border|rounded)-ui-[a-z-]+\{[^}]*\}' | sort -u
 ```
 
-Expected: 四行都是 `10`。
+Expected（Task 4 之后）：`bg-ui-surface` / `text-ui-ink` / `text-ui-accent` / `text-ui-muted` / `text-ui-danger` / `border-ui-line` / `rounded-ui-panel` / `rounded-ui-control` 都在。一条都没有就是 `@source` 没生效。
 
 - [ ] **Step 7: 镜像 deps 阶段仍然能构建**
 

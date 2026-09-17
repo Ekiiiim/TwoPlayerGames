@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Tailwind 默认跳过 node_modules,而 @tpg/ui 是符号链接进来的。
+   漏了这行,共享组件的 class 一条都不生成 —— 而且构建不报错。 */
+@source "../../../../platform/ui/src";
+
 @theme {
   --color-bg: #143526;
   --color-felt: #1d4d36;
@@ -40,6 +44,20 @@
         0 0 18px 6px rgba(217, 178, 91, 0.7);
     }
   }
+}
+
+/* 共享组件(@tpg/ui)的 token 契约。 */
+@theme {
+  --color-ui-surface: var(--color-panel);
+  --color-ui-ink: var(--color-ink);
+  --color-ui-muted: var(--color-muted);
+  --color-ui-accent: var(--color-accent);
+  --color-ui-accent-ink: var(--color-accent-ink);
+  --color-ui-line: var(--color-line);
+  --color-ui-danger: var(--color-danger);
+  --radius-ui-panel: 8px;
+  --radius-ui-control: 8px;
+  --shadow-ui-panel: 0 18px 50px rgba(0, 0, 0, 0.28);
 }
 
 @layer base {
