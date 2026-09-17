@@ -13,8 +13,11 @@ services:
   fm-server:
     build:
       context: ..
-      dockerfile: flip-math/Dockerfile
+      dockerfile: platform/deploy/Dockerfile
       target: server
+      args:
+        GAME_DIR: flip-math
+        SCOPE: "@fm"
     image: fm-server
     restart: unless-stopped
     expose:
@@ -25,10 +28,16 @@ services:
   fm-web:
     build:
       context: ..
-      dockerfile: flip-math/Dockerfile
+      dockerfile: platform/deploy/Dockerfile
       target: web
+      args:
+        GAME_DIR: flip-math
+        SCOPE: "@fm"
     image: fm-web
     restart: unless-stopped
+    environment:
+      # platform/deploy/Caddyfile 用它当反代目标
+      GAME_SERVER: fm-server:3001
     depends_on:
       - fm-server
     networks:

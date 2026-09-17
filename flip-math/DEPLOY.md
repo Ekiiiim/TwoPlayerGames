@@ -1,43 +1,29 @@
-# 部署《翻牌数式》(flip-math)
+# 部署 flip-math
 
-共用一台 droplet 上的共享 `proxy/`(占用 80/443、自动 TLS),自带 compose + Caddyfile。
+|               |                      |
+| ------------- | -------------------- |
+| 公开域名      | `flipmath.minyu.me`  |
+| compose 服务  | `fm-web / fm-server` |
+| `GAME_DIR`    | `flip-math`          |
+| `SCOPE`       | `@fm`                |
+| `GAME_SERVER` | `fm-server:3001`     |
 
-## 前置
+```bash
+cd flip-math
+docker compose build
+docker compose up -d
+```
 
-- droplet 上有外部 docker 网络 `web`(若不存在:`docker network create web`)。
-- 共享 `proxy/` 已在运行。
-- DNS:`flipmath.minyu.me` 的 A 记录指向本 droplet。
+`proxy/Caddyfile` 里要有这个域名的块：
 
-## 步骤
+```caddy
+flipmath.minyu.me {
+    reverse_proxy fm-web:80
+}
+```
 
-1. 把本仓库同步到 droplet。
-2. 确认 `proxy/Caddyfile` 含:
-   ```
-   flipmath.minyu.me {
-       reverse_proxy fm-web:80
-   }
-   ```
-   改过 `proxy/Caddyfile` 后,**重建**代理容器让它重新挂载:
-   `cd proxy && docker compose up -d --force-recreate caddy`。
-   (单文件挂载绑定到旧 inode,`caddy reload`/`docker compose restart`/普通 `up -d` 都读不到新内容;
-   详见 `black-and-white/DEPLOY.md`。证书在数据卷里,重建只是约 1 秒抖动、不重签。)
-3. 构建并启动本游戏:
+改过 `proxy/Caddyfile` 之后**必须** `cd proxy && docker compose up -d --force-recreate caddy`——
+单文件挂载绑在旧 inode 上，`reload` / `restart` / 普通 `up -d` 都读不到新内容。
 
-   ```
-   cd flip-math
-   docker compose build
-   docker compose up -d
-   ```
-
-   > 构建上下文是 repo 根（compose 里写的是 `context: ..`），不是本游戏目录。
-   > 命令仍在本目录里敲，但 Docker 读的是 repo 根的 `.dockerignore`，并且会把
-   > 四个游戏和 `platform/*` 的 `package.json` 全部读进去 —— 根
-   > `package-lock.json` 覆盖全部 workspace，`npm ci` 要求两者一致。
-
-4. 访问 `https://flipmath.minyu.me`,Caddy 会自动签发证书。
-
-## 说明
-
-- `fm-server` 仅在 `web` 网络内可达(`expose: 3001`,不对外发布)。
-- `fm-web`(Caddy)服务静态客户端,并把 `/socket.io/` 反代到 `fm-server:3001`。
-- 客户端用 `io()` 同源连接;`CORS_ORIGIN` 环境变量可覆盖(生产默认同源)。
+droplet 一次性设置、构建上下文为什么是 repo 根、`/socket.io/` 不通时怎么查，
+见 [`platform/deploy/README.md`](../platform/deploy/README.md)。

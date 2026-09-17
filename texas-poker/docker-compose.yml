@@ -4,8 +4,11 @@ services:
   texas-poker-server:
     build:
       context: ..
-      dockerfile: texas-poker/Dockerfile
+      dockerfile: platform/deploy/Dockerfile
       target: server
+      args:
+        GAME_DIR: texas-poker
+        SCOPE: "@texas-poker"
     image: texas-poker-server
     restart: unless-stopped
     expose:
@@ -16,10 +19,16 @@ services:
   texas-poker-web:
     build:
       context: ..
-      dockerfile: texas-poker/Dockerfile
+      dockerfile: platform/deploy/Dockerfile
       target: web
+      args:
+        GAME_DIR: texas-poker
+        SCOPE: "@texas-poker"
     image: texas-poker-web
     restart: unless-stopped
+    environment:
+      # platform/deploy/Caddyfile 用它当反代目标
+      GAME_SERVER: texas-poker-server:3001
     depends_on:
       - texas-poker-server
     networks:

@@ -14,6 +14,7 @@ node_modules
 **/*.md
 docs
 
-# 注意:不要按游戏名排除源码。根 package-lock.json 覆盖全部 workspace,
-# npm ci 要求 lockfile 与 workspace 树一致,所以四个游戏的 package.json
-# 都得进镜像(见 Dockerfile 的 deps stage)。
+# 注意:不要按游戏名排除源码。构建上下文是 repo 根,四个游戏共用它和这一份
+# .dockerignore;按游戏名排除会让另外三个的构建拿不到自己的源码。
+# (镜像里实际 COPY 哪些路径由 platform/deploy/Dockerfile 的 ARG GAME_DIR 决定,
+#  每个镜像只带自己那一个游戏。)
