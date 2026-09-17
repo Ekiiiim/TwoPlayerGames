@@ -337,9 +337,20 @@ flip-math 现在比别人多的 `clearTimer()` 调用，由 `onDispose()` 覆写
 
 ## 3.3 createGameServer
 
-四份 `index.ts` 共 991 行，其中六个 handler（`create_room`、`join_room`、
-`rejoin`、`leave_room`、`disconnect`、`rematch`）加上 http server / socket.io /
+四份 `index.ts` 共 991 行，其中**五个** handler（`create_room`、`join_room`、
+`rejoin`、`leave_room`、`disconnect`）加上 http server / socket.io /
 定时扫房 / `close()` 的收尾是同一套；不同的只有各游戏自己的动作 handler。
+
+**修正（2026-09-16，读完四份代码之后）**：原本把「重开一局」也算作第六个框架
+handler，实际不行。black-and-white、flip-math、add-to-fifty 叫 `rematch`，
+texas-poker 拆成 `next_hand` 和 `restart_match` 两个。三者共用的只有一道
+guard——双方都在线，否则回 `OPPONENT_GONE`。所以它不是一个 handler，而是动作
+定义上的一个开关 `requireBothConnected`，handler 各游戏自己写。
+
+另一处修正：`PresenceSession` 要带一个由框架赋值的 `broadcast` 回调。
+flip-math 的状态由计时器推进而不是 socket 事件推进，它的 session 在每次状态转移后
+自己广播；原来这个回调是它在自己的 `index.ts` 里手工注入的，三个接入点各一次。
+框架接过来之后，那三行从游戏代码里消失。
 
 ```ts
 // platform/server/src/gameServer.ts
