@@ -1,3 +1,4 @@
+import { PLAYER_IDS } from "@tpg/protocol";
 import { compareHandValues, evaluateSeven } from "./hand";
 import type {
   ActionType,
@@ -14,7 +15,7 @@ import type {
   Suit,
 } from "./types";
 
-export const PLAYER_IDS: readonly PlayerId[] = ["p1", "p2"];
+export { PLAYER_IDS };
 export const DEFAULT_CONFIG: GameConfig = {
   startingChips: 300,
   smallBlind: 5,

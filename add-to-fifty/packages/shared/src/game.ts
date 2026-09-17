@@ -1,3 +1,4 @@
+import { PLAYER_IDS } from "@tpg/protocol";
 import type {
   Card,
   ClientView,
@@ -7,7 +8,7 @@ import type {
   Suit,
 } from "./types";
 
-export const PLAYER_IDS: readonly PlayerId[] = ["p1", "p2"];
+export { PLAYER_IDS };
 export const TARGET_TOTAL = 50;
 export const HAND_SIZE = 5;
 
