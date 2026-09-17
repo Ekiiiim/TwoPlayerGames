@@ -872,7 +872,7 @@ git commit -m "chore: make repo root the single npm workspace root"
   `ErrorMsg`、`RoomAccepted`、`LobbyServerEvents`、`LobbyClientEvents`。
   Task 7 和后续阶段全部从这里取这些名字。
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 Create `platform/protocol/test/protocol.test.ts`：
 
@@ -921,13 +921,13 @@ describe("类型契约", () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认它失败**
+- [x] **Step 2: 跑测试确认它失败**
 
 Run: `npm test --workspace @tpg/protocol`
 Expected：FAIL——`@tpg/protocol` 这个 workspace 还不存在，npm 报
 `No workspaces found`。
 
-- [ ] **Step 3: 建 package.json**
+- [x] **Step 3: 建 package.json**
 
 Create `platform/protocol/package.json`：
 
@@ -952,7 +952,7 @@ Create `platform/protocol/package.json`：
 `main` 指向 `src/index.ts`：源码分发，不预编译。这和四个游戏现有的
 `packages/shared` 一致，消费方的 Vite / tsx 直接吃 TS。
 
-- [ ] **Step 4: 建 tsconfig.json**
+- [x] **Step 4: 建 tsconfig.json**
 
 Create `platform/protocol/tsconfig.json`：
 
@@ -973,7 +973,7 @@ Create `platform/protocol/tsconfig.json`：
 
 `lib` 不含 DOM：protocol 是前后端共用的纯类型包，引用到 DOM 类型就说明放错了东西。
 
-- [ ] **Step 5: 写实现**
+- [x] **Step 5: 写实现**
 
 Create `platform/protocol/src/index.ts`：
 
@@ -1025,7 +1025,7 @@ export interface LobbyClientEvents {
 }
 ```
 
-- [ ] **Step 6: 安装，让 npm 认到新 workspace**
+- [x] **Step 6: 安装，让 npm 认到新 workspace**
 
 Run: `npm install`
 Expected：`node_modules/@tpg/protocol` 出现（指向 `platform/protocol` 的符号链接）。
@@ -1034,24 +1034,24 @@ Expected：`node_modules/@tpg/protocol` 出现（指向 `platform/protocol` 的�
 ls -l node_modules/@tpg/
 ```
 
-- [ ] **Step 7: 跑测试确认通过**
+- [x] **Step 7: 跑测试确认通过**
 
 Run: `npm test --workspace @tpg/protocol`
 Expected：4 个测试全过。
 
-- [ ] **Step 8: 类型检查**
+- [x] **Step 8: 类型检查**
 
 Run: `npx tsc --noEmit --project platform/protocol/tsconfig.json`
 Expected：无输出（无错误）。
 
 Step 1 的测试用 esbuild 跑，不做类型检查，所以类型契约真正的守卫是这条命令。
 
-- [ ] **Step 9: 跑全量测试确认没碰坏别的**
+- [x] **Step 9: 跑全量测试确认没碰坏别的**
 
 Run: `npm test 2>&1 | grep -E "Tests |FAIL"`
 Expected：151 + 4 = 155 passed。
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add platform/protocol package.json package-lock.json
@@ -1082,7 +1082,7 @@ Task 5 删掉了 `<game>/package.json` 和 `<game>/package-lock.json`，而四�
 放在 Task 6 之后而不是 Task 5 之后，是为了让 `platform/` 已经存在——这样
 Dockerfile 只写一次就能把它 COPY 进去，不用先写一版没有 platform 的再改。
 
-- [ ] **Step 1: 确认现在确实是坏的**
+- [x] **Step 1: 确认现在确实是坏的**
 
 Run: `cd black-and-white && docker compose build bw-web 2>&1 | tail -5; cd ..`
 Expected：**FAIL**，报找不到 `package.json`（或 `package-lock.json`）。
@@ -1090,7 +1090,7 @@ Expected：**FAIL**，报找不到 `package.json`（或 `package-lock.json`）�
 先确认坏在哪，再修。Docker Desktop 没起的话先起来，否则这个 task 的每一步
 都验证不了。
 
-- [ ] **Step 2: 在 repo 根建 .dockerignore**
+- [x] **Step 2: 在 repo 根建 .dockerignore**
 
 Docker 只读构建上下文根目录的 `.dockerignore`。context 抬到 repo 根之后，
 四份 `<game>/.dockerignore` 全部失效，要在根建一份。
@@ -1121,7 +1121,7 @@ docs
 最后那条注释很重要：另外三个游戏的**源码**不进镜像，但它们的 `package.json`
 必须进，原因见 Step 3。所以不能在 `.dockerignore` 里按游戏名排除。
 
-- [ ] **Step 3: 删掉四份旧的 .dockerignore**
+- [x] **Step 3: 删掉四份旧的 .dockerignore**
 
 ```bash
 cd /Users/chengminyu/Desktop/TwoPlayerGames
@@ -1129,7 +1129,7 @@ rm black-and-white/.dockerignore flip-math/.dockerignore \
    add-to-fifty/.dockerignore texas-poker/.dockerignore
 ```
 
-- [ ] **Step 4: 改 black-and-white/Dockerfile**
+- [x] **Step 4: 改 black-and-white/Dockerfile**
 
 整个文件替换为：
 
@@ -1186,7 +1186,7 @@ EXPOSE 3001
 CMD ["npm", "run", "start", "--workspace", "@bw/server"]
 ```
 
-- [ ] **Step 5: 改 black-and-white/docker-compose.yml**
+- [x] **Step 5: 改 black-and-white/docker-compose.yml**
 
 两个 service 的 `build` 块都要加 `dockerfile`，`context` 从 `.` 改成 `..`：
 
@@ -1208,7 +1208,7 @@ CMD ["npm", "run", "start", "--workspace", "@bw/server"]
 
 `image`、`restart`、`expose`、`depends_on`、`networks` 都不动。
 
-- [ ] **Step 6: 构建 black-and-white 的两个镜像**
+- [x] **Step 6: 构建 black-and-white 的两个镜像**
 
 Run: `cd black-and-white && docker compose build && cd ..`
 Expected：`bw-server` 和 `bw-web` 两个 target 都构建成功。
@@ -1216,7 +1216,7 @@ Expected：`bw-server` 和 `bw-web` 两个 target 都构建成功。
 失败最可能出在 `npm ci`——如果它报 lockfile 不同步，说明漏了某个 package.json，
 对着 Step 4 的 14 条 COPY 逐条核。
 
-- [ ] **Step 7: 起一次确认能玩**
+- [x] **Step 7: 起一次确认能玩**
 
 Run: `cd black-and-white && docker compose up -d && cd ..`
 
@@ -1230,7 +1230,7 @@ Expected：`200`
 
 然后关掉：`cd black-and-white && docker compose down && cd ..`
 
-- [ ] **Step 8: Commit black-and-white**
+- [x] **Step 8: Commit black-and-white**
 
 ```bash
 git add .dockerignore black-and-white/Dockerfile black-and-white/docker-compose.yml
@@ -1239,7 +1239,7 @@ git add -A black-and-white
 git commit -m "build(black-and-white): move docker build context to the repo root"
 ```
 
-- [ ] **Step 9: 改 flip-math/Dockerfile**
+- [x] **Step 9: 改 flip-math/Dockerfile**
 
 和 Step 4 同样的形状，把 `black-and-white` 换成 `flip-math`、`@bw` 换成 `@fm`。
 `deps` stage 的 14 条 COPY 一模一样（四个游戏全部 package.json 都要进来），
@@ -1272,7 +1272,7 @@ CMD ["npm", "run", "start", "--workspace", "@fm/server"]
 `deps` stage 照抄 Step 4 的那一整段（`FROM node:22-alpine AS deps` 到
 `RUN npm ci`），一个字不改。
 
-- [ ] **Step 10: 改 flip-math/docker-compose.yml**
+- [x] **Step 10: 改 flip-math/docker-compose.yml**
 
 两个 service 的 `build` 块：
 
@@ -1281,19 +1281,19 @@ CMD ["npm", "run", "start", "--workspace", "@fm/server"]
       dockerfile: flip-math/Dockerfile
 ```
 
-- [ ] **Step 11: 构建并验证 flip-math**
+- [x] **Step 11: 构建并验证 flip-math**
 
 Run: `cd flip-math && docker compose build && cd ..`
 Expected：两个 target 成功。
 
-- [ ] **Step 12: Commit flip-math**
+- [x] **Step 12: Commit flip-math**
 
 ```bash
 git add -A flip-math
 git commit -m "build(flip-math): move docker build context to the repo root"
 ```
 
-- [ ] **Step 13: 改 add-to-fifty/Dockerfile**
+- [x] **Step 13: 改 add-to-fifty/Dockerfile**
 
 `deps` stage 照抄 Step 4。后三个 stage：
 
@@ -1321,26 +1321,26 @@ EXPOSE 3001
 CMD ["npm", "run", "start", "--workspace", "@add-to-fifty/server"]
 ```
 
-- [ ] **Step 14: 改 add-to-fifty/docker-compose.yml**
+- [x] **Step 14: 改 add-to-fifty/docker-compose.yml**
 
 ```yaml
       context: ..
       dockerfile: add-to-fifty/Dockerfile
 ```
 
-- [ ] **Step 15: 构建并验证 add-to-fifty**
+- [x] **Step 15: 构建并验证 add-to-fifty**
 
 Run: `cd add-to-fifty && docker compose build && cd ..`
 Expected：两个 target 成功。
 
-- [ ] **Step 16: Commit add-to-fifty**
+- [x] **Step 16: Commit add-to-fifty**
 
 ```bash
 git add -A add-to-fifty
 git commit -m "build(add-to-fifty): move docker build context to the repo root"
 ```
 
-- [ ] **Step 17: 改 texas-poker/Dockerfile**
+- [x] **Step 17: 改 texas-poker/Dockerfile**
 
 `deps` stage 照抄 Step 4。后三个 stage：
 
@@ -1368,26 +1368,26 @@ EXPOSE 3001
 CMD ["npm", "run", "start", "--workspace", "@texas-poker/server"]
 ```
 
-- [ ] **Step 18: 改 texas-poker/docker-compose.yml**
+- [x] **Step 18: 改 texas-poker/docker-compose.yml**
 
 ```yaml
       context: ..
       dockerfile: texas-poker/Dockerfile
 ```
 
-- [ ] **Step 19: 构建并验证 texas-poker**
+- [x] **Step 19: 构建并验证 texas-poker**
 
 Run: `cd texas-poker && docker compose build && cd ..`
 Expected：两个 target 成功。
 
-- [ ] **Step 20: Commit texas-poker**
+- [x] **Step 20: Commit texas-poker**
 
 ```bash
 git add -A texas-poker
 git commit -m "build(texas-poker): move docker build context to the repo root"
 ```
 
-- [ ] **Step 21: 四个镜像一起过一遍**
+- [x] **Step 21: 四个镜像一起过一遍**
 
 ```bash
 cd /Users/chengminyu/Desktop/TwoPlayerGames
@@ -1400,7 +1400,7 @@ done
 Expected：四个都成功。这一步验的是四份 Dockerfile 的 `deps` stage 真的一字不差
 ——如果某份漏了一条 COPY，它的 `npm ci` 会单独失败。
 
-- [ ] **Step 22: 更新四份 DEPLOY.md 的构建命令**
+- [x] **Step 22: 更新四份 DEPLOY.md 的构建命令**
 
 四份 `DEPLOY.md` 里写的构建步骤还是老的（在游戏目录里 `docker compose build`）。
 命令本身没变——还是在游戏目录里敲——但构建上下文变了，加一句说明：
@@ -1410,7 +1410,7 @@ Expected：四个都成功。这一步验的是四份 Dockerfile 的 `deps` stag
 
 （阶段 6 会把这四份 DEPLOY.md 的通用部分合并掉，这里只补这一句。）
 
-- [ ] **Step 23: Commit**
+- [x] **Step 23: Commit**
 
 ```bash
 git add black-and-white/DEPLOY.md flip-math/DEPLOY.md \
@@ -1452,7 +1452,7 @@ git commit -m "docs: note the repo-root build context in each DEPLOY.md"
 
 ### black-and-white
 
-- [ ] **Step 1: 加依赖**
+- [x] **Step 1: 加依赖**
 
 `black-and-white/packages/shared/package.json` 加一个 `dependencies` 块：
 
@@ -1465,7 +1465,7 @@ git commit -m "docs: note the repo-root build context in each DEPLOY.md"
 放在 `"main"` 之后、`"scripts"` 之前。`*` 是 workspace 内部依赖的写法，
 和现有的 `"@bw/shared": "*"` 一致。
 
-- [ ] **Step 2: 改 types.ts**
+- [x] **Step 2: 改 types.ts**
 
 删掉第 5 行 `export type PlayerId = "p1" | "p2";`，删掉第 60–71 行
 （`export type ErrorCode = ...` 整个联合类型 + `export interface ErrorMsg { ... }`）。
@@ -1484,7 +1484,7 @@ export type { ErrorCode, ErrorMsg, PlayerId };
 `GameState`、`ClientView` 等用到，需要一个本地绑定；单写
 `export type { PlayerId } from "@tpg/protocol"` 不产生本地绑定。
 
-- [ ] **Step 3: 改 game.ts**
+- [x] **Step 3: 改 game.ts**
 
 第 13 行 `export const PLAYER_IDS: readonly PlayerId[] = ["p1", "p2"];` 改成：
 
@@ -1496,17 +1496,17 @@ export { PLAYER_IDS };
 `import` 放到文件顶部现有 import 之后，`export` 留在原位置。
 `game.ts` 内部也用 `PLAYER_IDS`，所以同样需要本地绑定。
 
-- [ ] **Step 4: 安装并测试**
+- [x] **Step 4: 安装并测试**
 
 Run: `npm install && npm test --workspace @bw/shared --workspace @bw/server --workspace @bw/client 2>&1 | grep -E "Tests |FAIL"`
 Expected：6 + 19 + 20 = 45 passed。
 
-- [ ] **Step 5: svelte-check**
+- [x] **Step 5: svelte-check**
 
 Run: `npm run check --workspace @bw/client`
 Expected：`0 errors and 0 warnings`
 
-- [ ] **Step 6: 确认 ErrorCode 在 black-and-white 里只有一处定义**
+- [x] **Step 6: 确认 ErrorCode 在 black-and-white 里只有一处定义**
 
 ```bash
 grep -rn "ALREADY_IN_ROOM" black-and-white/packages/*/src/ | grep -v node_modules
@@ -1515,7 +1515,7 @@ grep -rn "ALREADY_IN_ROOM" black-and-white/packages/*/src/ | grep -v node_module
 Expected：只有 `packages/client/src/i18n.ts` 里那条中/英文案，
 `packages/shared/src/types.ts` 里不该再有联合类型的成员。
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add black-and-white/packages/shared package.json package-lock.json
@@ -1524,7 +1524,7 @@ git commit -m "refactor(black-and-white): take wire types from @tpg/protocol"
 
 ### flip-math
 
-- [ ] **Step 8: 加依赖**
+- [x] **Step 8: 加依赖**
 
 `flip-math/packages/shared/package.json` 加：
 
@@ -1534,7 +1534,7 @@ git commit -m "refactor(black-and-white): take wire types from @tpg/protocol"
   },
 ```
 
-- [ ] **Step 9: 改 types.ts**
+- [x] **Step 9: 改 types.ts**
 
 删掉第 1 行 `export type PlayerId = "p1" | "p2";`，删掉第 82–93 行
 （`ErrorCode` 联合类型 + `ErrorMsg` 接口）。在文件最顶部加：
@@ -1547,7 +1547,7 @@ import type { ErrorCode, ErrorMsg, PlayerId } from "@tpg/protocol";
 export type { ErrorCode, ErrorMsg, PlayerId };
 ```
 
-- [ ] **Step 10: 改 game.ts**
+- [x] **Step 10: 改 game.ts**
 
 第 14 行 `export const PLAYER_IDS: readonly PlayerId[] = ["p1", "p2"];` 改成：
 
@@ -1559,17 +1559,17 @@ export { PLAYER_IDS };
 注意 `game.ts` 顶部已经有 `import { WIN_SCORE } from "./config";`，
 新的 import 加在它旁边。
 
-- [ ] **Step 11: 安装并测试**
+- [x] **Step 11: 安装并测试**
 
 Run: `npm install && npm test --workspace @fm/shared --workspace @fm/server --workspace @fm/client 2>&1 | grep -E "Tests |FAIL"`
 Expected：6 + 9 + 37 = 52 passed。
 
-- [ ] **Step 12: svelte-check**
+- [x] **Step 12: svelte-check**
 
 Run: `npm run check --workspace @fm/client`
 Expected：`0 errors and 0 warnings`
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add flip-math/packages/shared package.json package-lock.json
@@ -1578,7 +1578,7 @@ git commit -m "refactor(flip-math): take wire types from @tpg/protocol"
 
 ### add-to-fifty
 
-- [ ] **Step 14: 加依赖**
+- [x] **Step 14: 加依赖**
 
 `add-to-fifty/packages/shared/package.json` 加：
 
@@ -1588,7 +1588,7 @@ git commit -m "refactor(flip-math): take wire types from @tpg/protocol"
   },
 ```
 
-- [ ] **Step 15: 改 types.ts**
+- [x] **Step 15: 改 types.ts**
 
 删掉第 1 行 `export type PlayerId = "p1" | "p2";`，删掉第 59–70 行
 （`ErrorCode` 联合类型 + `ErrorMsg` 接口）。在文件最顶部加：
@@ -1601,7 +1601,7 @@ import type { ErrorCode, ErrorMsg, PlayerId } from "@tpg/protocol";
 export type { ErrorCode, ErrorMsg, PlayerId };
 ```
 
-- [ ] **Step 16: 改 game.ts**
+- [x] **Step 16: 改 game.ts**
 
 第 10 行 `export const PLAYER_IDS: readonly PlayerId[] = ["p1", "p2"];` 改成：
 
@@ -1610,17 +1610,17 @@ import { PLAYER_IDS } from "@tpg/protocol";
 export { PLAYER_IDS };
 ```
 
-- [ ] **Step 17: 安装并测试**
+- [x] **Step 17: 安装并测试**
 
 Run: `npm install && npm test --workspace @add-to-fifty/shared --workspace @add-to-fifty/server --workspace @add-to-fifty/client 2>&1 | grep -E "Tests |FAIL"`
 Expected：6 + 6 + 11 = 23 passed。
 
-- [ ] **Step 18: svelte-check**
+- [x] **Step 18: svelte-check**
 
 Run: `npm run check --workspace @add-to-fifty/client`
 Expected：`0 errors and 0 warnings`
 
-- [ ] **Step 19: Commit**
+- [x] **Step 19: Commit**
 
 ```bash
 git add add-to-fifty/packages/shared package.json package-lock.json
@@ -1629,7 +1629,7 @@ git commit -m "refactor(add-to-fifty): take wire types from @tpg/protocol"
 
 ### texas-poker
 
-- [ ] **Step 20: 加依赖**
+- [x] **Step 20: 加依赖**
 
 `texas-poker/packages/shared/package.json` 加（Task 4 把这个文件的
 `dependencies` 整块删了，现在重新加回来，只有这一条）：
@@ -1640,7 +1640,7 @@ git commit -m "refactor(add-to-fifty): take wire types from @tpg/protocol"
   },
 ```
 
-- [ ] **Step 21: 改 types.ts**
+- [x] **Step 21: 改 types.ts**
 
 删掉第 1 行 `export type PlayerId = "p1" | "p2";`，删掉第 130–141 行
 （`ErrorCode` 联合类型 + `ErrorMsg` 接口）。在文件最顶部加：
@@ -1653,7 +1653,7 @@ import type { ErrorCode, ErrorMsg, PlayerId } from "@tpg/protocol";
 export type { ErrorCode, ErrorMsg, PlayerId };
 ```
 
-- [ ] **Step 22: 改 game.ts**
+- [x] **Step 22: 改 game.ts**
 
 第 17 行 `export const PLAYER_IDS: readonly PlayerId[] = ["p1", "p2"];` 改成：
 
@@ -1665,17 +1665,17 @@ export { PLAYER_IDS };
 `game.ts` 里有 6 处内部使用 `PLAYER_IDS`（第 157、211、248、448、450、489 行），
 靠上面这个 import 的本地绑定继续工作，那六处一行不改。
 
-- [ ] **Step 23: 安装并测试**
+- [x] **Step 23: 安装并测试**
 
 Run: `npm install && npm test --workspace @texas-poker/shared --workspace @texas-poker/server --workspace @texas-poker/client 2>&1 | grep -E "Tests |FAIL"`
 Expected：6 + 8 + 17 = 31 passed。
 
-- [ ] **Step 24: svelte-check**
+- [x] **Step 24: svelte-check**
 
 Run: `npm run check --workspace @texas-poker/client`
 Expected：`0 ERRORS 0 WARNINGS`
 
-- [ ] **Step 25: Commit**
+- [x] **Step 25: Commit**
 
 ```bash
 git add texas-poker/packages/shared package.json package-lock.json
@@ -1684,17 +1684,17 @@ git commit -m "refactor(texas-poker): take wire types from @tpg/protocol"
 
 ### 全量验收
 
-- [ ] **Step 26: 全量测试**
+- [x] **Step 26: 全量测试**
 
 Run: `npm test 2>&1 | grep -E "Tests |FAIL"`
 Expected：155 passed（151 + protocol 的 4）。
 
-- [ ] **Step 27: 全量 svelte-check**
+- [x] **Step 27: 全量 svelte-check**
 
 Run: `npm run check 2>&1 | grep -iE "errors|warnings|ERRORS"`
 Expected：四个 client 各 0 errors 0 warnings。
 
-- [ ] **Step 28: 确认 ErrorCode 全 repo 只定义一次**
+- [x] **Step 28: 确认 ErrorCode 全 repo 只定义一次**
 
 ```bash
 grep -rn "\"ALREADY_IN_ROOM\"\|'ALREADY_IN_ROOM'" \
@@ -1705,12 +1705,12 @@ Expected：`platform/protocol/src/index.ts` 一处定义，加上四个游戏
 `i18n.ts` 里各一对中英文案（文案在阶段 4 才合并，这里还是 8 处）。
 `*/packages/shared/src/types.ts` 里一处都不该有。
 
-- [ ] **Step 29: 四个 dev server 冒烟**
+- [x] **Step 29: 四个 dev server 冒烟**
 
 逐个 preview_start 四个 client，`read_page` 确认大厅渲染，
 `read_console_messages` 带 `onlyErrors: true` 确认无 Svelte 报错。
 
-- [ ] **Step 30: 格式化检查**
+- [x] **Step 30: 格式化检查**
 
 Run: `npm run format:check`
 Expected：通过。不通过就 `npm run format` 修掉，然后补一个
