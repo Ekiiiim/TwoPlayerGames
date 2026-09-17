@@ -8,7 +8,9 @@
   } from "@texas-poker/shared";
   import {
     act,
+    createRoom,
     ended,
+    joinRoom,
     leaveRoom,
     nextHand,
     restartMatch,
@@ -18,11 +20,9 @@
     updateSettings,
     view,
   } from "./socket";
-  import { lang, t, type GuideKey } from "./i18n";
-  import Button from "./lib/Button.svelte";
+  import { lang, t, toggleLang, type GuideKey } from "./i18n";
+  import { Button, LangToggle, Lobby } from "@tpg/ui";
   import ChipStack from "./lib/ChipStack.svelte";
-  import LangToggle from "./lib/LangToggle.svelte";
-  import Lobby from "./lib/Lobby.svelte";
   import PlayingCard from "./lib/PlayingCard.svelte";
 
   onMount(tryRejoin);
@@ -289,7 +289,7 @@
 <main
   class="min-h-screen w-full overflow-hidden bg-bg px-3 py-3 text-felt-text"
 >
-  <LangToggle />
+  <LangToggle lang={$lang} onToggle={toggleLang} />
   <div
     class="mx-auto flex h-[calc(100vh-24px)] w-full max-w-[1320px] items-center justify-center"
   >
@@ -848,7 +848,16 @@
         {/if}
       </section>
     {:else}
-      <Lobby />
+      <Lobby
+        title={$t.title}
+        subtitle={$t.subtitle}
+        copy={$t.lobby}
+        statusText={$status ? $t.status[$status] : null}
+        roomCode={$roomCode}
+        onCreate={createRoom}
+        onJoin={joinRoom}
+        onClose={leaveRoom}
+      />
     {/if}
   </div>
 </main>
