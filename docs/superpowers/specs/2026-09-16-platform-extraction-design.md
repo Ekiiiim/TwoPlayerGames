@@ -1038,7 +1038,25 @@ socket.io-client 当第二个玩家（也走容器里的 Caddy），打完一个
    直接冲突，agent 每次都得判一次哪条优先。删掉项目这条，由全局那条统一管——
    全局规则同时禁止 `git push`，所以删掉不会导致代码被推上去。
 
-`AGENTS.md` 与 `CLAUDE.md` 内容相同，同步更新。
+`AGENTS.md` 与 `CLAUDE.md` 内容相同——**做成符号链接**，不再维护两份。两份逐字
+相同的 100 行文件靠人记着同步更新，正是这次改动一路在删的那种重复；而本 repo 的
+每个 workspace 包都是通过 `node_modules` 里的符号链接被引用的，Docker 里也一样，
+所以「符号链接能用」已经是全仓库的前提。git 按 mode `120000` 记录它。
+
+## 阶段 7 验收
+
+实际结果：`CLAUDE.md` 从 100 行重写成 248 行，`AGENTS.md` 变成指向它的符号链接。
+逐条核对过文档里的事实断言：游戏目录下确实没有 `package.json`；四份
+`svelte.config.js` 都写着 `runes: false`；四个 client 的 `tsconfig.json` 都
+`extends "@tpg/build/tsconfig.base.json"`；四份 `theme.css` 各有一行 `@source`；
+`@tpg/server` 的测试里确实有计数器假游戏、`ROOM_FULL`、`INVALID_SESSION` 和
+`sweepIntervalMs`；测试基线表的四组数字相加等于 214。
+
+旧文档里五处已经不成立的说法都已移除：「每个游戏文件夹内是一个 npm workspaces
+monorepo」、「自包含」、「Vite 5」、「复制一份现有游戏的 `Dockerfile`」、
+「不要替用户 commit」。（「Svelte 4」这个字串还在文档里出现一次，但那是在解释
+为什么 `svelte-check` 不可信——它对 Svelte 4 写法的 `new App(...)` 报 0 error，
+而那在 Svelte 5 下必崩——属于有意保留的历史说明。）
 
 ---
 
