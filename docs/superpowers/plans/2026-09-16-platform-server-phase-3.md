@@ -113,7 +113,7 @@ handler；游戏自己的动作通过 `actions` 传入。各游戏保留 `startS
 
   Task 2 的 `createGameServer` 和 Task 3–6 的各游戏 `GameSession` 都用这些名字。
 
-- [ ] **Step 1: 写 PresenceSession 的失败测试**
+- [x] **Step 1: 写 PresenceSession 的失败测试**
 
 Create `platform/server/test/presenceSession.test.ts`：
 
@@ -219,12 +219,12 @@ describe("PresenceSession 的连接簿记", () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npm test --workspace @tpg/server`
 Expected：FAIL —— `No workspaces found: --workspace=@tpg/server`。
 
-- [ ] **Step 3: 建 package.json 与 tsconfig.json**
+- [x] **Step 3: 建 package.json 与 tsconfig.json**
 
 Create `platform/server/package.json`：
 
@@ -273,7 +273,7 @@ Create `platform/server/tsconfig.json`：
 
 `lib` 不含 DOM：这是纯服务端包，引用到 DOM 类型就说明放错了东西。
 
-- [ ] **Step 4: 写 presenceSession.ts**
+- [x] **Step 4: 写 presenceSession.ts**
 
 Create `platform/server/src/presenceSession.ts`：
 
@@ -358,7 +358,7 @@ export abstract class PresenceSession<S, V> {
 }
 ```
 
-- [ ] **Step 5: 写 rooms.test.ts**
+- [x] **Step 5: 写 rooms.test.ts**
 
 Create `platform/server/test/rooms.test.ts`：
 
@@ -458,12 +458,12 @@ describe("RoomRegistry", () => {
 });
 ```
 
-- [ ] **Step 6: 跑测试确认它失败**
+- [x] **Step 6: 跑测试确认它失败**
 
 Run: `npm test --workspace @tpg/server`
 Expected：FAIL —— `Cannot find module '../src/rooms'`（presenceSession 那组应当已经过）。
 
-- [ ] **Step 7: 写 rooms.ts**
+- [x] **Step 7: 写 rooms.ts**
 
 Create `platform/server/src/rooms.ts`：
 
@@ -532,7 +532,7 @@ export class RoomRegistry<S extends Sweepable> {
 }
 ```
 
-- [ ] **Step 8: 写 barrel**
+- [x] **Step 8: 写 barrel**
 
 Create `platform/server/src/index.ts`：
 
@@ -544,23 +544,24 @@ export { RoomRegistry, makeRoomCode, makeToken } from "./rooms";
 
 （`gameServer.ts` 在 Task 2 加进来。）
 
-- [ ] **Step 9: 安装并跑测试**
+- [x] **Step 9: 安装并跑测试**
 
 Run: `npm install && npm test --workspace @tpg/server`
-Expected：两组测试全过（presenceSession 9 个、rooms 11 个，共 20 个）。
+Expected：两组测试全过（presenceSession 10 个 —— `it.each` 算两条 ——
+rooms 11 个，共 21 个）。
 
-- [ ] **Step 10: 类型检查**
+- [x] **Step 10: 类型检查**
 
 Run: `npm run typecheck --workspace @tpg/server`
 Expected：无输出。
 
-- [ ] **Step 11: 全量回归**
+- [x] **Step 11: 全量回归**
 
 Run: `npm test 2>&1 | grep -E "Tests +[0-9]+ passed"`
-Expected：156 + 20 = 176 passed。四个游戏还没动，它们的 42 个 server 测试必须
+Expected：156 + 21 = 177 passed。四个游戏还没动，它们的 42 个 server 测试必须
 一个不少 —— 这个数字比总数更重要。
 
-- [ ] **Step 12: 格式化并提交**
+- [x] **Step 12: 格式化并提交**
 
 ```bash
 npm run format
@@ -606,7 +607,7 @@ the registry now makes on delete and on sweep."
 
   Task 3–6 用这些名字重写各游戏的 `index.ts`。
 
-- [ ] **Step 1: 写最小假游戏的集成测试**
+- [x] **Step 1: 写最小假游戏的集成测试**
 
 Create `platform/server/test/gameServer.test.ts`：
 
@@ -1011,12 +1012,12 @@ describe("corsOrigin", () => {
 });
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `npm test --workspace @tpg/server`
 Expected：FAIL —— `Cannot find module '../src/gameServer'`。
 
-- [ ] **Step 3: 写 gameServer.ts**
+- [x] **Step 3: 写 gameServer.ts**
 
 Create `platform/server/src/gameServer.ts`：
 
@@ -1282,7 +1283,7 @@ export function createGameServer<S extends PresenceSession<unknown, unknown>>(
 }
 ```
 
-- [ ] **Step 4: 更新 barrel**
+- [x] **Step 4: 更新 barrel**
 
 `platform/server/src/index.ts` 整个替换为：
 
@@ -1299,23 +1300,23 @@ export type {
 } from "./gameServer";
 ```
 
-- [ ] **Step 5: 跑测试**
+- [x] **Step 5: 跑测试**
 
 Run: `npm test --workspace @tpg/server`
-Expected：20 + 19 = 39 passed。
+Expected：21 + 19 = 40 passed。
 
 失败的话别改测试去迁就实现 —— 这 16 条集成测试是四个游戏迁移时唯一的安全网，
 它们描述的行为就是四份 `index.ts` 现在的行为。
 
-- [ ] **Step 6: 类型检查与全量回归**
+- [x] **Step 6: 类型检查与全量回归**
 
 Run: `npm run typecheck --workspace @tpg/server`
 Expected：无输出。
 
 Run: `npm test 2>&1 | grep -E "Tests +[0-9]+ passed"`
-Expected：156 + 39 = 195 passed。
+Expected：156 + 40 = 196 passed。
 
-- [ ] **Step 7: 格式化并提交**
+- [x] **Step 7: 格式化并提交**
 
 ```bash
 npm run format
@@ -1361,17 +1362,17 @@ attach point and the game decides when to send."
 也是唯一在 rejoin 时要补发终局的，压力最大。这套机制在它身上站住了，
 另外三个就只是填空。
 
-- [ ] **Step 1: 记下 baseline**
+- [x] **Step 1: 记下 baseline**
 
 Run: `npm test --workspace @bw/server 2>&1 | grep -E "Tests "`
 Expected：19 passed。
 
-- [ ] **Step 2: 加依赖**
+- [x] **Step 2: 加依赖**
 
 `black-and-white/packages/server/package.json` 的 `dependencies` 加一条
 `"@tpg/server": "*"`，放在 `"@bw/shared"` 之后。
 
-- [ ] **Step 3: gameSession.ts 改成继承 PresenceSession**
+- [x] **Step 3: gameSession.ts 改成继承 PresenceSession**
 
 `black-and-white/packages/server/src/gameSession.ts` 整个替换为：
 
@@ -1407,7 +1408,7 @@ export class GameSession extends PresenceSession<GameState, ClientView> {
 `Player` 接口、`players`、`emptySince` 和那 6 个连接簿记方法全部由基类提供，
 这里删掉。
 
-- [ ] **Step 4: 删掉自己的 rooms.ts**
+- [x] **Step 4: 删掉自己的 rooms.ts**
 
 ```bash
 git rm black-and-white/packages/server/src/rooms.ts
@@ -1424,7 +1425,7 @@ grep -rn "from \"./rooms\"\|from \"../src/rooms\"" black-and-white/packages/serv
 Expected：只有 `src/index.ts`（下一步会重写）。有测试文件引用的话停下来，
 那意味着本游戏还有针对 rooms 的单元测试要一并处理。
 
-- [ ] **Step 5: 重写 index.ts**
+- [x] **Step 5: 重写 index.ts**
 
 `black-and-white/packages/server/src/index.ts` 整个替换为：
 
@@ -1512,14 +1513,14 @@ if (process.argv[1]?.endsWith("index.ts")) {
 }
 ```
 
-- [ ] **Step 6: 安装并跑测试**
+- [x] **Step 6: 安装并跑测试**
 
 Run: `npm install && npm test --workspace @bw/server 2>&1 | grep -E "Tests |FAIL|✗"`
 Expected：19 passed，一个都不少。
 
 失败的话读报错，改 `index.ts` 或 `gameSession.ts`，**不要改测试**。
 
-- [ ] **Step 7: 确认行数真的降下来了**
+- [x] **Step 7: 确认行数真的降下来了**
 
 ```bash
 wc -l black-and-white/packages/server/src/*.ts
@@ -1528,10 +1529,10 @@ wc -l black-and-white/packages/server/src/*.ts
 Expected：`index.ts` 从 246 行降到 90 行以内，`gameSession.ts` 从 75 行降到
 30 行以内，`rooms.ts` 不存在。
 
-- [ ] **Step 8: 全量回归并提交**
+- [x] **Step 8: 全量回归并提交**
 
 Run: `npm test 2>&1 | grep -E "Tests +[0-9]+ passed" | sed 's/.*Tests *//' | awk '{s+=$1} END {print s}'`
-Expected：195。
+Expected：196。
 
 ```bash
 npm run format && npm run format:check
@@ -1565,17 +1566,17 @@ for this extraction rather than something to adjust."
   `{ deck?: Card[]; firstPlayer?: PlayerId; roomTtlMs?: number; sweepIntervalMs?: number }`
   —— 与现在完全一致，6 个集成测试不改
 
-- [ ] **Step 1: 记下 baseline**
+- [x] **Step 1: 记下 baseline**
 
 Run: `npm test --workspace @add-to-fifty/server 2>&1 | grep -E "Tests "`
 Expected：6 passed。
 
-- [ ] **Step 2: 加依赖**
+- [x] **Step 2: 加依赖**
 
 `add-to-fifty/packages/server/package.json` 的 `dependencies` 加
 `"@tpg/server": "*"`。
 
-- [ ] **Step 3: gameSession.ts 改成继承 PresenceSession**
+- [x] **Step 3: gameSession.ts 改成继承 PresenceSession**
 
 `add-to-fifty/packages/server/src/gameSession.ts` 整个替换为：
 
@@ -1619,14 +1620,14 @@ export class GameSession extends PresenceSession<GameState, ClientView> {
 
 有构造函数的子类必须先调 `super()`，别漏。
 
-- [ ] **Step 4: 删掉自己的 rooms.ts**
+- [x] **Step 4: 删掉自己的 rooms.ts**
 
 ```bash
 grep -rn "from \"./rooms\"" add-to-fifty/packages/server
 git rm add-to-fifty/packages/server/src/rooms.ts
 ```
 
-- [ ] **Step 5: 重写 index.ts**
+- [x] **Step 5: 重写 index.ts**
 
 `add-to-fifty/packages/server/src/index.ts` 整个替换为：
 
@@ -1699,15 +1700,15 @@ if (process.argv[1]?.endsWith("index.ts")) {
 }
 ```
 
-- [ ] **Step 6: 跑测试**
+- [x] **Step 6: 跑测试**
 
 Run: `npm install && npm test --workspace @add-to-fifty/server 2>&1 | grep -E "Tests |FAIL"`
 Expected：6 passed。
 
-- [ ] **Step 7: 全量回归并提交**
+- [x] **Step 7: 全量回归并提交**
 
 Run: `npm test 2>&1 | grep -E "Tests +[0-9]+ passed" | sed 's/.*Tests *//' | awk '{s+=$1} END {print s}'`
-Expected：195。
+Expected：196。
 
 ```bash
 npm run format && npm run format:check
@@ -1732,17 +1733,17 @@ git commit -m "refactor(add-to-fifty): run the server on @tpg/server"
   `{ deck?: Card[]; config?: GameConfig; roomTtlMs?: number; sweepIntervalMs?: number }`
   —— 8 个集成测试不改
 
-- [ ] **Step 1: 记下 baseline**
+- [x] **Step 1: 记下 baseline**
 
 Run: `npm test --workspace @texas-poker/server 2>&1 | grep -E "Tests "`
 Expected：8 passed。
 
-- [ ] **Step 2: 加依赖**
+- [x] **Step 2: 加依赖**
 
 `texas-poker/packages/server/package.json` 的 `dependencies` 加
 `"@tpg/server": "*"`。
 
-- [ ] **Step 3: gameSession.ts 改成继承 PresenceSession**
+- [x] **Step 3: gameSession.ts 改成继承 PresenceSession**
 
 `texas-poker/packages/server/src/gameSession.ts` 里，把
 
@@ -1779,14 +1780,14 @@ import { PresenceSession } from "@tpg/server";
 `start`、`nextHand`、`restartMatch`、`updateSettings`、`dispatch`、`viewFor`
 全部保留，一行不改。
 
-- [ ] **Step 4: 删掉自己的 rooms.ts**
+- [x] **Step 4: 删掉自己的 rooms.ts**
 
 ```bash
 grep -rn "from \"./rooms\"" texas-poker/packages/server
 git rm texas-poker/packages/server/src/rooms.ts
 ```
 
-- [ ] **Step 5: 重写 index.ts**
+- [x] **Step 5: 重写 index.ts**
 
 `texas-poker/packages/server/src/index.ts` 整个替换为：
 
@@ -1927,7 +1928,7 @@ if (process.argv[1]?.endsWith("index.ts")) {
 }
 ```
 
-- [ ] **Step 6: 跑测试**
+- [x] **Step 6: 跑测试**
 
 Run: `npm install && npm test --workspace @texas-poker/server 2>&1 | grep -E "Tests |FAIL"`
 Expected：8 passed。
@@ -1935,10 +1936,10 @@ Expected：8 passed。
 `update_settings` 现在也走 `requireBothConnected: false`（默认），和原来一致 ——
 原实现没有这个 guard。**不要顺手给它加上**，那会改变行为，而测试可能覆盖不到。
 
-- [ ] **Step 7: 全量回归并提交**
+- [x] **Step 7: 全量回归并提交**
 
 Run: `npm test 2>&1 | grep -E "Tests +[0-9]+ passed" | sed 's/.*Tests *//' | awk '{s+=$1} END {print s}'`
-Expected：195。
+Expected：196。
 
 ```bash
 npm run format && npm run format:check
@@ -1974,17 +1975,17 @@ answering → resolve → reveal），不是由 socket 事件推进。所以它�
 `PresenceSession.broadcast` 就是为它留的口子，`createGameServer` 在
 `create_room`、`join_room`、`rejoin` 三个接入点都会赋值。
 
-- [ ] **Step 1: 记下 baseline**
+- [x] **Step 1: 记下 baseline**
 
 Run: `npm test --workspace @fm/server 2>&1 | grep -E "Tests "`
 Expected：9 passed。
 
-- [ ] **Step 2: 加依赖**
+- [x] **Step 2: 加依赖**
 
 `flip-math/packages/server/package.json` 的 `dependencies` 加
 `"@tpg/server": "*"`。
 
-- [ ] **Step 3: gameSession.ts 改成继承 PresenceSession**
+- [x] **Step 3: gameSession.ts 改成继承 PresenceSession**
 
 `flip-math/packages/server/src/gameSession.ts` 里做四处改动：
 
@@ -2062,14 +2063,14 @@ export class GameSession extends PresenceSession<GameState, ClientView> {
   }
 ```
 
-- [ ] **Step 4: 删掉自己的 rooms.ts**
+- [x] **Step 4: 删掉自己的 rooms.ts**
 
 ```bash
 grep -rn "from \"./rooms\"" flip-math/packages/server
 git rm flip-math/packages/server/src/rooms.ts
 ```
 
-- [ ] **Step 5: 重写 index.ts**
+- [x] **Step 5: 重写 index.ts**
 
 `flip-math/packages/server/src/index.ts` 整个替换为：
 
@@ -2154,7 +2155,7 @@ if (process.argv[1]?.endsWith("index.ts")) {
 `ctx.broadcastViews()` 都没有（session 自己推）、`onStart` 只调 `start()`、
 `buzz` 和 `ready` 失败时静默而不回 `error_msg`。
 
-- [ ] **Step 6: 跑测试**
+- [x] **Step 6: 跑测试**
 
 Run: `npm install && npm test --workspace @fm/server 2>&1 | grep -E "Tests |FAIL"`
 Expected：9 passed。
@@ -2163,30 +2164,30 @@ Expected：9 passed。
 `session.broadcast` 在三个接入点都被赋上了值 —— 漏掉任何一个，计时器推进后
 客户端就收不到视图，测试会卡住超时。
 
-- [ ] **Step 7: 确认计时器真的被回收**
+- [x] **Step 7: 确认计时器真的被回收**
 
 Run: `npm test --workspace @tpg/server 2>&1 | grep -E "Tests "`
-Expected：39 passed。
+Expected：40 passed。
 
 `onDispose` 现在由 `RoomRegistry` 在 `delete` 和 `sweep` 时调用，
 platform 那边的 `rooms.test.ts` 已经断言了这一点。
 
-- [ ] **Step 8: 全量回归**
+- [x] **Step 8: 全量回归**
 
 Run: `npm test 2>&1 | grep -E "Tests +[0-9]+ passed" | sed 's/.*Tests *//' | awk '{s+=$1} END {print s}'`
-Expected：195。
+Expected：196。
 
-- [ ] **Step 9: 四个游戏的 server 行数汇总**
+- [x] **Step 9: 四个游戏的 server 行数汇总**
 
 ```bash
 wc -l */packages/server/src/*.ts platform/server/src/*.ts
 ```
 
-Expected：四个游戏的 `index.ts` + `gameSession.ts` 合计从 1339 行
-（991 + 348）降到 450 行以内，`rooms.ts` 四份全部消失（原 211 行），
-`platform/server/src` 约 400 行。净减约 700 行。
+**实测结果**：四个游戏的 server 源码从 1550 行（`index.ts` 991 +
+`gameSession.ts` 348 + `rooms.ts` 211）降到 566 行，`platform/server/src`
+409 行。净减 575 行。
 
-- [ ] **Step 10: 提交**
+- [x] **Step 10: 提交**
 
 ```bash
 npm run format && npm run format:check
@@ -2217,7 +2218,7 @@ state."
 `platform/server/package.json`，否则镜像里 `npm ci` 会因为 workspace 树不完整
 而失败。
 
-- [ ] **Step 1: 四份 Dockerfile 的 deps stage 加一行**
+- [x] **Step 1: 四份 Dockerfile 的 deps stage 加一行**
 
 四个 `<game>/Dockerfile` 的 `deps` stage 里，在
 `COPY platform/protocol/package.json ./platform/protocol/` 之后加：
@@ -2237,7 +2238,7 @@ done
 
 Expected：四个 hash 相同。
 
-- [ ] **Step 2: 四个镜像都要能构建**
+- [x] **Step 2: 四个镜像都要能构建**
 
 ```bash
 for g in black-and-white flip-math add-to-fifty texas-poker; do
@@ -2248,7 +2249,7 @@ done
 
 Expected：四个都成功。
 
-- [ ] **Step 3: 起一个栈,确认服务器真的跑起来**
+- [x] **Step 3: 起一个栈,确认服务器真的跑起来**
 
 ```bash
 cd black-and-white && docker compose up -d && sleep 5
@@ -2261,7 +2262,7 @@ docker compose down && cd ..
 Expected：日志里有 `server on :3001`，socket.io 握手返回带 `"sid"` 的 JSON。
 握手能过就说明容器里 tsx 解析到了 `@tpg/server` 和 `@tpg/protocol`。
 
-- [ ] **Step 4: 四个游戏在浏览器里各打一手**
+- [x] **Step 4: 四个游戏在浏览器里各打一手**
 
 阶段 3 改的是服务器权威侧，客户端一行没动，所以这一步验的是"改完之后游戏还能玩"。
 
@@ -2273,7 +2274,7 @@ Expected：日志里有 `server on :3001`，socket.io 握手返回带 `"sid"` �
 Node 端第二个玩家不能用第二个浏览器 tab：两个 tab 同源会共用 localStorage 里的
 session token，第二个 tab 一加载就会以第一个玩家的身份 rejoin。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 npm run format && npm run format:check
@@ -2289,11 +2290,11 @@ workspace has to reach every image's deps stage or the install fails."
 ## 阶段 3 完成后的状态
 
 - `@tpg/server` 提供 `PresenceSession`、`RoomRegistry<S>`、`createGameServer`，
-  约 400 行，39 个自己的测试，其中 16 个是跨游戏的会话层回归（用最小假游戏跑，
+  409 行，40 个自己的测试，其中 16 个是跨游戏的会话层回归（用最小假游戏跑，
   不依赖任何真玩法）。
 - 四个游戏的 `packages/server/src/rooms.ts` 全部删除，`gameSession.ts` 只剩玩法，
   `index.ts` 只剩自己的动作 handler。
 - 四个游戏的 42 个 server 集成测试一行未改并全部通过 —— 这是抽取正确性的判据。
-- 195 个测试全过，四个镜像能构建能跑。
+- 196 个测试全过，四个镜像能构建能跑。
 - 下一阶段（4）抽 `platform/client`：四份 `socket.ts` 的会话管线、
   i18n 引擎、`status` 的 8 条共享文案，以及四份只差一行的 `i18n.test.ts`。
