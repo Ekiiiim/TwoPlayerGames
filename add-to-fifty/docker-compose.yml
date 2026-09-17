@@ -31,6 +31,9 @@ services:
         SCOPE: "@add-to-fifty"
     image: add-to-fifty-web
     restart: unless-stopped
+    environment:
+      # platform/deploy/Caddyfile 用它当反代目标
+      GAME_SERVER: add-to-fifty-server:3001
     depends_on:
       - add-to-fifty-server
     networks:

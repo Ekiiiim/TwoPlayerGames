@@ -1,0 +1,22 @@
+# 四个游戏共用。每个游戏的内部门面:静态客户端 + /socket.io/ 反代。
+# 纯 HTTP :80 —— TLS 由前面那层共享 proxy(../../proxy)处理。
+#
+# GAME_SERVER 由各游戏 compose 的 environment 传进来(如 bw-server:3001)。
+# 默认值是故意写坏的:没传的时候 caddy adapt 照常成功、容器照常起来,只是
+# reverse_proxy 一个 upstream 都没有、/socket.io/ 通向空气。宁可让它连一个
+# 明显不存在的主机,把变量名喊进日志里。
+:80 {
+	encode gzip
+
+	# Socket.IO (incl. the WebSocket upgrade) -> game server
+	handle /socket.io/* {
+		reverse_proxy {$GAME_SERVER:GAME_SERVER-IS-UNSET:3001}
+	}
+
+	# Everything else -> static SPA with index.html fallback
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

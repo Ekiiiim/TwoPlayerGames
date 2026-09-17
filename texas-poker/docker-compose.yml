@@ -26,6 +26,9 @@ services:
         SCOPE: "@texas-poker"
     image: texas-poker-web
     restart: unless-stopped
+    environment:
+      # platform/deploy/Caddyfile 用它当反代目标
+      GAME_SERVER: texas-poker-server:3001
     depends_on:
       - texas-poker-server
     networks:

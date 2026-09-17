@@ -40,7 +40,7 @@ RUN npm run build --workspace ${SCOPE}/client
 FROM caddy:2-alpine AS web
 ARG GAME_DIR
 COPY --from=client-build /app/${GAME_DIR}/packages/client/dist /srv
-COPY ${GAME_DIR}/web/Caddyfile /etc/caddy/Caddyfile
+COPY platform/deploy/Caddyfile /etc/caddy/Caddyfile
 
 # ---- server: Node running Socket.IO via tsx (shared is consumed as raw TS) ----
 # 从 deps 整块拷 /app,把 node_modules 和 package.json 一起带过来,

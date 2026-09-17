@@ -35,6 +35,9 @@ services:
         SCOPE: "@fm"
     image: fm-web
     restart: unless-stopped
+    environment:
+      # platform/deploy/Caddyfile 用它当反代目标
+      GAME_SERVER: fm-server:3001
     depends_on:
       - fm-server
     networks:

@@ -35,6 +35,9 @@ services:
         SCOPE: "@bw"
     image: bw-web
     restart: unless-stopped
+    environment:
+      # platform/deploy/Caddyfile 用它当反代目标
+      GAME_SERVER: bw-server:3001
     depends_on:
       - bw-server
     networks:
