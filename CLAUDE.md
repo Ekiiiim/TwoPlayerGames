@@ -44,6 +44,21 @@ docs/superpowers/     spec 与实施计划
 同理**不要给 `platform/*` 的包加 `peerDependencies`**，那个 bug 就在 peer set 的加载路径上。
 镜像里的 npm 10 不用动：已验证它的 `npm ci` 能吃 npm 11 生成的 lockfile。
 
+本地开发在 repo 根跑 `npm run dev`，`concurrently` 同时起四个游戏的八个进程。每个游戏在
+dev 下有自己的一对端口，server 的 `dev` 脚本设 `PORT`，client 的 `gameViteConfig` 用
+`serverPort` 把 `/socket.io` 转给它：
+
+| 游戏            | client | server |
+| --------------- | ------ | ------ |
+| black-and-white | 5173   | 3001   |
+| flip-math       | 5174   | 3002   |
+| add-to-fifty    | 5175   | 3003   |
+| texas-poker     | 5176   | 3004   |
+
+两处端口必须一起改。只改一边，client 会连到别的游戏的 server，建房照样成功，要到加入
+时才报 `ROOM_NOT_FOUND`。生产不受影响：容器跑的是 `start` 脚本，不设 `PORT`，仍是 3001。
+新游戏接着用 5177 / 3005，并把它的两条命令加进根 `package.json` 的 `dev` 脚本。
+
 ## 每个游戏的架构标准
 
 每个游戏三个包：
@@ -237,6 +252,8 @@ Node 22 + TS 5（生产用 `tsx` 直跑 TS，不编译）｜ Vitest 4 ｜ npm �
 - [ ] `client`：`createRoomSession` + `createI18n`；`theme.css` 里写 10 个契约 token
       和那行 `@source`；大厅直接用 `@tpg/ui` 的 `Lobby`
 - [ ] `svelte.config.js` 写 `compilerOptions: { runes: false }`
+- [ ] 分配下一对 dev 端口（server `dev` 脚本的 `PORT` + `gameViteConfig` 的 `serverPort`），
+      并把两条 `npm run dev -w ...` 加进根 `package.json` 的 `dev` 脚本
 - [ ] 复制一份 `docker-compose.yml`，改三个取值；在 `proxy/Caddyfile` 加一行
 - [ ] `npm test` + `npm run check` 全绿，并在浏览器里真打一局
 

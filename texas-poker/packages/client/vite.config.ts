@@ -1,3 +1,3 @@
 import { gameViteConfig } from "@tpg/build";
 
-export default gameViteConfig({ port: 5176 });
+export default gameViteConfig({ port: 5176, serverPort: 3004 });

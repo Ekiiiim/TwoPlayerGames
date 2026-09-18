@@ -8,14 +8,20 @@ import preprocess from "svelte-preprocess";
 
 /**
  * 四个游戏的 client 共用这一份。/socket.io 那条代理只影响 dev ——
- * 生产是同源,由 Caddy 转发。
+ * 生产是同源,由 Caddy 转发。serverPort 让四个游戏在本地能同时跑:
+ * 每个 client 转给自己那个 server,而不是全挤在 3001。
  */
 export function gameViteConfig(opts = {}) {
   return {
     plugins: [tailwindcss(), svelte({ preprocess: preprocess() })],
     server: {
       ...(opts.port ? { port: opts.port, strictPort: true } : {}),
-      proxy: { "/socket.io": { target: "http://localhost:3001", ws: true } },
+      proxy: {
+        "/socket.io": {
+          target: `http://localhost:${opts.serverPort ?? 3001}`,
+          ws: true,
+        },
+      },
     },
   };
 }
