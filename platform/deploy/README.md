@@ -34,6 +34,7 @@ TwoPlayerGames/
 ├── platform/deploy/
 │   ├── Dockerfile               # 四个游戏共用,靠 ARG 区分
 │   ├── Caddyfile                # 四个游戏共用,靠环境变量区分
+│   ├── deploy-all.sh            # 一次更新所有游戏
 │   └── README.md                # 本文件
 ├── .dockerignore                # 只有根这一份生效
 └── <game>/
@@ -115,11 +116,32 @@ docker compose up -d
 
 ## 4. 代码更新后
 
+一次更新所有游戏，在 repo 根跑：
+
+```bash
+platform/deploy/deploy-all.sh
+```
+
+它做四件事：`git pull --ff-only`；把每个有 `docker-compose.yml` 的游戏目录
+（`proxy/` 除外）都 `build` 一遍；**全部构建成功后**再逐个 `up -d`；最后
+`docker image prune -f` 清掉上一版留下的 dangling 镜像。已经 pull 过、只想用当前
+checkout 部署，加 `--no-pull`。
+
+先全部 build 再 up，是为了让构建失败的那次部署什么都不换：任何一个游戏构建报错，
+脚本在 up 之前就退出，四个游戏都还跑着旧版本。
+
+**哪些游戏会重启。** `up -d` 只重建镜像变了的容器，没改动的游戏保持 `Running`
+（实测连跑两遍，第二遍八个容器都没动）。镜像由 `platform/` 和本游戏目录的内容决定，
+所以只改了 black-and-white，就只有它重启；改了 `platform/`，四个一起重启。重启会丢掉
+内存里的全部房间，正在打的局会断开，所以挑没人玩的时候部署。文档（`**/*.md`）和
+`deploy-all.sh` 本身被 `.dockerignore` 排除了，改它们不会触发重启。
+
+只更新一个游戏：
+
 ```bash
 cd <game>
 git pull
-docker compose build
-docker compose up -d        # 只重建有变化的容器
+docker compose up -d --build
 ```
 
 共享 proxy 不用动。
