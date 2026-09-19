@@ -238,6 +238,10 @@ Node 22 + TS 5（生产用 `tsx` 直跑 TS，不编译）｜ Vitest 4 ｜ npm �
 细节（droplet 一次性设置、构建上下文为什么是 repo 根、`/socket.io/` 不通时怎么查）见
 [`platform/deploy/README.md`](platform/deploy/README.md)。
 
+droplet 上一次更新所有游戏：在 repo 根跑 `platform/deploy/deploy-all.sh`（pull → 全部
+build → 全部 up → prune）。游戏列表不写死，新游戏的 `docker-compose.yml` 放好就会被带上。
+只有镜像变了的游戏会重启；改 `platform/` 会让四个一起重启，内存里的房间全丢。
+
 本地已有同名镜像时 **`docker compose up -d` 不会重建**，会拿旧镜像糊弄过去。验证改动要用
 `docker compose up -d --build`。
 

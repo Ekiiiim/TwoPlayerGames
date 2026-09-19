@@ -14,6 +14,10 @@ node_modules
 **/*.md
 docs
 
+# 部署脚本只在 droplet 上跑。它在 platform/ 下,不排除的话改一次脚本,
+# 四个镜像全变,部署时四个游戏正在打的局一起断掉。
+platform/deploy/*.sh
+
 # 注意:不要按游戏名排除源码。构建上下文是 repo 根,四个游戏共用它和这一份
 # .dockerignore;按游戏名排除会让另外三个的构建拿不到自己的源码。
 # (镜像里实际 COPY 哪些路径由 platform/deploy/Dockerfile 的 ARG GAME_DIR 决定,
