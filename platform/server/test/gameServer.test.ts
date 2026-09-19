@@ -253,6 +253,37 @@ describe("createGameServer 的会话层管线", () => {
     await close();
   });
 
+  it("局中 rejoin 先回 room_joined 带房间码,再推视图", async () => {
+    const { port, close } = await counterServer()(0);
+    const a = connect(port);
+    const b = connect(port);
+    a.emit("create_room");
+    const created = await once<{ roomCode: string; sessionToken: string }>(
+      a,
+      "room_created",
+    );
+    const aInit = once(a, "view_update");
+    b.emit("join_room", { roomCode: created.roomCode });
+    await aInit;
+    a.disconnect();
+
+    // 刷新后的页面只有 localStorage 里的 token,房间码 store 是空的;
+    // 服务器不回房间码,局中显示房间码的地方就一直空着。
+    const a2 = connect(port);
+    const events: string[] = [];
+    a2.onAny((event: string) => events.push(event));
+    const accepted = once<{ roomCode: string; sessionToken: string }>(
+      a2,
+      "room_joined",
+    );
+    const restored = once(a2, "view_update");
+    a2.emit("rejoin", created);
+    expect(await accepted).toEqual(created);
+    await restored;
+    expect(events.slice(0, 2)).toEqual(["room_joined", "view_update"]);
+    await close();
+  });
+
   it("还没开局时 rejoin 回到等待室而不是报错", async () => {
     const { port, close } = await counterServer()(0);
     const a = connect(port);

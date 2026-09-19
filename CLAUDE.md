@@ -201,11 +201,11 @@ Node 22 + TS 5（生产用 `tsx` 直跑 TS，不编译）｜ Vitest 4 ｜ npm �
 - **客户端改动只有浏览器能判对错。** `svelte-check` 抓不到运行时的接线错误（它对
   Svelte 4 写法的 `new App(...)` 报 0 error，而那在 Svelte 5 下必崩），Tailwind 漏
   `@source` 也不报错。改完 client 必须起 dev server 真打一局。
-- 完成前必须 `npm test`（全仓库）+ `npm run check`（四个 client）全绿。当前基线 **214**：
+- 完成前必须 `npm test`（全仓库）+ `npm run check`（四个 client）全绿。当前基线 **215**：
 
   | 区域                            | 个数              |
   | ------------------------------- | ----------------- |
-  | `@tpg/{protocol,client,server}` | 5 / 38 / 40       |
+  | `@tpg/{protocol,client,server}` | 5 / 38 / 41       |
   | 四个 `shared`                   | 20 / 37 / 11 / 17 |
   | 四个 `server`                   | 19 / 9 / 6 / 8    |
   | 四个 `client`                   | 1 × 4             |

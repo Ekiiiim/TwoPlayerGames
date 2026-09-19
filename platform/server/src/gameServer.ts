@@ -205,6 +205,9 @@ export function createGameServer<S extends PresenceSession<unknown, unknown>>(
           socket.emit("room_created", { roomCode, sessionToken });
           return;
         }
+        // 局中重连同样要回房间码:刷新后的页面只剩 localStorage 里的 token,
+        // 客户端的房间码 store 是空的,局中显示房间码的地方会一直空着。
+        socket.emit("room_joined", { roomCode, sessionToken });
         const view = session.viewFor(entry.id);
         if (view !== null) socket.emit("view_update", view);
         opts.onRejoin?.(makeCtx(session, entry.id, socket));
